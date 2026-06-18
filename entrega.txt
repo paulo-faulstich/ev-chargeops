@@ -1,0 +1,8 @@
+Enterprise Challenge 2026 - GoodWe + FIAP
+Fase 4 - Energia para sobreviver - Sprint 01 (Pesquisa e documentacao)
+
+Grupo 27
+Paulo Roberto Faulstich Rego - RM 572292
+
+Link do repositorio do grupo:
+https://github.com/paulo-faulstich/ev-chargeops

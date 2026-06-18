@@ -1,0 +1,3 @@
+id_carregador,modelo,potencia_kw,id_estacao_sems,localizacao,status
+CHG-G1,GoodWe HCA G2,7.0,SEMS-PS-001,Garagem -1 vaga comum A,ativo
+CHG-G2,GoodWe HCA G2,22.0,SEMS-PS-001,Garagem -1 vaga comum B,ativo

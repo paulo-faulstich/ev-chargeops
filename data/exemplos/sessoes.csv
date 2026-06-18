@@ -1,0 +1,9 @@
+id_sessao,id_carregador,rfid_tag,id_usuario,inicio,fim,energia_kwh,potencia_media_kw,status,periodo_tarifario
+S0001,CHG-G1,RFID-A1B2,US001,2026-05-02T22:10,2026-05-03T01:40,21.5,7.0,concluida,fora_ponta
+S0002,CHG-G1,RFID-C3D4,US002,2026-05-03T19:05,2026-05-03T20:50,12.2,7.0,concluida,ponta
+S0003,CHG-G2,RFID-E5F6,US003,2026-05-05T23:00,2026-05-06T05:00,30.1,7.2,concluida,fora_ponta
+S0004,CHG-G1,RFID-A1B2,US001,2026-05-10T21:00,2026-05-10T21:25,3.1,7.0,interrompida,fora_ponta
+S0005,CHG-G2,RFID-7G8H,US004,2026-05-12T08:30,2026-05-12T11:00,17.8,7.1,concluida,intermediario
+S0006,CHG-G1,RFID-K1L2,US006,2026-05-15T13:00,2026-05-15T14:30,10.4,7.0,concluida,intermediario
+S0007,CHG-G2,RFID-C3D4,US002,2026-05-20T20:00,2026-05-20T23:10,22.0,7.0,concluida,ponta
+S0008,CHG-G1,RFID-A1B2,US001,2026-05-25T23:30,2026-05-26T03:00,24.0,7.0,concluida,fora_ponta

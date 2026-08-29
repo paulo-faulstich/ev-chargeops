@@ -364,6 +364,14 @@ As integrações externas priorizadas são:
 - **ANEEL Dados Abertos.** Consultar as tarifas de aplicação das distribuidoras (TE e TUSD) e a bandeira tarifária vigente. O valor calculado será apresentado como estimativa tarifária base, com fonte e data de referência, pois impostos, contribuição de iluminação pública e outros componentes da conta podem não estar incluídos.
 - **Mercado Pago em ambiente de teste.** Criar uma cobrança Pix vinculada ao identificador da fatura, exibir o QR Code e acompanhar a mudança de status da ordem. A integração usará exclusivamente credenciais de teste armazenadas em variáveis de ambiente; nenhum segredo será versionado e nenhum pagamento real será processado.
 
+#### Arquitetura de execução aprovada
+
+A implementação da Sprint 02 usará **Next.js com TypeScript no frontend** e um **backend único em Python com FastAPI**, apoiado por Supabase (PostgreSQL, Auth e Storage). O backend será um monólito modular com ports/adapters para que CSV, uma futura API GoodWe, tarifas e gateways de pagamento possam ser substituídos sem alterar o domínio.
+
+A escolha atualiza a decisão técnica posterior à entrega da Sprint 01, sem reescrever o planejamento já avaliado. Como detecção de anomalias, previsão e clustering são partes centrais da Sprint 02 e já haviam sido planejadas com Python, `pandas` e `scikit-learn`, mantê-las no mesmo backend reduz complexidade operacional. A decisão anterior por NestJS foi preservada no histórico e formalmente substituída pela [`ADR 0005`](docs/decisions/0005-nextjs-fastapi-modular-monolith.md).
+
+Os três módulos de IA terão contratos independentes (`AnomalyDetector`, `ConsumptionForecaster` e `UsageSegmenter`). Eles começam dentro do mesmo deploy, mas poderão ser extraídos para um serviço separado se escala, runtime, ownership ou ciclo de deploy justificarem essa mudança.
+
 Como extensões opcionais, a Open-Meteo poderá fornecer previsão de radiação solar para recomendações de horário de recarga, enquanto a Open Charge Map poderá exibir pontos públicos próximos. Essas integrações só serão consideradas depois que o fluxo central estiver validado, pois não substituem a telemetria GoodWe nem resolvem diretamente o rateio condominial.
 
 Não fazem parte do MVP: integração com a API GoodWe sem credenciais oficiais, simulador OCPP apresentado como se representasse o HCA G2, conexão Modbus sem autorização, comandos no carregador da FIAP ou automação frágil da interface do SEMS+ como única fonte de dados.

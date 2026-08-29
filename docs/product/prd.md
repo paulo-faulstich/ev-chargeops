@@ -1,8 +1,8 @@
 # EV ChargeOps - Product Requirements Document
 
-**Versão:** 0.1
+**Versão:** 0.2
 
-**Status:** proposta consolidada para revisão
+**Status:** aprovado para implementação
 
 **Data:** 29 de agosto de 2026
 
@@ -14,11 +14,11 @@
 
 ## 1. Visão do produto
 
-O EV ChargeOps é uma camada de operação e inteligência para recarga compartilhada em condomínios e edifícios corporativos. A plataforma transforma registros heterogêneos de carregamento em sessões auditáveis, atribui consumo a unidades, calcula rateio, sinaliza anomalias e acompanha cobranças.
+O EV ChargeOps é uma camada de operação e inteligência para recarga compartilhada em condomínios e edifícios corporativos. A plataforma transforma registros heterogêneos de carregamento em sessões auditáveis, atribui consumo a unidades, calcula rateio, detecta anomalias, prevê consumo e segmenta perfis de uso, além de acompanhar cobranças.
 
 ## 2. Objetivo desta entrega
 
-Demonstrar uma fatia vertical funcional na qual dados reais observados no SEMS+ percorrem ingestão, normalização, atribuição, tarifa, rateio, análise e pagamento sandbox, mantendo explícita a procedência de cada informação.
+Demonstrar uma fatia vertical funcional na qual dados reais observados no SEMS+ percorrem ingestão, normalização, atribuição, tarifa, rateio, módulos de IA e pagamento sandbox, mantendo explícita a procedência de cada informação e as limitações da amostra.
 
 ## 3. Personas e permissões
 
@@ -52,7 +52,7 @@ No protótipo, uma mesma conta administrativa poderá exercer Gestor e Operador 
 - Uma organização representa o condomínio ou empresa.
 - Uma organização possui locais, carregadores, unidades e usuários.
 - A primeira demonstração terá uma organização e um local ativos, mas todas as entidades operacionais serão isoladas por `organizationId`.
-- O login será fornecido pelo Supabase Auth e a autorização aplicada pelo NestJS.
+- O login será fornecido pelo Supabase Auth e a autorização aplicada pelo FastAPI.
 
 ### 4.2 Ingestão
 
@@ -79,12 +79,15 @@ No protótipo, uma mesma conta administrativa poderá exercer Gestor e Operador 
 - Reexecutar o cálculo com os mesmos dados e regras produz o mesmo resultado.
 - Uma fatura emitida preserva um snapshot das regras e tarifas usadas.
 
-### 4.5 Insights e anomalias
+### 4.5 Insights e IA
 
 - O sistema compara energia, duração, potência média derivada e potência nominal.
 - Regras identificam valores impossíveis, incompatíveis ou significativamente diferentes do histórico disponível.
 - Cada anomalia contém severidade, explicação, evidência e regra aplicada.
-- Uma projeção simples estima consumo até o final do período, informando amostra e limitação.
+- Uma previsão estima consumo ou demanda para um horizonte definido, informando amostra, erro de validação e incerteza.
+- Uma segmentação agrupa perfis por frequência, consumo, duração e horário predominante, informando dataset e parâmetros usados.
+- Resultados de IA registram versão, parâmetros, procedência do dataset e métricas de avaliação suficientes para reprodução.
+- Dados insuficientes geram resultado inconclusivo ou limitação explícita; não serão mascarados com precisão artificial.
 - Recomendações de horário usam tarifa e, quando disponível, contexto solar; não enviam comandos ao carregador.
 
 ### 4.6 Pagamento
@@ -130,19 +133,21 @@ No protótipo, uma mesma conta administrativa poderá exercer Gestor e Operador 
 | FR-11 | Calcular rateio | Fatura aplica energia, taxa de infraestrutura e perdas conforme regra versionada |
 | FR-12 | Preservar cálculo emitido | Alterações posteriores de tarifa não mudam faturas já emitidas |
 | FR-13 | Detectar anomalias | Fixtures anômalos definidos no plano de testes geram flags explicáveis |
-| FR-14 | Projetar consumo | Sistema apresenta projeção, base de cálculo e limitação da amostra |
+| FR-14 | Prever consumo ou demanda | Sistema apresenta horizonte, base de cálculo, erro de validação e incerteza da previsão |
 | FR-15 | Criar Pix sandbox | Fatura elegível gera ordem de teste, QR Code e identificador externo |
 | FR-16 | Processar webhook idempotente | Eventos repetidos não duplicam transições ou lançamentos |
 | FR-17 | Exibir dashboard do gestor | Métricas respeitam organização, local e período selecionados |
 | FR-18 | Exibir visão do morador | Morador vê somente unidades, sessões e faturas autorizadas |
 | FR-19 | Exibir procedência | Campos relevantes identificam fonte real, atribuída ou simulada |
 | FR-20 | Exportar evidência | Gestor exporta resumo do período com sessões, regras, faturas e fontes |
+| FR-21 | Segmentar perfis de uso | Sistema agrupa usuários por atributos documentados e expõe parâmetros, métricas e procedência do dataset |
+| FR-22 | Reproduzir execução de IA | Cada execução registra algoritmo, versão, parâmetros, seed quando aplicável e referência imutável do dataset |
 
 ## 7. Requisitos não funcionais
 
 | ID | Requisito |
 |---|---|
-| NFR-01 | TypeScript será usado no frontend, backend e contratos compartilhados |
+| NFR-01 | TypeScript será usado no frontend e client da API; Python será usado no backend e módulos de IA |
 | NFR-02 | O domínio não importará SDKs de Supabase, Mercado Pago, ANEEL ou GoodWe |
 | NFR-03 | Toda escrita relevante registrará ator, instante e organização |
 | NFR-04 | Segredos existirão somente em variáveis de ambiente ou secret manager |
@@ -152,6 +157,8 @@ No protótipo, uma mesma conta administrativa poderá exercer Gestor e Operador 
 | NFR-08 | A API publicará contrato OpenAPI e erros estruturados |
 | NFR-09 | Testes de domínio não dependerão de rede ou serviços externos |
 | NFR-10 | Nenhum fluxo enviará comandos ao equipamento do LAB FIAP |
+| NFR-11 | Módulos analíticos dependerão de modelos canônicos e ports, não de payloads GoodWe, DataFrames ou acesso direto ao banco |
+| NFR-12 | Execuções de IA com componentes estocásticos usarão seed controlada nos testes e registrarão os parâmetros da demonstração |
 
 ## 8. Fora do escopo
 
@@ -161,14 +168,15 @@ No protótipo, uma mesma conta administrativa poderá exercer Gestor e Operador 
 - Pagamentos reais.
 - Reserva de vagas e filas de carregamento.
 - Aplicativos móveis nativos.
-- Treinamento de modelos complexos ou microserviço Python no primeiro incremento.
+- Treinamento de modelos complexos, inferência generativa crítica ou serviço de IA separado no primeiro incremento.
 
 ## 9. Riscos e respostas
 
 | Risco | Resposta de produto |
 |---|---|
 | Formato real do export difere do observado | Isolar parser no adapter e manter fixture versionado por formato |
-| Histórico é curto para previsão | Exibir incerteza e tratar previsão como insight experimental |
+| Histórico é curto para previsão | Exibir erro e incerteza; retornar inconclusivo quando a amostra não sustentar a estimativa |
+| Dados reais não identificam usuários suficientes para clustering | Usar atribuições ou fixtures simulados com procedência visível e não apresentar os segmentos como comportamento real da planta |
 | Identidade não vem do SEMS+ | Atribuição manual explícita com nível de confiança |
 | Tarifa pública não reproduz a conta completa | Rotular como estimativa base e registrar componentes usados |
 | Sandbox externo fica indisponível | Preservar request/response de teste sanitizado e demonstrar retry controlado |
@@ -177,8 +185,8 @@ No protótipo, uma mesma conta administrativa poderá exercer Gestor e Operador 
 ## 10. Definition of done do incremento demonstrável
 
 - O fluxo principal funciona de ponta a ponta com fixtures reais e demonstrativos identificados.
-- Todos os critérios de aceite FR-01 a FR-20 possuem teste automatizado ou roteiro de demonstração rastreável.
+- Todos os critérios de aceite FR-01 a FR-22 possuem teste automatizado ou roteiro de demonstração rastreável.
 - O cálculo reproduz o conjunto esperado e permanece igual em reexecuções.
 - A reimportação não cria duplicatas.
-- A demonstração inclui pelo menos uma anomalia explicada e uma ordem Pix sandbox.
+- A demonstração inclui uma anomalia explicada, uma previsão com incerteza, uma segmentação reproduzível e uma ordem Pix sandbox.
 - README, PRD, métricas, Tech Spec e ADRs refletem o comportamento entregue.

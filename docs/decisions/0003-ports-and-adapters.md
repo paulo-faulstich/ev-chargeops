@@ -10,7 +10,7 @@ A fonte disponível hoje é um arquivo obtido do SEMS+, enquanto o futuro pode o
 
 ## Decisão
 
-Casos de uso dependerão de interfaces definidas na camada de aplicação. CSV, ANEEL, Mercado Pago, Supabase e futuros provedores serão adapters de infraestrutura injetados pelo NestJS.
+Casos de uso dependerão de interfaces definidas na camada de aplicação. CSV, ANEEL, Mercado Pago, Supabase e futuros provedores serão adapters de infraestrutura conectados na composição da aplicação FastAPI.
 
 ## Consequências
 

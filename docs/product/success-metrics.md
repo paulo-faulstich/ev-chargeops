@@ -1,6 +1,6 @@
 # EV ChargeOps - Success Metrics
 
-**Status:** proposta consolidada para revisão
+**Status:** aprovado para implementação
 
 **Data:** 29 de agosto de 2026
 
@@ -53,6 +53,9 @@ As métricas de impacto serão baselineadas somente após uso por gestores reais
 | M-10 | Integração de pagamento | Uma ordem Pix sandbox criada e atualizada por webhook idempotente | Log de demonstração |
 | M-11 | Proveniência na interface | 100% das telas de sessão e fatura identificam dados reais, atribuídos e simulados | Teste E2E |
 | M-12 | Segurança do equipamento | 0 comandos ou alterações enviados ao carregador | Revisão de integrações |
+| M-13 | Previsão demonstrável | Uma previsão exibe horizonte, amostra, erro de validação e faixa de incerteza; resultado inconclusivo é aceito quando o mínimo de dados não for atingido | Snapshot do insight e teste do modelo |
+| M-14 | Segmentação reproduzível | Uma execução de clustering registra features, normalização, parâmetros, seed, métrica de avaliação e procedência dos dados | Registro de `InsightRun` e teste reproduzível |
+| M-15 | Rastreabilidade da IA | 100% dos resultados apresentados possuem versão do algoritmo e referência do dataset | Consulta de auditoria |
 
 ## 5. Guardrail metrics
 
@@ -71,6 +74,8 @@ As métricas de impacto serão baselineadas somente após uso por gestores reais
 | `import_completed` | batchId, validCount, invalidCount, duplicateCount |
 | `session_assigned` | sessionId, previousConfidence, newConfidence, actorId |
 | `anomaly_flagged` | sessionId, ruleCode, severity |
+| `forecast_generated` | insightRunId, horizon, sampleSize, modelVersion, evaluationMetric |
+| `usage_segments_generated` | insightRunId, segmentCount, sampleSize, modelVersion, datasetProvenance |
 | `billing_period_closed` | periodId, sessionCount, energyKwh, invoiceCount |
 | `invoice_issued` | invoiceId, amountCents, sessionCount |
 | `payment_order_created` | invoiceId, provider, externalStatus |
@@ -84,7 +89,7 @@ Eventos não armazenarão nome, e-mail, cartão completo ou payload sensível de
 |---|---|
 | Arquitetura funcional | Lote rastreável do input à fatura e ao pagamento |
 | Gestão e estrutura de dados | M-01 a M-06 |
-| Papel da IA | M-07 e explicações das regras/insights |
+| Papel da IA | M-07, M-13, M-14 e M-15, com demonstração dos três módulos planejados |
 | Aderência ao contexto | M-11, M-12 e uso de sessões SEMS+ |
 | Visão de produto real | M-09, M-10 e métricas de outcome instrumentadas |
 
@@ -94,4 +99,5 @@ Eventos não armazenarão nome, e-mail, cartão completo ou payload sensível de
 - Métricas de fechamento: mensalmente.
 - Métricas de produto: painel móvel de 30 e 90 dias.
 - Revisão de regras de anomalia: após cada falso positivo ou falso negativo confirmado.
+- Revisão de modelos: quando houver mudança de dataset, features, algoritmo ou evidência de degradação.
 - Revisão de targets comerciais: depois do primeiro ciclo com baseline real.

@@ -10,13 +10,13 @@ A demonstração precisa de persistência, identidade e armazenamento de arquivo
 
 ## Decisão
 
-Usar Supabase para PostgreSQL, Auth e Storage. O NestJS acessa o PostgreSQL por conexão padrão e Prisma; o Next.js não consulta tabelas operacionais diretamente.
+Usar Supabase para PostgreSQL, Auth e Storage. O backend FastAPI acessa o PostgreSQL por conexão padrão com SQLAlchemy; o Next.js não consulta tabelas operacionais diretamente.
 
 ## Consequências
 
 - Banco relacional, autenticação e storage ficam disponíveis rapidamente.
 - Trocar Supabase por outro PostgreSQL tende a exigir mudança de conexão e infraestrutura, não do domínio.
-- Autorização de negócio permanece no NestJS; RLS protege superfícies do Supabase.
+- Autorização de negócio permanece no FastAPI; RLS protege superfícies do Supabase.
 - A equipe precisa administrar corretamente pool de conexões, migrations e chaves de serviço.
 
 ## Alternativas consideradas

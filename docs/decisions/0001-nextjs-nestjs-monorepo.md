@@ -1,8 +1,10 @@
 # ADR 0001: Next.js e NestJS em monorepo TypeScript
 
-**Status:** aceito
+**Status:** substituído pela [ADR 0005](0005-nextjs-fastapi-modular-monolith.md)
 
 **Data:** 29 de agosto de 2026
+
+**Substituído em:** 29 de agosto de 2026
 
 ## Contexto
 
@@ -24,3 +26,7 @@ Usar Next.js no frontend e NestJS no backend, em um monorepo pnpm com contratos 
 - Next.js full-stack: menor setup, mas maior acoplamento entre interface e domínio.
 - Fastify sem NestJS: menor overhead, porém exige definir manualmente convenções e módulos.
 - React com backend Python: adequado para ML, mas adiciona duas stacks antes de existir necessidade de modelos avançados.
+
+## Motivo da substituição
+
+Após tornar explícito que detecção de anomalias, previsão de consumo/demanda e segmentação por clustering são capacidades centrais da Sprint 02, e não extensões futuras, a premissa desta decisão deixou de valer. A [ADR 0005](0005-nextjs-fastapi-modular-monolith.md) preserva o frontend Next.js e substitui o NestJS por um monólito modular FastAPI, evitando um segundo serviço apenas para executar a camada de dados e IA já planejada em Python na Sprint 01.

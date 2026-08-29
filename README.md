@@ -6,6 +6,8 @@ Enterprise Challenge 2026 · GoodWe + FIAP · Fase 4 "Energia para sobreviver" �
 
 Este repositório é o documento central da Sprint 01. Ele reúne a pesquisa das três frentes do desafio, a arquitetura proposta, o modelo de rateio, o papel da inteligência artificial e o plano para a Sprint 02. O código funcional não é objeto desta sprint; além do documento, o repositório traz apenas o diagrama de arquitetura e um conjunto de dados simulados que servirá de base para a implementação.
 
+> **Nota sobre a execução:** o conteúdo principal deste README preserva a entrega original da Sprint 01 e o planejamento que foi avaliado. As adaptações necessárias para a implementação, considerando as interfaces efetivamente disponíveis para o desafio, estão registradas separadamente na Seção 7.1.
+
 ---
 
 ## Equipe
@@ -325,6 +327,56 @@ O que será desenvolvido, em qual ordem e com quais tecnologias.
 
 A ordem prioriza primeiro a fundação (dados e rateio), depois a inteligência e por último a apresentação, de modo que cada etapa só comece sobre uma base já validada.
 
+### 7.1 Ajustes necessários pela indisponibilidade das APIs
+
+O plano acima permanece como registro da proposta entregue e avaliada na Sprint 01. Para a execução da Sprint 02, entretanto, é necessário adaptar a estratégia de integração às interfaces efetivamente disponibilizadas para o desafio. A API dos EV Chargers não será liberada aos grupos; o HCA G2 de referência não oferece OCPP; e o carregador do LAB FIAP está em operação, portanto não deve receber comandos ou alterações de configuração durante o projeto.
+
+| Planejamento da Sprint 01 | Situação disponível para a execução | Ajuste adotado na Sprint 02 |
+|---|---|---|
+| GoodWe SEMS API como fonte primária | Acesso à planta compartilhada e ao histórico no SEMS+, sem credenciais da API | Importar de forma estruturada os dados que possam ser visualizados ou exportados do SEMS+ |
+| OCPP como alternativa para eventos de sessão | O HCA G2 de referência não suporta OCPP | Remover OCPP como fallback da implementação atual; manter apenas como referência de interoperabilidade futura |
+| Sessões reais identificadas por RFID | O carregador da FIAP não possui cartões configurados e o histórico atual não identifica cada usuário | Combinar consumo real do SEMS+ com usuários, unidades e identificadores simulados, deixando explícita a origem de cada campo |
+| Configuração ou controle direto do carregador | O equipamento está em uso real no LAB FIAP e não deve ser alterado | Trabalhar em modo demonstrativo, sem enviar comandos ao equipamento |
+| Dados externos apenas como enriquecimento | APIs externas podem fechar partes reais do fluxo operacional | Priorizar ANEEL para tarifa oficial e Mercado Pago em sandbox para demonstrar cobrança Pix |
+
+#### Estratégia de integração revisada
+
+O SEMS+ continua sendo a referência para os dados reais de operação. A indisponibilidade da API não será mascarada por uma integração fictícia: a aplicação receberá sessões por importação estruturada e registrará a procedência de cada informação (`sems_manual`, `sems_export` ou `simulated`). Dessa forma, consumo, potência e horários reais não serão confundidos com os dados simulados necessários para representar usuário, RFID e unidade habitacional.
+
+O fluxo principal da demonstração será:
+
+```text
+Sessão real obtida no SEMS+
+        ↓
+Normalização e vínculo com usuário/unidade
+        ↓
+Tarifa e bandeira obtidas da ANEEL
+        ↓
+Motor de rateio e geração da fatura
+        ↓
+Cobrança Pix criada no Mercado Pago (sandbox)
+        ↓
+Confirmação e atualização do status da fatura
+```
+
+As integrações externas priorizadas são:
+
+- **ANEEL Dados Abertos.** Consultar as tarifas de aplicação das distribuidoras (TE e TUSD) e a bandeira tarifária vigente. O valor calculado será apresentado como estimativa tarifária base, com fonte e data de referência, pois impostos, contribuição de iluminação pública e outros componentes da conta podem não estar incluídos.
+- **Mercado Pago em ambiente de teste.** Criar uma cobrança Pix vinculada ao identificador da fatura, exibir o QR Code e acompanhar a mudança de status da ordem. A integração usará exclusivamente credenciais de teste armazenadas em variáveis de ambiente; nenhum segredo será versionado e nenhum pagamento real será processado.
+
+Como extensões opcionais, a Open-Meteo poderá fornecer previsão de radiação solar para recomendações de horário de recarga, enquanto a Open Charge Map poderá exibir pontos públicos próximos. Essas integrações só serão consideradas depois que o fluxo central estiver validado, pois não substituem a telemetria GoodWe nem resolvem diretamente o rateio condominial.
+
+Não fazem parte do MVP: integração com a API GoodWe sem credenciais oficiais, simulador OCPP apresentado como se representasse o HCA G2, conexão Modbus sem autorização, comandos no carregador da FIAP ou automação frágil da interface do SEMS+ como única fonte de dados.
+
+Referências técnicas para a execução:
+
+- ANEEL, Tarifas de aplicação das distribuidoras: https://dadosabertos.aneel.gov.br/dataset/tarifas-distribuidoras-energia-eletrica
+- ANEEL, Bandeiras Tarifárias: https://dadosabertos.aneel.gov.br/dataset/bandeiras-tarifarias
+- Mercado Pago, teste de integração Pix pela Orders API: https://www.mercadopago.com.br/developers/pt/docs/checkout-api-orders/integration-test/pix
+- Mercado Pago, notificações de Orders: https://www.mercadopago.com.br/developers/pt/docs/checkout-api-orders/notifications
+- Open-Meteo, Weather Forecast API: https://open-meteo.com/en/docs
+- Open Charge Map, API para desenvolvedores: https://openchargemap.org/develop
+
 ---
 
 ## 8. Estrutura do repositório
@@ -336,7 +388,10 @@ ev-chargeops/
 ├── .gitignore
 ├── docs/
 │   ├── arquitetura.png           # diagrama de arquitetura (Figura 1)
-│   └── uso_ia.md                 # registro transparente do uso de IA
+│   ├── uso_ia.md                 # registro transparente do uso de IA
+│   ├── product/                  # problem frame, PRD e success metrics da execução
+│   ├── technical/                # especificação técnica da solução
+│   └── decisions/                # ADRs das decisões arquiteturais
 └── data/
     └── exemplos/                 # dados simulados para a Sprint 02 (esquema da base)
         ├── unidades.csv
@@ -345,6 +400,14 @@ ev-chargeops/
         ├── sessoes.csv
         └── faturas.csv
 ```
+
+A definição da execução está detalhada em:
+
+- [`docs/product/problem-frame.md`](docs/product/problem-frame.md)
+- [`docs/product/prd.md`](docs/product/prd.md)
+- [`docs/product/success-metrics.md`](docs/product/success-metrics.md)
+- [`docs/technical/ev-chargeops-architecture.md`](docs/technical/ev-chargeops-architecture.md)
+- [`docs/decisions/`](docs/decisions/)
 
 ---
 

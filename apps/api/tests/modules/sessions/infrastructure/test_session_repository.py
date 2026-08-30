@@ -5,8 +5,12 @@ from uuid import UUID
 
 import pytest
 import pytest_asyncio
+from sqlalchemy import event, func, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from app.modules.audit.infrastructure.models import AuditEventModel
+from app.modules.identity.domain.auth import OrganizationRole, OrganizationScope
 from app.modules.ingestion.infrastructure.models import (
     ChargingSessionModel,
     ImportBatchModel,
@@ -20,6 +24,7 @@ from app.modules.organizations.infrastructure.models import (
     SiteModel,
     UnitModel,
 )
+from app.modules.sessions.domain.errors import SessionNotFound, UnitNotFound
 from app.modules.sessions.infrastructure.models import SessionAssignmentModel
 from app.modules.sessions.infrastructure.repository import SqlAlchemySessionRepository
 from app.shared.sqlalchemy import Base
@@ -40,6 +45,26 @@ async def async_session() -> AsyncIterator[AsyncSession]:
 
 def identifier(prefix: int, suffix: int) -> UUID:
     return UUID(f"{prefix:08x}-0000-0000-0000-{suffix:012d}")
+
+
+def manager_scope(suffix: int) -> OrganizationScope:
+    return OrganizationScope(
+        auth_user_id=identifier(6, suffix),
+        profile_id=identifier(5, suffix),
+        organization_id=identifier(1, suffix),
+        role=OrganizationRole.MANAGER,
+        unit_id=None,
+    )
+
+
+async def row_count(session: AsyncSession, model: type[object]) -> int:
+    return await session.scalar(select(func.count()).select_from(model)) or 0
+
+
+def as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 async def seed_organization(
@@ -406,3 +431,353 @@ async def test_list_assignment_units_is_scoped_and_keeps_vacant_units(
         ("102", None),
     ]
     assert all(not hasattr(item, "email") for item in items)
+
+
+async def test_assign_session_creates_audited_assignment_without_changing_observations(
+    async_session: AsyncSession,
+) -> None:
+    organization_id, site_id, charger_id, import_batch_id = await seed_organization(
+        async_session,
+        1,
+    )
+    charging_session = await add_session(
+        async_session,
+        organization_id=organization_id,
+        site_id=site_id,
+        charger_id=charger_id,
+        import_batch_id=import_batch_id,
+        id_suffix=1,
+        started_at=datetime(2026, 8, 29, 17, tzinfo=UTC),
+        card_id_raw="RAW-CARD-MUST-STAY-UNTRUSTED",
+    )
+    unit = UnitModel(
+        id=identifier(9, 1),
+        organization_id=organization_id,
+        code="A-101",
+        display_name="Apartment A-101",
+    )
+    async_session.add(unit)
+    await async_session.commit()
+    observed_values = (
+        charging_session.organization_id,
+        charging_session.site_id,
+        charging_session.charger_id,
+        charging_session.import_batch_id,
+        charging_session.raw_record_id,
+        charging_session.source,
+        charging_session.external_id,
+        charging_session.deduplication_key,
+        charging_session.started_at,
+        charging_session.ended_at,
+        charging_session.energy_kwh,
+        charging_session.charge_port,
+        charging_session.card_id_raw,
+        charging_session.provenance,
+    )
+    occurred_at = datetime(2026, 8, 30, 18, tzinfo=UTC)
+
+    result = await SqlAlchemySessionRepository(async_session).assign_session(
+        manager_scope(1),
+        charging_session.id,
+        unit.id,
+        "Confirmado pelo síndico",
+        occurred_at,
+    )
+
+    assignment = await async_session.scalar(select(SessionAssignmentModel))
+    audit = await async_session.scalar(select(AuditEventModel))
+    assert assignment is not None
+    assert audit is not None
+    assert await row_count(async_session, SessionAssignmentModel) == 1
+    assert await row_count(async_session, AuditEventModel) == 1
+    assert assignment.organization_id == organization_id
+    assert assignment.charging_session_id == charging_session.id
+    assert assignment.unit_id == unit.id
+    assert assignment.assigned_by == manager_scope(1).profile_id
+    assert assignment.justification == "Confirmado pelo síndico"
+    assert as_utc(assignment.created_at) == occurred_at
+    assert as_utc(assignment.updated_at) == occurred_at
+    assert not hasattr(assignment, "card_id_raw")
+    assert charging_session.identity_confidence == "assigned"
+    assert charging_session.status == "ready"
+    assert (
+        charging_session.organization_id,
+        charging_session.site_id,
+        charging_session.charger_id,
+        charging_session.import_batch_id,
+        charging_session.raw_record_id,
+        charging_session.source,
+        charging_session.external_id,
+        charging_session.deduplication_key,
+        charging_session.started_at,
+        charging_session.ended_at,
+        charging_session.energy_kwh,
+        charging_session.charge_port,
+        charging_session.card_id_raw,
+        charging_session.provenance,
+    ) == observed_values
+    assert audit.organization_id == organization_id
+    assert audit.actor_profile_id == manager_scope(1).profile_id
+    assert as_utc(audit.occurred_at) == occurred_at
+    assert audit.event_type == "session_assigned"
+    assert audit.entity_type == "charging_session"
+    assert audit.entity_id == charging_session.id
+    assert audit.metadata_json == {
+        "previous_unit_id": None,
+        "new_unit_id": str(unit.id),
+        "justification": "Confirmado pelo síndico",
+    }
+    assert result.created is True
+    assert result.assignment.id == assignment.id
+    assert result.session.identity_confidence == "assigned"
+    assert result.session.status == "ready"
+    assert result.session.unit_id == unit.id
+    assert result.session.unit_code == "A-101"
+
+
+async def test_assign_session_exact_replay_is_idempotent(
+    async_session: AsyncSession,
+) -> None:
+    organization_id, site_id, charger_id, import_batch_id = await seed_organization(
+        async_session,
+        1,
+    )
+    charging_session = await add_session(
+        async_session,
+        organization_id=organization_id,
+        site_id=site_id,
+        charger_id=charger_id,
+        import_batch_id=import_batch_id,
+        id_suffix=1,
+        started_at=datetime(2026, 8, 29, 17, tzinfo=UTC),
+    )
+    unit = UnitModel(
+        id=identifier(9, 1),
+        organization_id=organization_id,
+        code="A-101",
+        display_name="Apartment A-101",
+    )
+    async_session.add(unit)
+    await async_session.commit()
+    repository = SqlAlchemySessionRepository(async_session)
+    first_occurred_at = datetime(2026, 8, 30, 18, tzinfo=UTC)
+    first = await repository.assign_session(
+        manager_scope(1),
+        charging_session.id,
+        unit.id,
+        "Confirmado pelo síndico",
+        first_occurred_at,
+    )
+
+    replay = await repository.assign_session(
+        manager_scope(1),
+        charging_session.id,
+        unit.id,
+        "Confirmado pelo síndico",
+        first_occurred_at + timedelta(minutes=5),
+    )
+
+    assert await row_count(async_session, SessionAssignmentModel) == 1
+    assert await row_count(async_session, AuditEventModel) == 1
+    assert replay.created is False
+    assert replay.assignment == first.assignment
+    assert replay.session == first.session
+
+
+async def test_assign_session_reassignment_updates_current_row_and_appends_audit(
+    async_session: AsyncSession,
+) -> None:
+    organization_id, site_id, charger_id, import_batch_id = await seed_organization(
+        async_session,
+        1,
+    )
+    charging_session = await add_session(
+        async_session,
+        organization_id=organization_id,
+        site_id=site_id,
+        charger_id=charger_id,
+        import_batch_id=import_batch_id,
+        id_suffix=1,
+        started_at=datetime(2026, 8, 29, 17, tzinfo=UTC),
+    )
+    unit_a = UnitModel(
+        id=identifier(9, 1),
+        organization_id=organization_id,
+        code="A-101",
+        display_name="Apartment A-101",
+    )
+    unit_b = UnitModel(
+        id=identifier(9, 2),
+        organization_id=organization_id,
+        code="A-102",
+        display_name="Apartment A-102",
+    )
+    async_session.add_all([unit_a, unit_b])
+    await async_session.commit()
+    repository = SqlAlchemySessionRepository(async_session)
+    first_occurred_at = datetime(2026, 8, 30, 18, tzinfo=UTC)
+    first = await repository.assign_session(
+        manager_scope(1),
+        charging_session.id,
+        unit_a.id,
+        "Confirmação inicial",
+        first_occurred_at,
+    )
+    corrected_at = first_occurred_at + timedelta(minutes=5)
+
+    reassigned = await repository.assign_session(
+        manager_scope(1),
+        charging_session.id,
+        unit_b.id,
+        "Correção",
+        corrected_at,
+    )
+
+    assignment = await async_session.scalar(select(SessionAssignmentModel))
+    audits = tuple(
+        (
+            await async_session.scalars(
+                select(AuditEventModel).order_by(AuditEventModel.occurred_at)
+            )
+        ).all()
+    )
+    assert assignment is not None
+    assert await row_count(async_session, SessionAssignmentModel) == 1
+    assert len(audits) == 2
+    assert assignment.id == first.assignment.id
+    assert assignment.unit_id == unit_b.id
+    assert assignment.justification == "Correção"
+    assert as_utc(assignment.updated_at) == corrected_at
+    assert audits[-1].metadata_json == {
+        "previous_unit_id": str(unit_a.id),
+        "new_unit_id": str(unit_b.id),
+        "justification": "Correção",
+    }
+    assert reassigned.created is False
+    assert reassigned.assignment.unit_id == unit_b.id
+    assert reassigned.session.unit_id == unit_b.id
+
+
+async def test_assign_session_hides_cross_tenant_session_and_unit_ids(
+    async_session: AsyncSession,
+) -> None:
+    first_ids = await seed_organization(async_session, 1)
+    second_ids = await seed_organization(async_session, 2)
+    first_session = await add_session(
+        async_session,
+        organization_id=first_ids[0],
+        site_id=first_ids[1],
+        charger_id=first_ids[2],
+        import_batch_id=first_ids[3],
+        id_suffix=1,
+        started_at=datetime(2026, 8, 29, 17, tzinfo=UTC),
+    )
+    second_session = await add_session(
+        async_session,
+        organization_id=second_ids[0],
+        site_id=second_ids[1],
+        charger_id=second_ids[2],
+        import_batch_id=second_ids[3],
+        id_suffix=2,
+        started_at=datetime(2026, 8, 29, 18, tzinfo=UTC),
+    )
+    first_unit = UnitModel(
+        id=identifier(9, 1),
+        organization_id=first_ids[0],
+        code="A-101",
+        display_name="Apartment A-101",
+    )
+    second_unit = UnitModel(
+        id=identifier(9, 2),
+        organization_id=second_ids[0],
+        code="B-201",
+        display_name="Apartment B-201",
+    )
+    async_session.add_all([first_unit, second_unit])
+    await async_session.commit()
+    repository = SqlAlchemySessionRepository(async_session)
+    occurred_at = datetime(2026, 8, 30, 18, tzinfo=UTC)
+
+    with pytest.raises(SessionNotFound):
+        await repository.assign_session(
+            manager_scope(1),
+            second_session.id,
+            first_unit.id,
+            "Tentativa inválida",
+            occurred_at,
+        )
+    with pytest.raises(UnitNotFound):
+        await repository.assign_session(
+            manager_scope(1),
+            first_session.id,
+            second_unit.id,
+            "Tentativa inválida",
+            occurred_at,
+        )
+
+    assert await row_count(async_session, SessionAssignmentModel) == 0
+    assert await row_count(async_session, AuditEventModel) == 0
+
+
+async def test_assign_session_rolls_back_all_changes_when_audit_insert_fails(
+    async_session: AsyncSession,
+) -> None:
+    organization_id, site_id, charger_id, import_batch_id = await seed_organization(
+        async_session,
+        1,
+    )
+    charging_session = await add_session(
+        async_session,
+        organization_id=organization_id,
+        site_id=site_id,
+        charger_id=charger_id,
+        import_batch_id=import_batch_id,
+        id_suffix=1,
+        started_at=datetime(2026, 8, 29, 17, tzinfo=UTC),
+    )
+    unit = UnitModel(
+        id=identifier(9, 1),
+        organization_id=organization_id,
+        code="A-101",
+        display_name="Apartment A-101",
+    )
+    async_session.add(unit)
+    await async_session.commit()
+    charging_session_id = charging_session.id
+    sync_engine = async_session.sync_session.bind
+    assert sync_engine is not None
+
+    def fail_audit_insert(
+        _connection: object,
+        _cursor: object,
+        statement: str,
+        _parameters: object,
+        _context: object,
+        _executemany: object,
+    ) -> None:
+        if "INSERT INTO audit_events" in statement:
+            raise SQLAlchemyError("forced audit insert failure")
+
+    event.listen(sync_engine, "before_cursor_execute", fail_audit_insert)
+    try:
+        with pytest.raises(SQLAlchemyError, match="forced audit insert failure"):
+            await SqlAlchemySessionRepository(async_session).assign_session(
+                manager_scope(1),
+                charging_session.id,
+                unit.id,
+                "Confirmado pelo síndico",
+                datetime(2026, 8, 30, 18, tzinfo=UTC),
+            )
+    finally:
+        event.remove(sync_engine, "before_cursor_execute", fail_audit_insert)
+
+    persisted_session = await async_session.scalar(
+        select(ChargingSessionModel)
+        .where(ChargingSessionModel.id == charging_session_id)
+        .execution_options(populate_existing=True)
+    )
+    assert persisted_session is not None
+    assert persisted_session.identity_confidence == "unknown"
+    assert persisted_session.status == "pending_review"
+    assert await row_count(async_session, SessionAssignmentModel) == 0
+    assert await row_count(async_session, AuditEventModel) == 0

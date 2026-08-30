@@ -23,8 +23,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div>
             <p className="product-name">EV ChargeOps</p>
             <div className="product-partnership">
-              <span>FIAP Challenge</span>
-              <span aria-hidden="true">×</span>
+              <span className="product-partner-name">FIAP Challenge</span>
+              <span className="product-partner-cross" aria-hidden="true">
+                ×
+              </span>
               <Image
                 src="/brands/goodwe-logo.svg"
                 width={74}

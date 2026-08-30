@@ -51,11 +51,20 @@ test("separates the product identity from the GoodWe installation context", asyn
     .getByText("FIAP Challenge")
     .evaluate((element) => ({
       fontSize: Number.parseFloat(getComputedStyle(element).fontSize),
+      fontFamily: getComputedStyle(element).fontFamily,
       height: element.getBoundingClientRect().height,
     }));
+  const productFontFamily = await productIdentity
+    .getByText("EV ChargeOps")
+    .evaluate((element) => getComputedStyle(element).fontFamily);
+  const crossFontSize = await productIdentity
+    .getByText("×")
+    .evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
   const goodWeHeight = await productIdentity
     .getByRole("img", { name: "GoodWe: Smart Energy Innovator" })
     .evaluate((element) => element.getBoundingClientRect().height);
+  expect(fiapMetrics.fontFamily).toBe(productFontFamily);
+  expect(crossFontSize).toBeLessThan(fiapMetrics.fontSize);
   expect(fiapMetrics.fontSize / goodWeHeight).toBeGreaterThanOrEqual(0.9);
   expect(Math.abs(fiapMetrics.height - goodWeHeight)).toBeLessThanOrEqual(0.25);
   await expect(

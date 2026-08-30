@@ -105,16 +105,23 @@ a {
   align-items: center;
   gap: 0.4rem;
   color: #d8e4e8;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.68rem;
-  font-weight: 700;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 800;
   line-height: 1;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.055em;
   text-transform: uppercase;
 }
 
 .product-partnership span {
   white-space: nowrap;
+}
+
+.product-partner-cross {
+  color: #9ab0bd;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
 .primary-navigation {

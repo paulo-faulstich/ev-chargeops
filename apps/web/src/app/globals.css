@@ -1283,14 +1283,8 @@ a {
   text-transform: uppercase;
 }
 
-.session-queue th:last-child,
-.session-queue td:last-child {
+.session-queue th:last-child {
   text-align: right;
-}
-
-.session-queue tbody tr {
-  cursor: pointer;
-  transition: background-color 120ms ease;
 }
 
 .session-queue tbody tr:hover {
@@ -1303,11 +1297,8 @@ a {
 }
 
 .session-queue td {
-  padding: 0.9rem 0.85rem;
+  padding: 0;
   border-bottom: 1px solid var(--line);
-  color: var(--ink);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.64rem;
   vertical-align: top;
 }
 
@@ -1315,17 +1306,42 @@ a {
   border-bottom: 0;
 }
 
-.session-queue td span,
-.session-queue td small {
+.session-queue td button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 1rem;
+  padding: 0.9rem 0.85rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.64rem;
+  text-align: left;
+}
+
+.session-queue td button:disabled {
+  cursor: wait;
+}
+
+.session-row-start,
+.session-row-start span,
+.session-row-start small {
   display: block;
 }
 
-.session-queue td small {
+.session-row-start small {
   margin-top: 0.35rem;
   color: #e4bd5f;
   font-family: ui-sans-serif, system-ui, sans-serif;
   font-size: 0.56rem;
   line-height: 1.3;
+}
+
+.session-row-energy {
+  text-align: right;
 }
 
 .session-evidence {

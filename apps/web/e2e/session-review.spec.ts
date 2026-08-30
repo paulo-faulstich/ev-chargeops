@@ -56,7 +56,13 @@ const assignmentUnits = {
   ],
 };
 
-async function routeSessionReview(page: Page) {
+async function routeSessionReview(
+  page: Page,
+  options: {
+    assignmentGate?: Promise<void>;
+    onAssignmentStart?: () => void;
+  } = {},
+) {
   let assignmentBody: unknown;
 
   await page.route("**/api/v1/sessions**", async (route) => {
@@ -83,6 +89,8 @@ async function routeSessionReview(page: Page) {
       url.pathname === `/api/v1/sessions/${FIRST_SESSION_ID}/assignment`
     ) {
       assignmentBody = request.postDataJSON();
+      options.onAssignmentStart?.();
+      await options.assignmentGate;
       await route.fulfill({
         contentType: "application/json",
         body: JSON.stringify({
@@ -152,12 +160,19 @@ test("assigns observed evidence and advances the pending queue", async ({
   await expect(page.getByText("2 pendências no período")).toBeVisible();
 
   const secondRow = page.getByRole("row", { name: /3,50 kWh/ });
-  await secondRow.focus();
-  await secondRow.press("Enter");
+  await expect(secondRow).not.toHaveAttribute("tabindex");
+  const secondSessionButton = secondRow.getByRole("button", {
+    name: /3,50 kWh/,
+  });
+  await secondSessionButton.focus();
+  await secondSessionButton.press("Enter");
   await expect(
     page.getByRole("region", { name: "Evidência da sessão" }),
   ).toContainText("3,50 kWh");
-  await page.getByRole("row", { name: /7,00 kWh/ }).click();
+  await page
+    .getByRole("row", { name: /7,00 kWh/ })
+    .getByRole("button", { name: /7,00 kWh/ })
+    .click();
 
   const evidence = page.getByRole("region", { name: "Evidência da sessão" });
   await expect(evidence).toContainText("7,00 kWh");
@@ -207,6 +222,85 @@ test("assigns observed evidence and advances the pending queue", async ({
   });
 });
 
+test("freezes the visible review context while an assignment is in flight", async ({
+  page,
+}) => {
+  let releaseAssignment: () => void = () => undefined;
+  let markAssignmentStarted: () => void = () => undefined;
+  const assignmentGate = new Promise<void>((resolve) => {
+    releaseAssignment = resolve;
+  });
+  const assignmentStarted = new Promise<void>((resolve) => {
+    markAssignmentStarted = resolve;
+  });
+  await routeSessionReview(page, {
+    assignmentGate,
+    onAssignmentStart: markAssignmentStarted,
+  });
+
+  await page.goto("/sessions?status=pending_review&period=2026-08");
+  await page.getByLabel("Unidade responsável").selectOption(UNIT_A_ID);
+  await page.getByLabel("Justificativa").fill("Confirmado pela portaria");
+  await page
+    .getByRole("button", { name: "Atribuir e revisar próxima" })
+    .click();
+  await assignmentStarted;
+
+  try {
+    await expect(page.getByLabel("Filtrar período")).toBeDisabled();
+    await expect(page.getByLabel("Unidade responsável")).toBeDisabled();
+    await expect(page.getByLabel("Justificativa")).toBeDisabled();
+    await expect(
+      page
+        .getByRole("row", { name: /3,50 kWh/ })
+        .getByRole("button", { name: /3,50 kWh/ }),
+    ).toBeDisabled();
+    await expect(
+      page.getByRole("region", { name: "Evidência da sessão" }),
+    ).toContainText("7,00 kWh");
+  } finally {
+    releaseAssignment();
+  }
+  await expect(page.getByRole("status")).toContainText("Unidade A-101");
+  await expect(page).toHaveURL(
+    "/sessions?status=pending_review&period=2026-08",
+  );
+  await expect(
+    page.getByRole("region", { name: "Evidência da sessão" }),
+  ).toContainText("3,50 kWh");
+});
+
+test("canonicalizes a contradictory session status before showing the queue", async ({
+  page,
+}) => {
+  await routeSessionReview(page);
+
+  await page.goto("/sessions?status=ready&period=2026-08");
+
+  await expect(page).toHaveURL(
+    "/sessions?status=pending_review&period=2026-08",
+  );
+  await expect(page.getByText("2 pendências no período")).toBeVisible();
+});
+
+test("records the effective period when session filters are missing or invalid", async ({
+  page,
+}) => {
+  await routeSessionReview(page);
+
+  await page.goto("/sessions");
+  await expect(page).toHaveURL(
+    "/sessions?status=pending_review&period=2026-08",
+  );
+  await expect(page.getByText("2 pendências no período")).toBeVisible();
+
+  await page.goto("/sessions?status=pending_review&period=2026-13");
+  await expect(page).toHaveURL(
+    "/sessions?status=pending_review&period=2026-08",
+  );
+  await expect(page.getByText("2 pendências no período")).toBeVisible();
+});
+
 test("keeps assignment evidence and inputs after a recoverable PUT error", async ({
   page,
 }) => {
@@ -216,7 +310,10 @@ test("keeps assignment evidence and inputs after a recoverable PUT error", async
   });
 
   await page.goto("/sessions?status=pending_review&period=2026-08");
-  await page.getByRole("row", { name: /7,00 kWh/ }).click();
+  await page
+    .getByRole("row", { name: /7,00 kWh/ })
+    .getByRole("button", { name: /7,00 kWh/ })
+    .click();
   await page.getByLabel("Unidade responsável").selectOption(UNIT_A_ID);
   await page.getByLabel("Justificativa").fill("Confirmado pela portaria");
   await page

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, KeyboardEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   assignSession,
   listAssignmentUnits,
@@ -77,9 +77,12 @@ async function loadReviewData(
 export function SessionReview({ accessToken }: { accessToken: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const period = isPeriod(searchParams.get("period"))
-    ? searchParams.get("period")!
-    : currentPeriod();
+  const requestedPeriod = searchParams.get("period");
+  const requestedStatus = searchParams.get("status");
+  const period = isPeriod(requestedPeriod) ? requestedPeriod : currentPeriod();
+  const filtersCanonical =
+    requestedPeriod === period && requestedStatus === "pending_review";
+  const canonicalUrl = `/sessions?status=pending_review&period=${period}`;
   const [state, setState] = useState<ReviewState>({ status: "loading", data: null });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [unitId, setUnitId] = useState("");
@@ -89,8 +92,14 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
   >("idle");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [refreshGeneration, setRefreshGeneration] = useState(0);
+  const isSubmitting = submissionState === "submitting";
 
   useEffect(() => {
+    if (!filtersCanonical) router.replace(canonicalUrl);
+  }, [canonicalUrl, filtersCanonical, router]);
+
+  useEffect(() => {
+    if (!filtersCanonical) return;
     let ignore = false;
 
     void loadReviewData(accessToken, period)
@@ -110,16 +119,16 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
     return () => {
       ignore = true;
     };
-  }, [accessToken, period, refreshGeneration]);
+  }, [accessToken, filtersCanonical, period, refreshGeneration]);
 
   const selectedSession = useMemo(() => {
-    if (state.status !== "ready") return null;
+    if (!filtersCanonical || state.status !== "ready") return null;
     return (
       state.data.pendingSessions.find((session) => session.id === selectedId) ??
       state.data.pendingSessions[0] ??
       null
     );
-  }, [selectedId, state]);
+  }, [filtersCanonical, selectedId, state]);
 
   const selectedUnit =
     state.status === "ready"
@@ -127,20 +136,12 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
       : undefined;
 
   function selectSession(sessionId: string) {
+    if (isSubmitting) return;
     setSelectedId(sessionId);
     setUnitId("");
     setJustification("");
     setSubmissionState("idle");
     setSuccessMessage(null);
-  }
-
-  function handleRowKeyDown(
-    event: KeyboardEvent<HTMLTableRowElement>,
-    sessionId: string,
-  ) {
-    if (event.key !== "Enter" && event.key !== " ") return;
-    event.preventDefault();
-    selectSession(sessionId);
   }
 
   async function handleAssignment(event: FormEvent<HTMLFormElement>) {
@@ -197,7 +198,7 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
   }
 
   function updatePeriod(nextPeriod: string) {
-    if (!isPeriod(nextPeriod)) return;
+    if (isSubmitting || !isPeriod(nextPeriod)) return;
     setState({ status: "loading", data: null });
     setSelectedId(null);
     setUnitId("");
@@ -206,6 +207,10 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
     setSuccessMessage(null);
     router.replace(`/sessions?status=pending_review&period=${nextPeriod}`);
   }
+
+  const displayState: ReviewState = filtersCanonical
+    ? state
+    : { status: "loading", data: null };
 
   return (
     <div className="session-review-page">
@@ -231,12 +236,13 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
           <input
             type="month"
             value={period}
+            disabled={isSubmitting}
             onChange={(event) => updatePeriod(event.target.value)}
           />
         </label>
         <p className="session-pending-count">
-          {state.status === "ready"
-            ? pendingCountLabel(state.data.pendingSessions.length)
+          {displayState.status === "ready"
+            ? pendingCountLabel(displayState.data.pendingSessions.length)
             : "Consultando pendências"}
         </p>
       </div>
@@ -248,8 +254,8 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
         </div>
       ) : null}
 
-      {state.status === "loading" ? <SessionLoading /> : null}
-      {state.status === "error" ? (
+      {displayState.status === "loading" ? <SessionLoading /> : null}
+      {displayState.status === "error" ? (
         <SessionLoadError
           onRetry={() => {
             setState({ status: "loading", data: null });
@@ -257,25 +263,25 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
           }}
         />
       ) : null}
-      {state.status === "ready" && state.data.allSessions.length === 0 ? (
+      {displayState.status === "ready" && displayState.data.allSessions.length === 0 ? (
         <NoImportedSessions />
       ) : null}
-      {state.status === "ready" &&
-      state.data.allSessions.length > 0 &&
-      state.data.pendingSessions.length === 0 ? (
+      {displayState.status === "ready" &&
+      displayState.data.allSessions.length > 0 &&
+      displayState.data.pendingSessions.length === 0 ? (
         <NoPendingSessions period={period} />
       ) : null}
-      {state.status === "ready" && selectedSession ? (
+      {displayState.status === "ready" && selectedSession ? (
         <div className="session-review-grid">
           <SessionQueue
-            sessions={state.data.pendingSessions}
+            sessions={displayState.data.pendingSessions}
             selectedId={selectedSession.id}
+            disabled={isSubmitting}
             onSelect={selectSession}
-            onKeyDown={handleRowKeyDown}
           />
           <SessionDecision
             session={selectedSession}
-            units={state.data.units}
+            units={displayState.data.units}
             unitId={unitId}
             justification={justification}
             selectedUnit={selectedUnit}
@@ -341,16 +347,13 @@ function NoPendingSessions({ period }: { period: string }) {
 function SessionQueue({
   sessions,
   selectedId,
+  disabled,
   onSelect,
-  onKeyDown,
 }: {
   sessions: SessionResponse[];
   selectedId: string;
+  disabled: boolean;
   onSelect: (sessionId: string) => void;
-  onKeyDown: (
-    event: KeyboardEvent<HTMLTableRowElement>,
-    sessionId: string,
-  ) => void;
 }) {
   return (
     <section className="session-queue" aria-labelledby="session-queue-title">
@@ -375,17 +378,24 @@ function SessionQueue({
               return (
                 <tr
                   key={session.id}
-                  aria-selected={selected}
                   className={selected ? "selected" : undefined}
-                  tabIndex={0}
-                  onClick={() => onSelect(session.id)}
-                  onKeyDown={(event) => onKeyDown(event, session.id)}
                 >
-                  <td>
-                    <span>{formatQueueDate(session.startedAt)}</span>
-                    <small>Pendente de atribuição</small>
+                  <td colSpan={2}>
+                    <button
+                      type="button"
+                      aria-pressed={selected}
+                      disabled={disabled}
+                      onClick={() => onSelect(session.id)}
+                    >
+                      <span className="session-row-start">
+                        <span>{formatQueueDate(session.startedAt)}</span>
+                        <small>Pendente de atribuição</small>
+                      </span>
+                      <span className="session-row-energy">
+                        {formatSessionEnergy(session.energyKwh)}
+                      </span>
+                    </button>
                   </td>
-                  <td>{formatSessionEnergy(session.energyKwh)}</td>
                 </tr>
               );
             })}
@@ -469,6 +479,7 @@ function SessionDecision({
         <select
           id="session-unit"
           required
+          disabled={submissionState === "submitting"}
           value={unitId}
           onChange={(event) => onUnitChange(event.target.value)}
         >
@@ -494,6 +505,7 @@ function SessionDecision({
           required
           maxLength={500}
           rows={4}
+          disabled={submissionState === "submitting"}
           value={justification}
           onChange={(event) => onJustificationChange(event.target.value)}
           placeholder="Registre como a responsabilidade foi confirmada"

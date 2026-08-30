@@ -32,3 +32,18 @@ test("does not expose routes that merely share the login prefix", async ({
 
   await expect(page).toHaveURL(/\/login$/);
 });
+
+test("keeps data sources visibly scoped under settings on mobile", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/settings/data-sources");
+
+  const settingsNavigation = page.getByRole("navigation", {
+    name: "Configurações",
+  });
+  await expect(settingsNavigation.getByText("Configurações")).toBeVisible();
+  await expect(
+    settingsNavigation.getByRole("link", { name: "Fontes de dados" }),
+  ).toBeVisible();
+});

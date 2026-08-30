@@ -3,6 +3,15 @@ import path from "node:path";
 
 import { expect, test } from "@playwright/test";
 
+test("permanently redirects the legacy import route to data-source settings", async ({
+  request,
+}) => {
+  const response = await request.get("/imports/new", { maxRedirects: 0 });
+
+  expect(response.status()).toBe(308);
+  expect(response.headers().location).toBe("/settings/data-sources");
+});
+
 test("previews a SEMS export with explicit provenance", async ({ page }) => {
   await page.goto("/imports/new");
   await page.getByLabel("Arquivo CSV do SEMS+").setInputFiles(

@@ -13,7 +13,9 @@ from app.modules.ingestion.infrastructure.file_store import (
 
 ORGANIZATION_ID = UUID("10000000-0000-0000-0000-000000000001")
 CHECKSUM = "a" * 64
-OBJECT_PATH = f"{ORGANIZATION_ID}/{CHECKSUM}/source.csv"
+ATTEMPT_ID = UUID("80000000-0000-0000-0000-000000000001")
+OTHER_ATTEMPT_ID = UUID("80000000-0000-0000-0000-000000000002")
+OBJECT_PATH = f"{ORGANIZATION_ID}/{CHECKSUM}/{ATTEMPT_ID}.csv"
 
 pytestmark = pytest.mark.asyncio
 
@@ -26,7 +28,7 @@ async def test_local_store_writes_and_deletes_tenant_checksum_object(
     stored = await store.put(
         ORGANIZATION_ID,
         CHECKSUM,
-        "renamed-export.csv",
+        ATTEMPT_ID,
         b"observed,csv\n",
     )
 
@@ -39,23 +41,19 @@ async def test_local_store_writes_and_deletes_tenant_checksum_object(
     assert not (tmp_path / OBJECT_PATH).exists()
 
 
-@pytest.mark.parametrize("second_filename", ["sems.csv", "renamed.csv"])
-async def test_local_store_reuses_existing_canonical_checksum_object(
-    tmp_path: Path,
-    second_filename: str,
-) -> None:
+async def test_local_store_reuses_existing_attempt_object(tmp_path: Path) -> None:
     store = LocalOriginalFileStore(tmp_path)
     first = await store.put(
         ORGANIZATION_ID,
         CHECKSUM,
-        "sems.csv",
+        ATTEMPT_ID,
         b"observed,csv\n",
     )
 
     reused = await store.put(
         ORGANIZATION_ID,
         CHECKSUM,
-        second_filename,
+        ATTEMPT_ID,
         b"observed,csv\n",
     )
 
@@ -67,18 +65,39 @@ async def test_local_store_reuses_existing_canonical_checksum_object(
     ]
 
 
-async def test_local_store_rejects_filename_traversal(tmp_path: Path) -> None:
+async def test_local_store_keeps_attempt_objects_isolated(tmp_path: Path) -> None:
+    store = LocalOriginalFileStore(tmp_path)
+    first = await store.put(
+        ORGANIZATION_ID,
+        CHECKSUM,
+        ATTEMPT_ID,
+        b"observed,csv\n",
+    )
+    second = await store.put(
+        ORGANIZATION_ID,
+        CHECKSUM,
+        OTHER_ATTEMPT_ID,
+        b"observed,csv\n",
+    )
+
+    assert first.path == OBJECT_PATH
+    assert second.path == f"{ORGANIZATION_ID}/{CHECKSUM}/{OTHER_ATTEMPT_ID}.csv"
+    assert first.created is second.created is True
+    assert len([path for path in tmp_path.rglob("*") if path.is_file()]) == 2
+
+
+async def test_local_store_rejects_checksum_traversal(tmp_path: Path) -> None:
     store = LocalOriginalFileStore(tmp_path)
 
     with pytest.raises(OriginalFileStorageError, match="outside import directory"):
         await store.put(
             ORGANIZATION_ID,
-            CHECKSUM,
-            "../../secret.csv",
+            "../../outside",
+            ATTEMPT_ID,
             b"secret",
         )
 
-    assert list(tmp_path.rglob("*")) == []
+    assert [path for path in tmp_path.rglob("*") if path.is_file()] == []
 
 
 async def test_local_store_rejects_delete_traversal(tmp_path: Path) -> None:
@@ -109,7 +128,7 @@ async def test_supabase_store_uses_private_immutable_storage_requests() -> None:
         stored = await store.put(
             ORGANIZATION_ID,
             CHECKSUM,
-            "renamed-export.csv",
+            ATTEMPT_ID,
             b"observed,csv\n",
         )
         await store.delete(stored.path)
@@ -136,7 +155,7 @@ async def test_supabase_store_uses_private_immutable_storage_requests() -> None:
     assert json.loads(delete.content) == {"prefixes": [OBJECT_PATH]}
 
 
-async def test_supabase_store_treats_existing_canonical_object_as_reuse() -> None:
+async def test_supabase_store_treats_existing_attempt_object_as_reuse() -> None:
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -153,7 +172,7 @@ async def test_supabase_store_treats_existing_canonical_object_as_reuse() -> Non
         reused = await store.put(
             ORGANIZATION_ID,
             CHECKSUM,
-            "different-name.csv",
+            ATTEMPT_ID,
             b"observed,csv\n",
         )
 
@@ -184,7 +203,7 @@ async def test_supabase_store_recognizes_duplicate_payload_as_reuse() -> None:
         reused = await store.put(
             ORGANIZATION_ID,
             CHECKSUM,
-            "sems.csv",
+            ATTEMPT_ID,
             b"observed,csv\n",
         )
 
@@ -210,7 +229,7 @@ async def test_supabase_store_wraps_http_errors_stably() -> None:
             await store.put(
                 ORGANIZATION_ID,
                 CHECKSUM,
-                "sems.csv",
+                ATTEMPT_ID,
                 b"observed,csv\n",
             )
 

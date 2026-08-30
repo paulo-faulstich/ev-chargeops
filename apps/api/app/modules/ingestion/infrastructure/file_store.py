@@ -1,4 +1,3 @@
-import re
 from pathlib import Path, PurePosixPath
 from urllib.parse import quote
 from uuid import UUID
@@ -13,29 +12,12 @@ from app.modules.ingestion.application.import_ports import (
 BUCKET = "sems-imports"
 
 
-def _sanitize_filename(filename: str) -> str:
-    if (
-        not filename
-        or filename in {".", ".."}
-        or "/" in filename
-        or "\\" in filename
-    ):
-        raise OriginalFileStorageError(
-            "Original file path resolves outside import directory."
-        )
-    sanitized = re.sub(r"[^A-Za-z0-9._-]", "_", filename)
-    if not sanitized:
-        raise OriginalFileStorageError("Original file name is invalid.")
-    return sanitized
-
-
 def _object_path(
     organization_id: UUID,
     checksum: str,
-    filename: str,
+    attempt_id: UUID,
 ) -> str:
-    _sanitize_filename(filename)
-    return f"{organization_id}/{checksum}/source.csv"
+    return f"{organization_id}/{checksum}/{attempt_id}.csv"
 
 
 def _is_existing_object(response: httpx.Response) -> bool:
@@ -61,10 +43,10 @@ class LocalOriginalFileStore:
         self,
         organization_id: UUID,
         checksum: str,
-        filename: str,
+        attempt_id: UUID,
         content: bytes,
     ) -> StoredOriginalFile:
-        object_path = _object_path(organization_id, checksum, filename)
+        object_path = _object_path(organization_id, checksum, attempt_id)
         import_directory = (self.root / str(organization_id) / checksum).resolve()
         target = (self.root / object_path).resolve()
         if target.parent != import_directory or not target.is_relative_to(self.root):
@@ -133,10 +115,10 @@ class SupabaseOriginalFileStore:
         self,
         organization_id: UUID,
         checksum: str,
-        filename: str,
+        attempt_id: UUID,
         content: bytes,
     ) -> StoredOriginalFile:
-        object_path = _object_path(organization_id, checksum, filename)
+        object_path = _object_path(organization_id, checksum, attempt_id)
         try:
             response = await self.client.post(
                 f"{self.supabase_url}/storage/v1/object/{BUCKET}/"

@@ -50,7 +50,7 @@ class OriginalFileStore(Protocol):
         self,
         organization_id: UUID,
         checksum: str,
-        filename: str,
+        attempt_id: UUID,
         content: bytes,
     ) -> StoredOriginalFile: ...
 

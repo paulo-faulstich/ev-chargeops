@@ -196,17 +196,17 @@ class FakeOriginalFileStore(OriginalFileStore):
         self.path = path
         self.created = created
         self.delete_error = delete_error
-        self.put_calls: list[tuple[UUID, str, str, bytes]] = []
+        self.put_calls: list[tuple[UUID, str, UUID, bytes]] = []
         self.deleted_paths: list[str] = []
 
     async def put(
         self,
         organization_id: UUID,
         checksum: str,
-        filename: str,
+        attempt_id: UUID,
         content: bytes,
     ) -> StoredOriginalFile:
-        self.put_calls.append((organization_id, checksum, filename, content))
+        self.put_calls.append((organization_id, checksum, attempt_id, content))
         return StoredOriginalFile(path=self.path, created=self.created)
 
     async def delete(self, storage_path: str) -> None:

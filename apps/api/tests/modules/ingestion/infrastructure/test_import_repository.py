@@ -42,6 +42,9 @@ from tests.modules.ingestion.application.fakes import (
 
 pytestmark = pytest.mark.asyncio
 
+ATTEMPT_A = UUID("80000000-0000-0000-0000-000000000001")
+ATTEMPT_B = UUID("80000000-0000-0000-0000-000000000002")
+
 
 @pytest_asyncio.fixture
 async def async_session() -> AsyncIterator[AsyncSession]:
@@ -211,6 +214,65 @@ class OperationalFailureImportRepository(SqlAlchemyImportRepository):
             {},
             RuntimeError("database unavailable"),
         )
+
+
+class AttemptCleanupRace:
+    def __init__(self) -> None:
+        self.save_attempts = 0
+        self.both_attempts_in_flight = asyncio.Event()
+        self.first_attempt_deleted = asyncio.Event()
+
+    async def enter_save(self) -> None:
+        self.save_attempts += 1
+        if self.save_attempts == 2:
+            self.both_attempts_in_flight.set()
+        await self.both_attempts_in_flight.wait()
+
+
+class FailingAttemptRepository(SqlAlchemyImportRepository):
+    def __init__(self, session: AsyncSession, race: AttemptCleanupRace) -> None:
+        super().__init__(session)
+        self.race = race
+
+    async def save_import(
+        self,
+        scope: OrganizationScope,
+        preview: ImportPreview,
+        storage_path: str,
+    ) -> ImportBatchResult:
+        await self.race.enter_save()
+        raise OperationalError(
+            "insert into import_batches",
+            {},
+            RuntimeError("database unavailable"),
+        )
+
+
+class WinnerAfterCleanupRepository(SqlAlchemyImportRepository):
+    def __init__(self, session: AsyncSession, race: AttemptCleanupRace) -> None:
+        super().__init__(session)
+        self.race = race
+
+    async def save_import(
+        self,
+        scope: OrganizationScope,
+        preview: ImportPreview,
+        storage_path: str,
+    ) -> ImportBatchResult:
+        await self.race.enter_save()
+        await self.race.first_attempt_deleted.wait()
+        return await super().save_import(scope, preview, storage_path)
+
+
+class CleanupSignalingFileStore(LocalOriginalFileStore):
+    def __init__(self, root: Path, race: AttemptCleanupRace) -> None:
+        super().__init__(root)
+        self.race = race
+
+    async def delete(self, storage_path: str) -> None:
+        await super().delete(storage_path)
+        if storage_path.endswith(f"/{ATTEMPT_A}.csv"):
+            self.race.first_attempt_deleted.set()
 
 
 async def test_save_import_persists_raw_sessions_and_sanitized_audit(
@@ -420,7 +482,7 @@ async def test_list_and_get_batches_never_cross_tenants(
     [("sems.csv", "sems.csv"), ("first.csv", "renamed.csv")],
     ids=["same-filename", "different-filenames"],
 )
-async def test_concurrent_confirms_share_one_canonical_object_and_batch(
+async def test_concurrent_confirms_keep_only_the_winner_attempt_object_and_batch(
     tmp_path: Path,
     first_filename: str,
     second_filename: str,
@@ -442,11 +504,13 @@ async def test_concurrent_confirms_share_one_canonical_object_and_batch(
                 source(),
                 CoordinatedImportRepository(first_session, race, winner=True),
                 store,
+                attempt_id_factory=lambda: ATTEMPT_A,
             )
             second_use_case = ConfirmImport(
                 source(),
                 CoordinatedImportRepository(second_session, race, winner=False),
                 store,
+                attempt_id_factory=lambda: ATTEMPT_B,
             )
 
             first_result, second_result = await asyncio.gather(
@@ -458,7 +522,7 @@ async def test_concurrent_confirms_share_one_canonical_object_and_batch(
             original_root
             / str(tenant.organization_id)
             / first_result.checksum
-            / "source.csv"
+            / f"{ATTEMPT_A}.csv"
         )
         assert first_result.created is True
         assert second_result == replace(first_result, created=False)
@@ -472,11 +536,69 @@ async def test_concurrent_confirms_share_one_canonical_object_and_batch(
             assert batch is not None
             assert batch.filename == first_filename
             assert batch.storage_path == (
-                f"{tenant.organization_id}/{first_result.checksum}/source.csv"
+                f"{tenant.organization_id}/{first_result.checksum}/{ATTEMPT_A}.csv"
             )
             assert await row_count(verification_session, ImportBatchModel) == 1
             assert await row_count(verification_session, RawImportRecordModel) == 2
             assert await row_count(verification_session, ChargingSessionModel) == 2
             assert await row_count(verification_session, AuditEventModel) == 1
+    finally:
+        await engine.dispose()
+
+
+async def test_failed_attempt_cleanup_cannot_delete_in_flight_winner_object(
+    tmp_path: Path,
+) -> None:
+    engine = create_async_engine(f"sqlite+aiosqlite:///{tmp_path / 'ordering.db'}")
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    async with factory() as seed_session:
+        tenant = await seed_tenant(seed_session, 1)
+
+    original_root = tmp_path / "ordered-originals"
+    race = AttemptCleanupRace()
+    store = CleanupSignalingFileStore(original_root, race)
+    content = fixture_content()
+    checksum = PreviewImport(source()).execute("sems.csv", content).checksum
+    first_path = f"{tenant.organization_id}/{checksum}/{ATTEMPT_A}.csv"
+    second_path = f"{tenant.organization_id}/{checksum}/{ATTEMPT_B}.csv"
+    try:
+        async with factory() as first_session, factory() as second_session:
+            first = ConfirmImport(
+                source(),
+                FailingAttemptRepository(first_session, race),
+                store,
+                attempt_id_factory=lambda: ATTEMPT_A,
+            )
+            second = ConfirmImport(
+                source(),
+                WinnerAfterCleanupRepository(second_session, race),
+                store,
+                attempt_id_factory=lambda: ATTEMPT_B,
+            )
+
+            first_result, second_result = await asyncio.gather(
+                first.execute(tenant, "first.csv", content),
+                second.execute(tenant, "second.csv", content),
+                return_exceptions=True,
+            )
+
+        assert isinstance(first_result, OperationalError)
+        assert isinstance(second_result, ImportBatchResult)
+        assert second_result.created is True
+        assert race.first_attempt_deleted.is_set()
+        assert not (original_root / first_path).exists()
+        assert (original_root / second_path).read_bytes() == content
+        assert [path for path in original_root.rglob("*") if path.is_file()] == [
+            original_root / second_path,
+        ]
+
+        async with factory() as verification_session:
+            batch = await verification_session.scalar(select(ImportBatchModel))
+            assert batch is not None
+            assert batch.filename == "second.csv"
+            assert batch.storage_path == second_path
+            assert await row_count(verification_session, ImportBatchModel) == 1
     finally:
         await engine.dispose()

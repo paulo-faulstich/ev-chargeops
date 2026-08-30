@@ -1,5 +1,7 @@
+from collections.abc import Callable
 from dataclasses import replace
 from hashlib import sha256
+from uuid import UUID, uuid4
 
 from app.modules.identity.domain.auth import OrganizationScope
 from app.modules.ingestion.application.import_ports import (
@@ -18,10 +20,13 @@ class ConfirmImport:
         source: ChargingSessionSource,
         repository: ImportRepository,
         file_store: OriginalFileStore,
+        *,
+        attempt_id_factory: Callable[[], UUID] = uuid4,
     ) -> None:
         self.source = source
         self.repository = repository
         self.file_store = file_store
+        self.attempt_id_factory = attempt_id_factory
 
     async def execute(
         self,
@@ -42,35 +47,16 @@ class ConfirmImport:
         stored_file = await self.file_store.put(
             scope.organization_id,
             checksum,
-            filename,
+            self.attempt_id_factory(),
             content,
         )
         try:
-            return await self.repository.save_import(
+            result = await self.repository.save_import(
                 scope,
                 reviewed,
                 stored_file.path,
             )
         except Exception as persistence_error:
-            winner_check_failed = False
-            try:
-                winner = await self.repository.find_batch_by_checksum(
-                    scope.organization_id,
-                    checksum,
-                )
-            except Exception:  # noqa: BLE001
-                persistence_error.add_note(
-                    "Checksum winner verification failed after import persistence failure."
-                )
-                winner_check_failed = True
-                winner = None
-
-            if winner_check_failed:
-                raise
-
-            if winner is not None:
-                return replace(winner, created=False)
-
             if stored_file.created:
                 try:
                     await self.file_store.delete(stored_file.path)
@@ -79,3 +65,7 @@ class ConfirmImport:
                         "Original file cleanup failed after import persistence failure."
                     )
             raise
+
+        if not result.created and stored_file.created:
+            await self.file_store.delete(stored_file.path)
+        return result

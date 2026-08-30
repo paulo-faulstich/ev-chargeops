@@ -13,6 +13,7 @@ export default defineConfig({
     {
       command: "pnpm dev --hostname 127.0.0.1 --port 3102",
       url: "http://127.0.0.1:3102",
+      env: { NEXT_PUBLIC_API_URL: "/api" },
       reuseExistingServer: !process.env.CI,
     },
   ],

@@ -41,6 +41,32 @@ def test_sems_csv_explains_invalid_energy_with_row_number() -> None:
     assert "row 2" in error.value.message
 
 
+def test_sems_csv_preserves_surplus_cells_as_a_row_issue() -> None:
+    source = SemsCsvSource(default_timezone=ZoneInfo("America/Sao_Paulo"))
+    content = b"""Start Time,End Time,Charging Energy(kWh),Charging Port,Card ID,Device SN
+29/08/2026 17:10:00,29/08/2026 18:10:00,7.00,1,CARD-1,97500NAP25BL0008,unexpected,second
+"""
+
+    record = source.read(content)[0]
+
+    assert dict(record.raw) == {
+        "Start Time": "29/08/2026 17:10:00",
+        "End Time": "29/08/2026 18:10:00",
+        "Charging Energy(kWh)": "7.00",
+        "Charging Port": "1",
+        "Card ID": "CARD-1",
+        "Device SN": "97500NAP25BL0008",
+        "__extra_cell_1": "unexpected",
+        "__extra_cell_2": "second",
+    }
+    with pytest.raises(InvalidSession) as error:
+        source.normalize(record)
+
+    assert error.value.field == "row"
+    assert error.value.code == "SURPLUS_CELLS"
+    assert error.value.message == "Unexpected extra cells at row 2."
+
+
 @pytest.mark.parametrize(
     "invalid_header",
     [

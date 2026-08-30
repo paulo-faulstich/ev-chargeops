@@ -5,7 +5,7 @@ from decimal import Decimal, InvalidOperation
 from io import StringIO
 from zoneinfo import ZoneInfo
 
-from app.modules.ingestion.application.ports import SourceRecord
+from app.modules.ingestion.application.ports import SourceRecord, SourceRecordIssue
 from app.modules.ingestion.domain.errors import InvalidSession
 from app.modules.ingestion.domain.session import SessionCandidate, SourceKind
 
@@ -48,12 +48,36 @@ class SemsCsvSource:
                 "CSV columns must exactly match the SEMS v1 schema.",
             )
 
-        return [
-            SourceRecord(row_number=index, raw=dict(row))
-            for index, row in enumerate(reader, start=2)
-        ]
+        records: list[SourceRecord] = []
+        for index, row in enumerate(reader, start=2):
+            raw = {column: row[column] for column in columns}
+            extra_cells = row.get(None)
+            issue = None
+            if isinstance(extra_cells, list):
+                raw.update(
+                    {
+                        f"__extra_cell_{position}": value
+                        for position, value in enumerate(extra_cells, start=1)
+                    }
+                )
+                issue = SourceRecordIssue(
+                    field="row",
+                    code="SURPLUS_CELLS",
+                    message=f"Unexpected extra cells at row {index}.",
+                )
+            records.append(
+                SourceRecord(row_number=index, raw=raw, issue=issue)
+            )
+        return records
 
     def normalize(self, record: SourceRecord) -> SessionCandidate:
+        if record.issue is not None:
+            raise InvalidSession(
+                record.issue.field,
+                record.issue.code,
+                record.issue.message,
+            )
+
         raw = record.raw
         started_at = self._datetime(
             self._value(raw, "Start Time", record.row_number),
@@ -75,6 +99,12 @@ class SemsCsvSource:
                 "INVALID_DECIMAL",
                 f"Invalid energy at row {record.row_number}.",
             ) from error
+        if not energy_kwh.is_finite():
+            raise InvalidSession(
+                "Charging Energy(kWh)",
+                "INVALID_DECIMAL",
+                f"Invalid energy at row {record.row_number}.",
+            )
         port_text = self._value(raw, "Charging Port", record.row_number).strip()
         try:
             charge_port = int(port_text) if port_text else None

@@ -39,3 +39,23 @@ def test_preview_classifies_truncated_row_as_invalid_and_continues() -> None:
     assert preview.records[0].error_field == "Device SN"
     assert preview.records[0].error_code == "MISSING_VALUE"
     assert preview.records[1].classification == "valid"
+
+
+def test_preview_classifies_surplus_cells_as_invalid_and_continues() -> None:
+    content = b"""Start Time,End Time,Charging Energy(kWh),Charging Port,Card ID,Device SN
+29/08/2026 17:10:00,29/08/2026 18:10:00,7.00,1,CARD-1,97500NAP25BL0008,unexpected
+29/08/2026 19:10:00,29/08/2026 20:10:00,7.00,1,CARD-2,97500NAP25BL0008
+"""
+    use_case = PreviewImport(SemsCsvSource(ZoneInfo("America/Sao_Paulo")))
+
+    preview = use_case.execute("sems.csv", content)
+
+    assert preview.total_count == 2
+    assert preview.invalid_count == 1
+    assert preview.valid_count == 1
+    assert preview.records[0].classification == "invalid"
+    assert preview.records[0].error_field == "row"
+    assert preview.records[0].error_code == "SURPLUS_CELLS"
+    assert preview.records[0].error_message == "Unexpected extra cells at row 2."
+    assert preview.records[0].raw["__extra_cell_1"] == "unexpected"
+    assert preview.records[1].classification == "valid"

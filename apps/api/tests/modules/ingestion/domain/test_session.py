@@ -32,7 +32,9 @@ def test_session_candidate_builds_stable_deduplication_key() -> None:
     second = SessionCandidate.create(**values)
 
     assert first.deduplication_key == second.deduplication_key
-    assert len(first.deduplication_key) == 64
+    assert first.deduplication_key == (
+        "aa0145b78f7d7a09288151ac8fd8e0e6e1726a75ff6893c57daf671808f9c4b3"
+    )
     assert first.identity_confidence is IdentityConfidence.UNKNOWN
 
 

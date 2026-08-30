@@ -106,10 +106,15 @@ a {
   gap: 0.4rem;
   color: #d8e4e8;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   font-weight: 700;
+  line-height: 1;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.product-partnership span {
+  white-space: nowrap;
 }
 
 .primary-navigation {

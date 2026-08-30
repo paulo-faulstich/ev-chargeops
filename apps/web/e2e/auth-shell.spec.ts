@@ -47,13 +47,17 @@ test("separates the product identity from the GoodWe installation context", asyn
     }),
   ).toBeVisible();
   await expect(productIdentity.getByText("FIAP Challenge")).toBeVisible();
-  const fiapFontSize = await productIdentity
+  const fiapMetrics = await productIdentity
     .getByText("FIAP Challenge")
-    .evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
+    .evaluate((element) => ({
+      fontSize: Number.parseFloat(getComputedStyle(element).fontSize),
+      height: element.getBoundingClientRect().height,
+    }));
   const goodWeHeight = await productIdentity
     .getByRole("img", { name: "GoodWe: Smart Energy Innovator" })
     .evaluate((element) => element.getBoundingClientRect().height);
-  expect(fiapFontSize / goodWeHeight).toBeGreaterThanOrEqual(0.9);
+  expect(fiapMetrics.fontSize / goodWeHeight).toBeGreaterThanOrEqual(0.9);
+  expect(Math.abs(fiapMetrics.height - goodWeHeight)).toBeLessThanOrEqual(0.25);
   await expect(
     productIdentity.getByText("Powered by GoodWe / SEMS+"),
   ).toHaveCount(0);

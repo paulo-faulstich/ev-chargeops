@@ -326,6 +326,7 @@ a {
 }
 
 .dashboard-heading h1 {
+  margin-top: 0.65rem;
   color: var(--ink);
   font-size: clamp(1.8rem, 3vw, 2.5rem);
   font-weight: 700;

@@ -73,6 +73,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Sessions */
+        get: operations["list_sessions_v1_sessions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/assignment-units": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Assignment Units */
+        get: operations["list_assignment_units_v1_assignment_units_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sessions/{session_id}/assignment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Assign Session */
+        put: operations["assign_session_v1_sessions__session_id__assignment_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -94,6 +145,25 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AssignmentUnitListResponse */
+        AssignmentUnitListResponse: {
+            /** Items */
+            items: components["schemas"]["AssignmentUnitResponse"][];
+        };
+        /** AssignmentUnitResponse */
+        AssignmentUnitResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Code */
+            code: string;
+            /** Displayname */
+            displayName: string;
+            /** Residentname */
+            residentName: string | null;
+        };
         /** Body_confirm_import_v1_import_batches_post */
         Body_confirm_import_v1_import_batches_post: {
             /** File */
@@ -283,6 +353,63 @@ export interface components {
             /** Errormessage */
             errorMessage?: string | null;
         };
+        /** SessionAssignmentDetailResponse */
+        SessionAssignmentDetailResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Sessionid
+             * Format: uuid
+             */
+            sessionId: string;
+            /**
+             * Unitid
+             * Format: uuid
+             */
+            unitId: string;
+            /**
+             * Assignedby
+             * Format: uuid
+             */
+            assignedBy: string;
+            /** Justification */
+            justification: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+        };
+        /** SessionAssignmentRequest */
+        SessionAssignmentRequest: {
+            /**
+             * Unitid
+             * Format: uuid
+             */
+            unitId: string;
+            /** Justification */
+            justification: string;
+        };
+        /** SessionAssignmentResponse */
+        SessionAssignmentResponse: {
+            assignment: components["schemas"]["SessionAssignmentDetailResponse"];
+            session: components["schemas"]["SessionResponse"];
+            /** Created */
+            created: boolean;
+        };
+        /** SessionListResponse */
+        SessionListResponse: {
+            /** Items */
+            items: components["schemas"]["SessionResponse"][];
+        };
         /** SessionPreviewResponse */
         SessionPreviewResponse: {
             /** Chargerserial */
@@ -309,6 +436,44 @@ export interface components {
             provenance: string;
             /** Deduplicationkey */
             deduplicationKey: string;
+        };
+        /** SessionResponse */
+        SessionResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Startedat
+             * Format: date-time
+             */
+            startedAt: string;
+            /**
+             * Endedat
+             * Format: date-time
+             */
+            endedAt: string;
+            /** Energykwh */
+            energyKwh: string;
+            /** Chargerserial */
+            chargerSerial: string;
+            /** Source */
+            source: string;
+            /** Provenance */
+            provenance: string;
+            /** Identityconfidence */
+            identityConfidence: string;
+            /** Status */
+            status: string;
+            /** Unitid */
+            unitId: string | null;
+            /** Unitcode */
+            unitCode: string | null;
+            /** Unitname */
+            unitName: string | null;
+            /** Residentname */
+            residentName: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -555,6 +720,156 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sessions_v1_sessions_get: {
+        parameters: {
+            query?: {
+                period?: string | null;
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionListResponse"];
+                };
+            };
+            /** @description Invalid or missing bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Organization membership and manager role required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Invalid session filter. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_assignment_units_v1_assignment_units_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentUnitListResponse"];
+                };
+            };
+            /** @description Invalid or missing bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Organization membership and manager role required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+        };
+    };
+    assign_session_v1_sessions__session_id__assignment_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionAssignmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionAssignmentResponse"];
+                };
+            };
+            /** @description Invalid or missing bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Organization membership and manager role required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Session or assignment unit not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Invalid assignment request. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };

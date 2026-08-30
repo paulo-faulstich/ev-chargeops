@@ -293,6 +293,230 @@
         }
       }
     },
+    "/v1/sessions": {
+      "get": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "List Sessions",
+        "operationId": "list_sessions_v1_sessions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Period"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization membership and manager role required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid session filter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/assignment-units": {
+      "get": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "List Assignment Units",
+        "operationId": "list_assignment_units_v1_assignment_units_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignmentUnitListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization membership and manager role required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/sessions/{session_id}/assignment": {
+      "put": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Assign Session",
+        "operationId": "assign_session_v1_sessions__session_id__assignment_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionAssignmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionAssignmentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization membership and manager role required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session or assignment unit not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid assignment request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "tags": [
@@ -321,6 +545,58 @@
   },
   "components": {
     "schemas": {
+      "AssignmentUnitListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AssignmentUnitResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "AssignmentUnitListResponse"
+      },
+      "AssignmentUnitResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "displayName": {
+            "type": "string",
+            "title": "Displayname"
+          },
+          "residentName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Residentname"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "displayName",
+          "residentName"
+        ],
+        "title": "AssignmentUnitResponse"
+      },
       "Body_confirm_import_v1_import_batches_post": {
         "properties": {
           "file": {
@@ -849,6 +1125,111 @@
         ],
         "title": "PreviewRecordResponse"
       },
+      "SessionAssignmentDetailResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Sessionid"
+          },
+          "unitId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Unitid"
+          },
+          "assignedBy": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Assignedby"
+          },
+          "justification": {
+            "type": "string",
+            "title": "Justification"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Createdat"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updatedat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "sessionId",
+          "unitId",
+          "assignedBy",
+          "justification",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "SessionAssignmentDetailResponse"
+      },
+      "SessionAssignmentRequest": {
+        "properties": {
+          "unitId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Unitid"
+          },
+          "justification": {
+            "type": "string",
+            "title": "Justification"
+          }
+        },
+        "type": "object",
+        "required": [
+          "unitId",
+          "justification"
+        ],
+        "title": "SessionAssignmentRequest"
+      },
+      "SessionAssignmentResponse": {
+        "properties": {
+          "assignment": {
+            "$ref": "#/components/schemas/SessionAssignmentDetailResponse"
+          },
+          "session": {
+            "$ref": "#/components/schemas/SessionResponse"
+          },
+          "created": {
+            "type": "boolean",
+            "title": "Created"
+          }
+        },
+        "type": "object",
+        "required": [
+          "assignment",
+          "session",
+          "created"
+        ],
+        "title": "SessionAssignmentResponse"
+      },
+      "SessionListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SessionResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "SessionListResponse"
+      },
       "SessionPreviewResponse": {
         "properties": {
           "chargerSerial": {
@@ -918,6 +1299,112 @@
           "deduplicationKey"
         ],
         "title": "SessionPreviewResponse"
+      },
+      "SessionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Startedat"
+          },
+          "endedAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Endedat"
+          },
+          "energyKwh": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Energykwh"
+          },
+          "chargerSerial": {
+            "type": "string",
+            "title": "Chargerserial"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "provenance": {
+            "type": "string",
+            "title": "Provenance"
+          },
+          "identityConfidence": {
+            "type": "string",
+            "title": "Identityconfidence"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "unitId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitid"
+          },
+          "unitCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitcode"
+          },
+          "unitName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitname"
+          },
+          "residentName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Residentname"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "startedAt",
+          "endedAt",
+          "energyKwh",
+          "chargerSerial",
+          "source",
+          "provenance",
+          "identityConfidence",
+          "status",
+          "unitId",
+          "unitCode",
+          "unitName",
+          "residentName"
+        ],
+        "title": "SessionResponse"
       },
       "ValidationError": {
         "properties": {

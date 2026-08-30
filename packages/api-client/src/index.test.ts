@@ -2,9 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   ApiError,
+  assignSession,
   confirmImport,
   getImportBatch,
+  listAssignmentUnits,
   listImportBatches,
+  listSessions,
   previewImport,
 } from "./index";
 
@@ -31,6 +34,29 @@ const batchPayload = {
   invalidCount: 0,
   duplicateCount: 0,
   createdAt: "2026-08-29T22:00:00Z",
+};
+
+const sessionPayload = {
+  id: "90000000-0000-0000-0000-000000000001",
+  startedAt: "2026-08-29T20:10:00Z",
+  endedAt: "2026-08-29T21:10:00Z",
+  energyKwh: "7.000",
+  chargerSerial: "97500NAP25BL0008",
+  source: "sems_export",
+  provenance: "observed",
+  identityConfidence: "unknown",
+  status: "pending_review",
+  unitId: null,
+  unitCode: null,
+  unitName: null,
+  residentName: null,
+};
+
+const unitPayload = {
+  id: "40000000-0000-0000-0000-000000000001",
+  code: "A-101",
+  displayName: "Unidade A-101",
+  residentName: null,
 };
 
 afterEach(() => vi.unstubAllGlobals());
@@ -176,5 +202,101 @@ describe("authenticated import client", () => {
       status: 401,
       body: null,
     });
+  });
+});
+
+describe("authenticated sessions client", () => {
+  it("lists sessions with literal optional filters and bearer auth", async () => {
+    const payload = { items: [sessionPayload] };
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(payload), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      listSessions(
+        "signed-token",
+        { period: "2026-08", status: "pending_review" },
+        "http://api.test",
+      ),
+    ).resolves.toEqual(payload);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://api.test/v1/sessions?period=2026-08&status=pending_review",
+      expect.objectContaining({
+        headers: { Authorization: "Bearer signed-token" },
+      }),
+    );
+  });
+
+  it("lists assignment units with bearer auth", async () => {
+    const payload = { items: [unitPayload] };
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(payload), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      listAssignmentUnits("signed-token", "http://api.test"),
+    ).resolves.toEqual(payload);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://api.test/v1/assignment-units",
+      expect.objectContaining({
+        headers: { Authorization: "Bearer signed-token" },
+      }),
+    );
+  });
+
+  it("assigns an encoded session ID with an exact JSON mutation", async () => {
+    const request = {
+      unitId: unitPayload.id,
+      justification: "Confirmado pelo síndico",
+    };
+    const payload = {
+      assignment: {
+        id: "a0000000-0000-0000-0000-000000000001",
+        sessionId: sessionPayload.id,
+        unitId: unitPayload.id,
+        assignedBy: "60000000-0000-0000-0000-000000000001",
+        justification: request.justification,
+        createdAt: "2026-08-30T12:00:00Z",
+        updatedAt: "2026-08-30T12:00:00Z",
+      },
+      session: {
+        ...sessionPayload,
+        identityConfidence: "assigned",
+        status: "ready",
+        unitId: unitPayload.id,
+        unitCode: unitPayload.code,
+        unitName: unitPayload.displayName,
+      },
+      created: true,
+    };
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(payload), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      assignSession(
+        "session/id with spaces",
+        request,
+        "signed-token",
+        "http://api.test",
+      ),
+    ).resolves.toEqual(payload);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://api.test/v1/sessions/session%2Fid%20with%20spaces/assignment",
+      expect.objectContaining({
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer signed-token",
+        },
+        body: JSON.stringify(request),
+      }),
+    );
   });
 });

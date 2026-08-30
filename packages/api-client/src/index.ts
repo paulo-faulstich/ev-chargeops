@@ -1,4 +1,4 @@
-import type { components } from "./schema";
+import type { components, operations } from "./schema";
 
 export type ImportPreviewResponse =
   components["schemas"]["ImportPreviewResponse"];
@@ -7,6 +7,19 @@ export type ImportBatchListResponse =
   components["schemas"]["ImportBatchListResponse"];
 export type ImportBatchDetailResponse =
   components["schemas"]["ImportBatchDetailResponse"];
+export type SessionResponse = components["schemas"]["SessionResponse"];
+export type SessionListResponse = components["schemas"]["SessionListResponse"];
+export type AssignmentUnitResponse =
+  components["schemas"]["AssignmentUnitResponse"];
+export type AssignmentUnitListResponse =
+  components["schemas"]["AssignmentUnitListResponse"];
+export type SessionAssignmentRequest =
+  components["schemas"]["SessionAssignmentRequest"];
+export type SessionAssignmentResponse =
+  components["schemas"]["SessionAssignmentResponse"];
+export type SessionFilters = NonNullable<
+  operations["list_sessions_v1_sessions_get"]["parameters"]["query"]
+>;
 
 export class ApiError extends Error {
   constructor(
@@ -104,6 +117,49 @@ export async function getImportBatch(
     `/v1/import-batches/${encodeURIComponent(batchId)}`,
     token,
     {},
+    baseUrl,
+  );
+}
+
+export async function listSessions(
+  token: string,
+  filters: SessionFilters = {},
+  baseUrl = "/api",
+): Promise<SessionListResponse> {
+  const query = new URLSearchParams();
+  if (filters.period != null) query.set("period", filters.period);
+  if (filters.status != null) query.set("status", filters.status);
+  const encodedFilters = query.toString();
+  const path = `/v1/sessions${encodedFilters ? `?${encodedFilters}` : ""}`;
+  return apiRequest<SessionListResponse>(path, token, {}, baseUrl);
+}
+
+export async function listAssignmentUnits(
+  token: string,
+  baseUrl = "/api",
+): Promise<AssignmentUnitListResponse> {
+  return apiRequest<AssignmentUnitListResponse>(
+    "/v1/assignment-units",
+    token,
+    {},
+    baseUrl,
+  );
+}
+
+export async function assignSession(
+  sessionId: string,
+  request: SessionAssignmentRequest,
+  token: string,
+  baseUrl = "/api",
+): Promise<SessionAssignmentResponse> {
+  return apiRequest<SessionAssignmentResponse>(
+    `/v1/sessions/${encodeURIComponent(sessionId)}/assignment`,
+    token,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    },
     baseUrl,
   );
 }

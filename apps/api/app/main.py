@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.modules.identity.presentation.router import router as identity_router
 from app.modules.ingestion.presentation.router import router as ingestion_router
 
 app = FastAPI(title="EV ChargeOps API", version="0.1.0")
@@ -12,6 +13,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(identity_router)
 app.include_router(ingestion_router)
 
 

@@ -5,6 +5,32 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/v1/me": {
+      "get": {
+        "tags": [
+          "identity"
+        ],
+        "summary": "Me",
+        "operationId": "me_v1_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/v1/import-batches/preview": {
       "post": {
         "tags": [
@@ -193,6 +219,52 @@
         ],
         "title": "ImportPreviewResponse"
       },
+      "MeResponse": {
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Profileid"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Organizationid"
+          },
+          "role": {
+            "$ref": "#/components/schemas/OrganizationRole"
+          },
+          "unitId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "profileId",
+          "organizationId",
+          "role",
+          "unitId"
+        ],
+        "title": "MeResponse"
+      },
+      "OrganizationRole": {
+        "type": "string",
+        "enum": [
+          "manager",
+          "resident",
+          "technical_operator"
+        ],
+        "title": "OrganizationRole"
+      },
       "PreviewRecordResponse": {
         "properties": {
           "rowNumber": {
@@ -338,6 +410,12 @@
           "deduplicationKey"
         ],
         "title": "SessionPreviewResponse"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
       }
     }
   }

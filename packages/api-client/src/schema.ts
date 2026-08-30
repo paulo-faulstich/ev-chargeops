@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/v1/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Me */
+        get: operations["me_v1_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/import-batches/preview": {
         parameters: {
             query?: never;
@@ -84,6 +101,27 @@ export interface components {
             /** Records */
             records: components["schemas"]["PreviewRecordResponse"][];
         };
+        /** MeResponse */
+        MeResponse: {
+            /**
+             * Profileid
+             * Format: uuid
+             */
+            profileId: string;
+            /**
+             * Organizationid
+             * Format: uuid
+             */
+            organizationId: string;
+            role: components["schemas"]["OrganizationRole"];
+            /** Unitid */
+            unitId: string | null;
+        };
+        /**
+         * OrganizationRole
+         * @enum {string}
+         */
+        OrganizationRole: "manager" | "resident" | "technical_operator";
         /** PreviewRecordResponse */
         PreviewRecordResponse: {
             /** Rownumber */
@@ -138,6 +176,26 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    me_v1_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeResponse"];
+                };
+            };
+        };
+    };
     preview_import_v1_import_batches_preview_post: {
         parameters: {
             query?: never;

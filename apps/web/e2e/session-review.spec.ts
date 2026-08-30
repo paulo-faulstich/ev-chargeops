@@ -258,7 +258,7 @@ test("assigns observed evidence and advances the pending queue", async ({
   const assignmentBody = await routeSessionReview(page);
 
   await page.goto("/sessions?status=pending_review&period=2026-08");
-  await expect(page.getByRole("heading", { name: "Sessões" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Recargas" })).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Voltar para visão geral" }),
   ).toBeVisible();
@@ -272,14 +272,14 @@ test("assigns observed evidence and advances the pending queue", async ({
   await secondSessionButton.focus();
   await secondSessionButton.press("Enter");
   await expect(
-    page.getByRole("region", { name: "Evidência da sessão" }),
+    page.getByRole("region", { name: "Evidência da recarga" }),
   ).toContainText("3,50 kWh");
   await page
     .getByRole("row", { name: /7,00 kWh/ })
     .getByRole("button", { name: /7,00 kWh/ })
     .click();
 
-  const evidence = page.getByRole("region", { name: "Evidência da sessão" });
+  const evidence = page.getByRole("region", { name: "Evidência da recarga" });
   await expect(evidence).toContainText("7,00 kWh");
   await expect(evidence).toContainText("29/08/2026, 17:10");
   await expect(evidence).toContainText("97500NAP25BL0008");
@@ -361,7 +361,7 @@ test("freezes the visible review context while an assignment is in flight", asyn
         .getByRole("button", { name: /3,50 kWh/ }),
     ).toBeDisabled();
     await expect(
-      page.getByRole("region", { name: "Evidência da sessão" }),
+      page.getByRole("region", { name: "Evidência da recarga" }),
     ).toContainText("7,00 kWh");
   } finally {
     releaseAssignment();
@@ -371,7 +371,7 @@ test("freezes the visible review context while an assignment is in flight", asyn
     "/sessions?status=pending_review&period=2026-08",
   );
   await expect(
-    page.getByRole("region", { name: "Evidência da sessão" }),
+    page.getByRole("region", { name: "Evidência da recarga" }),
   ).toContainText("3,50 kWh");
 });
 
@@ -410,7 +410,7 @@ test("ignores an August assignment completion after external navigation loads Ju
     "/sessions?status=pending_review&period=2026-07",
   );
   await expect(page.getByText("Julho de 2026", { exact: true })).toBeVisible();
-  const evidence = page.getByRole("region", { name: "Evidência da sessão" });
+  const evidence = page.getByRole("region", { name: "Evidência da recarga" });
   await expect(evidence).toContainText("4,25 kWh");
 
   const assignmentResponse = page.waitForResponse(
@@ -453,7 +453,7 @@ test("hides August evidence while a canonical July load is pending", async ({
 
   await page.goto("/sessions?status=pending_review&period=2026-08");
   await expect(
-    page.getByRole("region", { name: "Evidência da sessão" }),
+    page.getByRole("region", { name: "Evidência da recarga" }),
   ).toContainText("7,00 kWh");
 
   await page.evaluate(() => {
@@ -466,16 +466,16 @@ test("hides August evidence while a canonical July load is pending", async ({
   await julyLoadStarted;
 
   try {
-    await expect(page.getByText("Carregando sessões e unidades disponíveis…")).toBeVisible();
+    await expect(page.getByText("Carregando recargas e unidades disponíveis…")).toBeVisible();
     await expect(
-      page.getByRole("region", { name: "Evidência da sessão" }),
+      page.getByRole("region", { name: "Evidência da recarga" }),
     ).toHaveCount(0);
   } finally {
     releaseJulyLoad();
   }
 
   await expect(
-    page.getByRole("region", { name: "Evidência da sessão" }),
+    page.getByRole("region", { name: "Evidência da recarga" }),
   ).toContainText("4,25 kWh");
 });
 
@@ -499,7 +499,7 @@ test("uses roving focus and arrow keys across session actions", async ({ page })
   await expect(firstButton).toHaveAttribute("tabindex", "-1");
   await expect(secondButton).toHaveAttribute("tabindex", "0");
   await expect(
-    page.getByRole("region", { name: "Evidência da sessão" }),
+    page.getByRole("region", { name: "Evidência da recarga" }),
   ).toContainText("3,50 kWh");
 
   await page.keyboard.press("Tab");
@@ -512,7 +512,7 @@ test("keeps start and energy values in distinct associated table columns", async
   await routeSessionReview(page);
   await page.goto("/sessions?status=pending_review&period=2026-08");
 
-  const table = page.getByRole("table", { name: "Sessões pendentes" });
+  const table = page.getByRole("table", { name: "Recargas pendentes" });
   const headers = table.getByRole("columnheader");
   await expect(headers).toHaveCount(2);
   await expect(headers.nth(0)).toHaveAttribute("id", "session-start-heading");
@@ -584,7 +584,7 @@ test("keeps assignment evidence and inputs after a recoverable PUT error", async
     "Confirmado pela portaria",
   );
   await expect(
-    page.getByRole("region", { name: "Evidência da sessão" }),
+    page.getByRole("region", { name: "Evidência da recarga" }),
   ).toContainText("7,00 kWh");
   await expect(
     page.getByRole("button", { name: "Atribuir e revisar próxima" }),
@@ -631,14 +631,14 @@ test("distinguishes no imports from an assigned period when the filter changes",
 
   await page.goto("/sessions?status=pending_review&period=2026-07");
   await expect(
-    page.getByRole("heading", { name: "Nenhuma sessão importada." }),
+    page.getByRole("heading", { name: "Nenhuma recarga importada." }),
   ).toBeVisible();
 
   await page.getByLabel("Filtrar período").fill("2026-08");
   await expect(page).toHaveURL(/period=2026-08/);
   await expect(
     page.getByRole("heading", {
-      name: "Todas as sessões do período foram atribuídas.",
+      name: "Todas as recargas do período foram atribuídas.",
     }),
   ).toBeVisible();
   await expect(page.getByText("0 pendências no período")).toBeVisible();
@@ -671,7 +671,7 @@ test("recovers the queue after a parallel load failure", async ({ page }) => {
   await expect(
     page
       .getByRole("alert")
-      .filter({ hasText: "As sessões e unidades não foram carregadas." }),
+      .filter({ hasText: "As recargas e unidades não foram carregadas." }),
   ).toBeVisible();
   recover = true;
   await page.getByRole("button", { name: "Atualizar fila" }).click();

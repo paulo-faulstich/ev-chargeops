@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { ImportDropzone } from "@/components/imports/import-dropzone";
+import { PageBreadcrumb } from "@/components/shell/page-breadcrumb";
 import { getAccessToken } from "@/lib/auth/access-token";
 
 export default async function DataSourcesPage() {
@@ -11,11 +12,11 @@ export default async function DataSourcesPage() {
     <div className="data-sources-page">
       <header className="data-sources-header">
         <div>
-          <p className="utility-label">Configurações / origem operacional</p>
+          <PageBreadcrumb section="Configurações" current="Fontes de dados" />
           <h1>Fontes de dados</h1>
           <p>
-            Controle como as sessões chegam ao ChargeOps e confirme cada lote
-            antes de incorporá-lo ao histórico operacional.
+            Importe registros do SEMS+ e acompanhe como os dados entram no
+            ChargeOps.
           </p>
         </div>
         <div className="source-state" aria-label="Estado da integração">

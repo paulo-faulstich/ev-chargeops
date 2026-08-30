@@ -25,6 +25,7 @@ import {
   formatSessionEnergy,
   formatSessionPeriod,
 } from "./session-formatters";
+import { PageBreadcrumb } from "@/components/shell/page-breadcrumb";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 
@@ -239,10 +240,10 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
       setJustification("");
       setSubmissionState("idle");
       setSuccessMessage(
-        `Sessão atribuída à ${selectedUnit.displayName}. ${
+        `Recarga atribuída à ${selectedUnit.displayName}. ${
           remainingSessions.length === 1
-            ? "Resta 1 sessão para revisar."
-            : `Restam ${remainingSessions.length} sessões para revisar.`
+            ? "Resta 1 recarga para revisar."
+            : `Restam ${remainingSessions.length} recargas para revisar.`
         }`,
       );
     } catch {
@@ -279,9 +280,12 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
     <div className="session-review-page">
       <header className="session-review-header">
         <div>
-          <p className="utility-label">Fechamento mensal · atribuições</p>
-          <h1>Sessões</h1>
-          <p>Revise a evidência importada e indique a unidade responsável.</p>
+          <PageBreadcrumb section="Operação" current="Recargas" />
+          <h1>Recargas</h1>
+          <p>
+            Cada recarga registra início, duração, energia consumida e o
+            responsável pelo custo.
+          </p>
         </div>
         <Link href="/dashboard" className="session-back-link">
           <span aria-hidden="true">←</span>
@@ -365,7 +369,7 @@ function SessionLoading() {
       <span className="session-state-line" aria-hidden="true" />
       <div>
         <p className="utility-label">Lendo evidências</p>
-        <p>Carregando sessões e unidades disponíveis…</p>
+        <p>Carregando recargas e unidades disponíveis…</p>
       </div>
     </div>
   );
@@ -376,7 +380,7 @@ function SessionLoadError({ onRetry }: { onRetry: () => void }) {
     <div className="session-state-panel session-load-error" role="alert">
       <div>
         <p className="utility-label">Dados indisponíveis</p>
-        <p>As sessões e unidades não foram carregadas. Tente novamente.</p>
+        <p>As recargas e unidades não foram carregadas. Tente novamente.</p>
       </div>
       <button type="button" onClick={onRetry}>
         Atualizar fila
@@ -389,7 +393,7 @@ function NoImportedSessions() {
   return (
     <section className="session-empty-panel" aria-labelledby="no-sessions-title">
       <p className="utility-label">Sem evidência no período</p>
-      <h2 id="no-sessions-title">Nenhuma sessão importada.</h2>
+      <h2 id="no-sessions-title">Nenhuma recarga importada.</h2>
       <p>Importe o arquivo do carregador antes de atribuir responsabilidades.</p>
       <Link href="/settings/data-sources">Ir para fontes de dados</Link>
     </section>
@@ -400,7 +404,7 @@ function NoPendingSessions({ period }: { period: string }) {
   return (
     <section className="session-empty-panel complete" aria-labelledby="no-pending-title">
       <p className="utility-label">Revisão concluída</p>
-      <h2 id="no-pending-title">Todas as sessões do período foram atribuídas.</h2>
+      <h2 id="no-pending-title">Todas as recargas do período foram atribuídas.</h2>
       <p>{formatSessionPeriod(period)} não possui pendências de responsabilidade.</p>
       <Link href="/dashboard">Voltar para visão geral</Link>
     </section>
@@ -452,7 +456,7 @@ function SessionQueue({
         <span>{sessions.length}</span>
       </div>
       <div className="session-queue-table-frame">
-        <table aria-label="Sessões pendentes">
+        <table aria-label="Recargas pendentes">
           <thead>
             <tr>
               <th id="session-start-heading" scope="col">Início</th>
@@ -476,7 +480,7 @@ function SessionQueue({
                         if (button) buttonRefs.current.set(session.id, button);
                         else buttonRefs.current.delete(session.id);
                       }}
-                      aria-label={`Revisar sessão iniciada em ${formatQueueDate(session.startedAt)}, ${formatSessionEnergy(session.energyKwh)}, pendente de atribuição`}
+                      aria-label={`Revisar recarga iniciada em ${formatQueueDate(session.startedAt)}, ${formatSessionEnergy(session.energyKwh)}, pendente de atribuição`}
                       aria-pressed={selected}
                       disabled={disabled}
                       tabIndex={selected ? 0 : -1}
@@ -522,13 +526,13 @@ function SessionDecision({
     <section className="session-decision" aria-labelledby="session-decision-title">
       <div className="session-panel-heading decision-heading">
         <div>
-          <p className="utility-label">Sessão selecionada</p>
+          <p className="utility-label">Recarga selecionada</p>
           <h2 id="session-decision-title">Evidência e decisão</h2>
         </div>
         <span className="session-record-key">#{session.id.slice(-6)}</span>
       </div>
 
-      <section className="session-evidence" aria-label="Evidência da sessão">
+      <section className="session-evidence" aria-label="Evidência da recarga">
         <div className="evidence-primary">
           <span>Energia observada</span>
           <strong>{formatSessionEnergy(session.energyKwh)}</strong>
@@ -587,7 +591,7 @@ function SessionDecision({
             ? selectedUnit.residentName
               ? `${selectedUnit.displayName} · ${selectedUnit.residentName}`
               : `${selectedUnit.displayName} · morador não informado`
-            : "A unidade será usada no fechamento financeiro desta sessão."}
+            : "A unidade será usada no fechamento financeiro desta recarga."}
         </p>
 
         <label htmlFor="session-justification">Justificativa</label>
@@ -614,7 +618,7 @@ function SessionDecision({
 
         <button type="submit" disabled={submissionState === "submitting"}>
           {submissionState === "submitting"
-            ? "Atribuindo sessão…"
+            ? "Atribuindo recarga…"
             : "Atribuir e revisar próxima"}
           <span aria-hidden="true">→</span>
         </button>

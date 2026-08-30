@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 
 const operationalDestinations = [
   { href: "/dashboard", label: "Visão geral" },
-  { href: "/sessions", label: "Sessões" },
+  { href: "/sessions", label: "Recargas" },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {

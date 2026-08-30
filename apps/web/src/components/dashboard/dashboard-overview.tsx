@@ -9,10 +9,11 @@ import {
   ESTIMATED_TARIFF_BRL_PER_KWH,
   type DashboardSummary,
 } from "./dashboard-summary";
+import { PageBreadcrumb } from "@/components/shell/page-breadcrumb";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 const closeStages = [
-  "Importar sessões",
+  "Importar recargas",
   "Revisar atribuições",
   "Conferir custos",
   "Fechar mês",
@@ -71,8 +72,9 @@ export function DashboardOverview({ accessToken }: { accessToken: string }) {
     <div className="dashboard-overview">
       <header className="dashboard-heading">
         <div>
+          <PageBreadcrumb section="Operação" current="Visão geral" />
           <h1>Visão geral</h1>
-          <p>O que precisa de atenção para fechar o mês.</p>
+          <p>Acompanhe consumo, custos e pendências antes do fechamento do mês.</p>
         </div>
         {state.summary ? (
           <div className="dashboard-heading-meta">
@@ -121,8 +123,8 @@ function CloseProgress({
           {summary
             ? summary.pendingCount > 0
               ? `${summary.pendingCount} ${summary.pendingCount === 1 ? "pendência precisa" : "pendências precisam"} ser resolvida${summary.pendingCount === 1 ? "" : "s"}`
-              : "Sessões prontas para conferência de custos"
-            : "Comece trazendo as sessões do carregador"}
+              : "Recargas prontas para conferência de custos"
+            : "Comece trazendo as recargas do carregador"}
         </p>
       </div>
       <ol className="close-steps">
@@ -153,7 +155,7 @@ function DashboardLoading() {
       <span className="dashboard-state-signal" aria-hidden="true" />
       <div>
         <p className="utility-label">Atualizando visão geral</p>
-        <p>Carregando sessões, atribuições e custos…</p>
+        <p>Carregando recargas, atribuições e custos…</p>
       </div>
     </div>
   );
@@ -164,7 +166,7 @@ function DashboardError({ onRetry }: { onRetry: () => void }) {
     <div className="dashboard-state-panel dashboard-error" role="alert">
       <div>
         <p className="utility-label">Dados indisponíveis</p>
-        <p className="dashboard-error-title">Serviço de sessões indisponível</p>
+        <p className="dashboard-error-title">Serviço de recargas indisponível</p>
         <p>
           A visão geral não foi carregada. Verifique a conexão e tente novamente.
         </p>
@@ -182,7 +184,7 @@ function EmptyDashboard() {
       <section className="dashboard-empty-card" aria-labelledby="empty-title">
         <p className="utility-label">Próxima ação</p>
         <p className="empty-data-label">Nenhum dado importado</p>
-        <h2 id="empty-title">Importe as sessões para preparar o primeiro fechamento.</h2>
+        <h2 id="empty-title">Importe as recargas para preparar o primeiro fechamento.</h2>
         <p>
           Use a exportação CSV do SEMS+. Antes de gravar qualquer dado, você
           poderá revisar linhas válidas, duplicadas e com problemas de
@@ -211,7 +213,7 @@ function DashboardProcessGuide() {
         <li>
           <span>01</span>
           <div>
-            <strong>Validamos as sessões</strong>
+            <strong>Validamos as recargas</strong>
             <p>Erros e duplicidades ficam visíveis antes da confirmação.</p>
           </div>
         </li>
@@ -219,7 +221,7 @@ function DashboardProcessGuide() {
           <span>02</span>
           <div>
             <strong>Relacionamos aos responsáveis</strong>
-            <p>Cartões e sessões pendentes entram em uma fila de revisão.</p>
+            <p>Cartões e recargas pendentes entram em uma fila de revisão.</p>
           </div>
         </li>
         <li>
@@ -249,7 +251,7 @@ function OperationalDashboard({ summary }: { summary: DashboardSummary }) {
     ...summary.dailyUsage.map((day) => day.energyKwh),
     1,
   );
-  const pendingMessage = `${summary.pendingCount} ${summary.pendingCount === 1 ? "sessão ainda não pode" : "sessões ainda não podem"} ser cobrada${summary.pendingCount === 1 ? "" : "s"} porque falta identificar o responsável.`;
+  const pendingMessage = `${summary.pendingCount} ${summary.pendingCount === 1 ? "recarga ainda não pode" : "recargas ainda não podem"} ser cobrada${summary.pendingCount === 1 ? "" : "s"} porque falta identificar o responsável.`;
 
   return (
     <div className="operational-dashboard">
@@ -257,7 +259,7 @@ function OperationalDashboard({ summary }: { summary: DashboardSummary }) {
         <MetricCard
           label="Energia no período"
           value={`${energyFormatter.format(summary.totalEnergyKwh)} kWh`}
-          supporting={`${summary.sessionCount} ${summary.sessionCount === 1 ? "sessão importada" : "sessões importadas"}`}
+          supporting={`${summary.sessionCount} ${summary.sessionCount === 1 ? "recarga importada" : "recargas importadas"}`}
         />
         <MetricCard
           label="Custo estimado"
@@ -265,7 +267,7 @@ function OperationalDashboard({ summary }: { summary: DashboardSummary }) {
           supporting={`Tarifa de ${currencyFormatter.format(ESTIMATED_TARIFF_BRL_PER_KWH)}/kWh`}
         />
         <MetricCard
-          label="Sessões atribuídas"
+          label="Recargas atribuídas"
           value={`${summary.assignedCount} de ${summary.sessionCount}`}
           supporting={`${energyFormatter.format((summary.assignedCount / summary.sessionCount) * 100)}% identificadas`}
         />
@@ -324,7 +326,7 @@ function OperationalDashboard({ summary }: { summary: DashboardSummary }) {
             </>
           ) : (
             <p className="attention-clear">
-              Todas as sessões possuem um identificador de cobrança.
+              Todas as recargas possuem um identificador de cobrança.
             </p>
           )}
         </section>
@@ -341,7 +343,7 @@ function OperationalDashboard({ summary }: { summary: DashboardSummary }) {
               <tr>
                 <th>Identificador</th>
                 <th>Situação</th>
-                <th>Sessões</th>
+                <th>Recargas</th>
                 <th>Energia</th>
                 <th>Custo estimado</th>
               </tr>

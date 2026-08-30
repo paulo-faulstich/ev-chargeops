@@ -16,12 +16,12 @@ test("opens the manager product at the dashboard", async ({ page }) => {
     operation.getByRole("link", { name: "Visão geral" }),
   ).toHaveAttribute("aria-current", "page");
   await expect(
-    operation.getByRole("link", { name: "Sessões" }),
+    operation.getByRole("link", { name: "Recargas" }),
   ).toHaveAttribute("href", "/sessions");
   await expect(operation.locator('[aria-disabled="true"]')).toHaveCount(0);
 });
 
-test("marks Sessions as permanent operational navigation", async ({ page }) => {
+test("marks Recargas as permanent operational navigation", async ({ page }) => {
   await page.route("**/api/v1/sessions**", async (route) => {
     await route.fulfill({
       contentType: "application/json",
@@ -38,7 +38,7 @@ test("marks Sessions as permanent operational navigation", async ({ page }) => {
 
   const operation = page.getByRole("navigation", { name: "Operação" });
   await expect(
-    operation.getByRole("link", { name: "Sessões" }),
+    operation.getByRole("link", { name: "Recargas" }),
   ).toHaveAttribute("aria-current", "page");
   await expect(
     operation.getByRole("link", { name: "Visão geral" }),
@@ -49,10 +49,18 @@ test("marks Sessions as permanent operational navigation", async ({ page }) => {
     appHeader.getByLabel("Administrador Paulo Faulstich"),
   ).toBeVisible();
   expect(
-    await page.getByRole("heading", { name: "Sessões" }).evaluate(
+    await page.getByRole("heading", { name: "Recargas" }).evaluate(
       (heading) => Number.parseFloat(getComputedStyle(heading).fontSize),
     ),
   ).toBeLessThanOrEqual(42);
+  const breadcrumb = page.getByRole("navigation", { name: "Breadcrumb" });
+  await expect(breadcrumb).toContainText("Operação");
+  await expect(breadcrumb).toContainText("Recargas");
+  await expect(
+    page.getByText(
+      "Cada recarga registra início, duração, energia consumida e o responsável pelo custo.",
+    ),
+  ).toBeVisible();
 });
 
 test("redirects an unauthenticated Supabase session to login", async ({
@@ -95,4 +103,25 @@ test("keeps data sources visibly scoped under settings on mobile", async ({
   await expect(
     page.getByRole("banner").getByLabel("Administrador Paulo Faulstich"),
   ).toBeVisible();
+  const breadcrumb = page.getByRole("navigation", { name: "Breadcrumb" });
+  await expect(breadcrumb).toContainText("Configurações");
+  await expect(breadcrumb).toContainText("Fontes de dados");
+  await expect(
+    page.getByText(
+      "Importe registros do SEMS+ e acompanhe como os dados entram no ChargeOps.",
+    ),
+  ).toBeVisible();
+});
+
+test("keeps the data sources title at the operational scale", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1640, height: 900 });
+  await page.goto("/settings/data-sources");
+
+  expect(
+    await page.getByRole("heading", { name: "Fontes de dados" }).evaluate(
+      (heading) => Number.parseFloat(getComputedStyle(heading).fontSize),
+    ),
+  ).toBeLessThanOrEqual(42);
 });

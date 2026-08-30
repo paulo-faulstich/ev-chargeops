@@ -53,11 +53,19 @@ test("guides a first-time manager to import SEMS sessions", async ({ page }) => 
   await page.goto("/dashboard");
 
   await expect(page.getByRole("heading", { name: "Visão geral" })).toBeVisible();
+  const breadcrumb = page.getByRole("navigation", { name: "Breadcrumb" });
+  await expect(breadcrumb).toContainText("Operação");
+  await expect(breadcrumb).toContainText("Visão geral");
+  await expect(
+    page.getByText(
+      "Acompanhe consumo, custos e pendências antes do fechamento do mês.",
+    ),
+  ).toBeVisible();
   await expect(page.getByText("Nenhum dado importado")).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Importar dados do SEMS+" }),
   ).toHaveAttribute("href", "/settings/data-sources");
-  await expect(page.getByText("Importar sessões", { exact: true })).toBeVisible();
+  await expect(page.getByText("Importar recargas", { exact: true })).toBeVisible();
   await expect(page.getByText("Revisar atribuições", { exact: true })).toBeVisible();
   await expect(
     page.getByText("A IA analisa o fechamento", { exact: true }),
@@ -92,6 +100,38 @@ test("guides a first-time manager to import SEMS sessions", async ({ page }) => 
   ).toBe(true);
 });
 
+test("uses the available operational workspace width", async ({ page }) => {
+  await page.setViewportSize({ width: 1640, height: 900 });
+  await routeDashboardSessions(page, []);
+  await page.goto("/dashboard");
+
+  const overviewBox = await page.locator(".dashboard-overview").boundingBox();
+  expect(overviewBox?.width).toBeGreaterThanOrEqual(1240);
+});
+
+test("aligns every closing marker to its timeline column", async ({ page }) => {
+  await page.setViewportSize({ width: 1640, height: 900 });
+  await routeDashboardSessions(page, []);
+  await page.goto("/dashboard");
+
+  const progress = page.locator(".close-steps");
+  const progressBox = await progress.boundingBox();
+  const nodeBoxes = await progress.locator(".close-step-node").evaluateAll(
+    (nodes) =>
+      nodes.map((node) => {
+        const box = node.getBoundingClientRect();
+        return { x: box.x, width: box.width };
+      }),
+  );
+  expect(progressBox).not.toBeNull();
+  nodeBoxes.forEach((node, index) => {
+    const expectedCenter =
+      progressBox!.x + ((index + 0.5) * progressBox!.width) / 4;
+    const nodeCenter = node.x + node.width / 2;
+    expect(Math.abs(nodeCenter - expectedCenter)).toBeLessThanOrEqual(2);
+  });
+});
+
 test("keeps the closing explanation visible when session data is unavailable", async ({
   page,
 }) => {
@@ -100,7 +140,7 @@ test("keeps the closing explanation visible when session data is unavailable", a
   });
   await page.goto("/dashboard");
 
-  await expect(page.getByText("Serviço de sessões indisponível")).toBeVisible();
+  await expect(page.getByText("Serviço de recargas indisponível")).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "O que acontece depois" }),
   ).toBeVisible();
@@ -127,7 +167,7 @@ test("uses canonical unknown assignments for the monthly blocker", async ({
   await expect(page.getByText("0 de 2", { exact: true })).toBeVisible();
   await expect(
     page.getByText(
-      "2 sessões ainda não podem ser cobradas porque falta identificar o responsável.",
+      "2 recargas ainda não podem ser cobradas porque falta identificar o responsável.",
     ),
   ).toBeVisible();
   await expect(

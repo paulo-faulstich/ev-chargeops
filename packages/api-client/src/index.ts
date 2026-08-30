@@ -18,6 +18,20 @@ export class ApiError extends Error {
   }
 }
 
+async function errorBody(response: Response): Promise<unknown> {
+  const rawBody = await response.text();
+  if (rawBody === "") return null;
+
+  const contentType = response.headers.get("content-type")?.toLowerCase();
+  if (!contentType?.includes("json")) return rawBody;
+
+  try {
+    return JSON.parse(rawBody) as unknown;
+  } catch {
+    return rawBody;
+  }
+}
+
 async function apiRequest<T>(
   path: string,
   token: string,
@@ -32,7 +46,7 @@ async function apiRequest<T>(
     },
   });
   if (!response.ok) {
-    throw new ApiError(response.status, await response.json());
+    throw new ApiError(response.status, await errorBody(response));
   }
   return response.json() as Promise<T>;
 }

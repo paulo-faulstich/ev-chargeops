@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -31,6 +31,7 @@ from app.modules.ingestion.presentation.schemas import (
     ErrorBody,
     ErrorDetail,
     ErrorResponse,
+    HttpErrorResponse,
     ImportBatchDetailResponse,
     ImportBatchListResponse,
     ImportBatchResponse,
@@ -38,6 +39,17 @@ from app.modules.ingestion.presentation.schemas import (
 )
 
 router = APIRouter(prefix="/v1/import-batches", tags=["imports"])
+
+AUTH_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
+    401: {
+        "model": HttpErrorResponse,
+        "description": "Invalid or missing bearer token.",
+    },
+    403: {
+        "model": HttpErrorResponse,
+        "description": "Organization membership required.",
+    },
+}
 
 
 def preview_use_case() -> PreviewImport:
@@ -62,7 +74,7 @@ def error_response(error: InvalidSession) -> JSONResponse:
     "/preview",
     response_model=ImportPreviewResponse,
     response_model_by_alias=True,
-    responses={422: {"model": ErrorResponse}},
+    responses={**AUTH_ERROR_RESPONSES, 422: {"model": ErrorResponse}},
 )
 async def preview_import(
     scope: Annotated[OrganizationScope, Depends(current_scope)],
@@ -88,6 +100,7 @@ async def preview_import(
     response_model_by_alias=True,
     status_code=status.HTTP_201_CREATED,
     responses={
+        **AUTH_ERROR_RESPONSES,
         200: {"model": ImportBatchResponse},
         422: {"model": ErrorResponse},
     },
@@ -120,6 +133,7 @@ async def confirm_import(
     "",
     response_model=ImportBatchListResponse,
     response_model_by_alias=True,
+    responses=AUTH_ERROR_RESPONSES,
 )
 async def list_import_batches(
     scope: Annotated[OrganizationScope, Depends(current_scope)],
@@ -135,6 +149,13 @@ async def list_import_batches(
     "/{batch_id}",
     response_model=ImportBatchDetailResponse,
     response_model_by_alias=True,
+    responses={
+        **AUTH_ERROR_RESPONSES,
+        404: {
+            "model": HttpErrorResponse,
+            "description": "Import batch not found.",
+        },
+    },
 )
 async def get_import_batch(
     batch_id: UUID,

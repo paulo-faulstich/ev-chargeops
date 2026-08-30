@@ -145,3 +145,7 @@ class ErrorBody(ApiSchema):
 
 class ErrorResponse(ApiSchema):
     error: ErrorBody
+
+
+class HttpErrorResponse(ApiSchema):
+    detail: str

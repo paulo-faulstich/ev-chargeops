@@ -127,6 +127,11 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** HttpErrorResponse */
+        HttpErrorResponse: {
+            /** Detail */
+            detail: string;
+        };
         /** ImportBatchDetailResponse */
         ImportBatchDetailResponse: {
             /**
@@ -369,6 +374,24 @@ export interface operations {
                     "application/json": components["schemas"]["ImportPreviewResponse"];
                 };
             };
+            /** @description Invalid or missing bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Organization membership required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
             /** @description Unprocessable Content */
             422: {
                 headers: {
@@ -396,6 +419,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ImportBatchListResponse"];
+                };
+            };
+            /** @description Invalid or missing bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Organization membership required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
                 };
             };
         };
@@ -431,6 +472,24 @@ export interface operations {
                     "application/json": components["schemas"]["ImportBatchResponse"];
                 };
             };
+            /** @description Invalid or missing bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Organization membership required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
             /** @description Unprocessable Content */
             422: {
                 headers: {
@@ -460,6 +519,33 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ImportBatchDetailResponse"];
+                };
+            };
+            /** @description Invalid or missing bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Organization membership required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Import batch not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
                 };
             };
             /** @description Validation Error */

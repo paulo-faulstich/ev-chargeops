@@ -58,6 +58,26 @@
               }
             }
           },
+          "401": {
+            "description": "Invalid or missing bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization membership required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Unprocessable Content",
             "content": {
@@ -93,6 +113,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Invalid or missing bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization membership required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -123,6 +163,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ImportBatchResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization membership required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
                 }
               }
             }
@@ -186,6 +246,36 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ImportBatchDetailResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization membership required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Import batch not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
                 }
               }
             }
@@ -330,6 +420,19 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "HttpErrorResponse": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "HttpErrorResponse"
       },
       "ImportBatchDetailResponse": {
         "properties": {

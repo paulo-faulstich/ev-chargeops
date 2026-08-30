@@ -126,7 +126,10 @@ describe("authenticated import client", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
-        new Response(JSON.stringify(errorBody), { status: 422 }),
+        new Response(JSON.stringify(errorBody), {
+          status: 422,
+          headers: { "Content-Type": "application/json" },
+        }),
       ),
     );
     const file = new File(["bad"], "bad.txt", { type: "text/plain" });
@@ -137,6 +140,41 @@ describe("authenticated import client", () => {
     await expect(request).rejects.toMatchObject({
       status: 422,
       body: errorBody,
+    });
+  });
+
+  it("preserves status and plain text from a non-JSON failure", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response("Bad gateway", {
+          status: 502,
+          headers: { "Content-Type": "text/plain" },
+        }),
+      ),
+    );
+
+    const request = listImportBatches("signed-token", "http://api.test");
+
+    await expect(request).rejects.toMatchObject({
+      name: "ApiError",
+      status: 502,
+      body: "Bad gateway",
+    });
+  });
+
+  it("preserves status when a failure has no body", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(null, { status: 401 })),
+    );
+
+    const request = listImportBatches("expired-token", "http://api.test");
+
+    await expect(request).rejects.toMatchObject({
+      name: "ApiError",
+      status: 401,
+      body: null,
     });
   });
 });

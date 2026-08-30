@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from typing import Literal
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import and_, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,7 +11,10 @@ from app.modules.audit.infrastructure.models import AuditEventModel
 from app.modules.identity.domain.auth import OrganizationScope
 from app.modules.ingestion.application.preview_import import ImportPreview
 from app.modules.ingestion.application.review_import import ReviewImport
-from app.modules.ingestion.domain.import_batch import ImportBatchResult
+from app.modules.ingestion.domain.import_batch import (
+    ImportBatchResult,
+    PersistedRawRecord,
+)
 from app.modules.ingestion.infrastructure.models import (
     ChargingSessionModel,
     ImportBatchModel,
@@ -150,6 +153,42 @@ class SqlAlchemyImportRepository:
         if batch is None:
             return None
         return self._result(batch)
+
+    async def get_batch_records(
+        self,
+        organization_id: UUID,
+        batch_id: UUID,
+    ) -> tuple[PersistedRawRecord, ...]:
+        rows = (
+            await self.session.execute(
+                select(RawImportRecordModel, ChargingSessionModel.id)
+                .outerjoin(
+                    ChargingSessionModel,
+                    and_(
+                        ChargingSessionModel.organization_id == organization_id,
+                        ChargingSessionModel.raw_record_id == RawImportRecordModel.id,
+                    ),
+                )
+                .where(
+                    RawImportRecordModel.organization_id == organization_id,
+                    RawImportRecordModel.import_batch_id == batch_id,
+                )
+                .order_by(RawImportRecordModel.row_number.asc())
+            )
+        ).all()
+        return tuple(
+            PersistedRawRecord(
+                id=raw_record.id,
+                row_number=raw_record.row_number,
+                raw=dict(raw_record.raw_payload),
+                classification=raw_record.classification,
+                error_field=raw_record.error_field,
+                error_code=raw_record.error_code,
+                error_message=raw_record.error_message,
+                session_id=session_id,
+            )
+            for raw_record, session_id in rows
+        )
 
     async def _save_once(
         self,

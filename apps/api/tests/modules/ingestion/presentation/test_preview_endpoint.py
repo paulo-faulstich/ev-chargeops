@@ -3,14 +3,16 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from app.main import app
-
 FIXTURE = Path(__file__).parents[3] / "fixtures" / "sems_sessions.csv"
 
 
-def test_preview_endpoint_returns_camel_case_summary() -> None:
-    response = TestClient(app).post(
+def test_preview_endpoint_returns_camel_case_summary(
+    api_client: TestClient,
+    fixture_token: str,
+) -> None:
+    response = api_client.post(
         "/v1/import-batches/preview",
+        headers={"Authorization": f"Bearer {fixture_token}"},
         files={"file": ("sems.csv", FIXTURE.read_bytes(), "text/csv")},
     )
 
@@ -25,9 +27,13 @@ def test_preview_endpoint_returns_camel_case_summary() -> None:
     assert body["records"][0]["session"]["identityConfidence"] == "unknown"
 
 
-def test_preview_endpoint_returns_stable_error_for_unsupported_file() -> None:
-    response = TestClient(app).post(
+def test_preview_endpoint_returns_stable_error_for_unsupported_file(
+    api_client: TestClient,
+    fixture_token: str,
+) -> None:
+    response = api_client.post(
         "/v1/import-batches/preview",
+        headers={"Authorization": f"Bearer {fixture_token}"},
         files={"file": ("sessions.txt", b"not csv", "text/plain")},
     )
 
@@ -41,8 +47,14 @@ def test_preview_endpoint_returns_stable_error_for_unsupported_file() -> None:
     }
 
 
-def test_preview_endpoint_returns_stable_error_when_file_is_omitted() -> None:
-    response = TestClient(app).post("/v1/import-batches/preview")
+def test_preview_endpoint_returns_stable_error_when_file_is_omitted(
+    api_client: TestClient,
+    fixture_token: str,
+) -> None:
+    response = api_client.post(
+        "/v1/import-batches/preview",
+        headers={"Authorization": f"Bearer {fixture_token}"},
+    )
 
     assert response.status_code == 422
     assert response.json() == {
@@ -54,14 +66,18 @@ def test_preview_endpoint_returns_stable_error_when_file_is_omitted() -> None:
     }
 
 
-def test_preview_endpoint_preserves_missing_cells_and_continues() -> None:
+def test_preview_endpoint_preserves_missing_cells_and_continues(
+    api_client: TestClient,
+    fixture_token: str,
+) -> None:
     content = b"""Start Time,End Time,Charging Energy(kWh),Charging Port,Card ID,Device SN
 29/08/2026 17:10:00,29/08/2026 18:10:00,7.00,1,CARD-1
 29/08/2026 19:10:00,29/08/2026 20:10:00,7.00,1,CARD-2,97500NAP25BL0008
 """
 
-    response = TestClient(app, raise_server_exceptions=False).post(
+    response = api_client.post(
         "/v1/import-batches/preview",
+        headers={"Authorization": f"Bearer {fixture_token}"},
         files={"file": ("sems.csv", content, "text/csv")},
     )
 
@@ -74,14 +90,18 @@ def test_preview_endpoint_preserves_missing_cells_and_continues() -> None:
     assert body["records"][1]["classification"] == "valid"
 
 
-def test_preview_endpoint_preserves_surplus_cells_and_continues() -> None:
+def test_preview_endpoint_preserves_surplus_cells_and_continues(
+    api_client: TestClient,
+    fixture_token: str,
+) -> None:
     content = b"""Start Time,End Time,Charging Energy(kWh),Charging Port,Card ID,Device SN
 29/08/2026 17:10:00,29/08/2026 18:10:00,7.00,1,CARD-1,97500NAP25BL0008,unexpected,second
 29/08/2026 19:10:00,29/08/2026 20:10:00,7.00,1,CARD-2,97500NAP25BL0008
 """
 
-    response = TestClient(app, raise_server_exceptions=False).post(
+    response = api_client.post(
         "/v1/import-batches/preview",
+        headers={"Authorization": f"Bearer {fixture_token}"},
         files={"file": ("sems.csv", content, "text/csv")},
     )
 
@@ -97,14 +117,19 @@ def test_preview_endpoint_preserves_surplus_cells_and_continues() -> None:
 
 
 @pytest.mark.parametrize("energy", ["NaN", "Infinity", "-Infinity"])
-def test_preview_endpoint_rejects_non_finite_energy_and_continues(energy: str) -> None:
+def test_preview_endpoint_rejects_non_finite_energy_and_continues(
+    energy: str,
+    api_client: TestClient,
+    fixture_token: str,
+) -> None:
     content = f"""Start Time,End Time,Charging Energy(kWh),Charging Port,Card ID,Device SN
 29/08/2026 17:10:00,29/08/2026 18:10:00,{energy},1,CARD-1,97500NAP25BL0008
 29/08/2026 19:10:00,29/08/2026 20:10:00,7.00,1,CARD-2,97500NAP25BL0008
 """.encode()
 
-    response = TestClient(app, raise_server_exceptions=False).post(
+    response = api_client.post(
         "/v1/import-batches/preview",
+        headers={"Authorization": f"Bearer {fixture_token}"},
         files={"file": ("sems.csv", content, "text/csv")},
     )
 
@@ -117,3 +142,28 @@ def test_preview_endpoint_rejects_non_finite_energy_and_continues(energy: str) -
     assert body["records"][0]["errorCode"] == "INVALID_DECIMAL"
     assert body["records"][0]["errorMessage"] == "Invalid energy at row 2."
     assert body["records"][1]["classification"] == "valid"
+
+
+def test_preview_reports_duplicates_already_persisted(
+    api_client: TestClient,
+    fixture_token: str,
+) -> None:
+    confirmed = api_client.post(
+        "/v1/import-batches",
+        headers={"Authorization": f"Bearer {fixture_token}"},
+        files={"file": ("sems.csv", FIXTURE.read_bytes(), "text/csv")},
+    )
+
+    response = api_client.post(
+        "/v1/import-batches/preview",
+        headers={"Authorization": f"Bearer {fixture_token}"},
+        files={"file": ("sems.csv", FIXTURE.read_bytes(), "text/csv")},
+    )
+
+    assert confirmed.status_code == 201
+    assert response.status_code == 200
+    assert response.json()["validCount"] == 0
+    assert response.json()["duplicateCount"] == 2
+    assert {record["classification"] for record in response.json()["records"]} == {
+        "duplicate"
+    }

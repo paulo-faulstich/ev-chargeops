@@ -13,6 +13,7 @@ class PersistedRawRecord:
     error_field: str | None
     error_code: str | None
     error_message: str | None
+    session_id: UUID | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,3 +29,9 @@ class ImportBatchResult:
     invalid_count: int
     duplicate_count: int
     created_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class ImportBatchDetail:
+    batch: ImportBatchResult
+    records: tuple[PersistedRawRecord, ...]

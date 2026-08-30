@@ -68,6 +68,138 @@
               }
             }
           }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/import-batches": {
+      "get": {
+        "tags": [
+          "imports"
+        ],
+        "summary": "List Import Batches",
+        "operationId": "list_import_batches_v1_import_batches_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportBatchListResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "imports"
+        ],
+        "summary": "Confirm Import",
+        "operationId": "confirm_import_v1_import_batches_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_confirm_import_v1_import_batches_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportBatchResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportBatchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/import-batches/{batch_id}": {
+      "get": {
+        "tags": [
+          "imports"
+        ],
+        "summary": "Get Import Batch",
+        "operationId": "get_import_batch_v1_import_batches__batch_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Batch Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportBatchDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -99,6 +231,24 @@
   },
   "components": {
     "schemas": {
+      "Body_confirm_import_v1_import_batches_post": {
+        "properties": {
+          "file": {
+            "anyOf": [
+              {
+                "type": "string",
+                "contentMediaType": "application/octet-stream"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "title": "Body_confirm_import_v1_import_batches_post"
+      },
       "Body_preview_import_v1_import_batches_preview_post": {
         "properties": {
           "file": {
@@ -167,6 +317,173 @@
           "error"
         ],
         "title": "ErrorResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ImportBatchDetailResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "checksum": {
+            "type": "string",
+            "title": "Checksum"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created": {
+            "type": "boolean",
+            "title": "Created"
+          },
+          "totalCount": {
+            "type": "integer",
+            "title": "Totalcount"
+          },
+          "validCount": {
+            "type": "integer",
+            "title": "Validcount"
+          },
+          "invalidCount": {
+            "type": "integer",
+            "title": "Invalidcount"
+          },
+          "duplicateCount": {
+            "type": "integer",
+            "title": "Duplicatecount"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Createdat"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/PersistedRawRecordResponse"
+            },
+            "type": "array",
+            "title": "Records"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "filename",
+          "checksum",
+          "source",
+          "status",
+          "created",
+          "totalCount",
+          "validCount",
+          "invalidCount",
+          "duplicateCount",
+          "createdAt",
+          "records"
+        ],
+        "title": "ImportBatchDetailResponse"
+      },
+      "ImportBatchListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ImportBatchResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "ImportBatchListResponse"
+      },
+      "ImportBatchResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "checksum": {
+            "type": "string",
+            "title": "Checksum"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created": {
+            "type": "boolean",
+            "title": "Created"
+          },
+          "totalCount": {
+            "type": "integer",
+            "title": "Totalcount"
+          },
+          "validCount": {
+            "type": "integer",
+            "title": "Validcount"
+          },
+          "invalidCount": {
+            "type": "integer",
+            "title": "Invalidcount"
+          },
+          "duplicateCount": {
+            "type": "integer",
+            "title": "Duplicatecount"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Createdat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "filename",
+          "checksum",
+          "source",
+          "status",
+          "created",
+          "totalCount",
+          "validCount",
+          "invalidCount",
+          "duplicateCount",
+          "createdAt"
+        ],
+        "title": "ImportBatchResponse"
       },
       "ImportPreviewResponse": {
         "properties": {
@@ -264,6 +581,94 @@
           "technical_operator"
         ],
         "title": "OrganizationRole"
+      },
+      "PersistedRawRecordResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "rowNumber": {
+            "type": "integer",
+            "title": "Rownumber"
+          },
+          "raw": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Raw"
+          },
+          "classification": {
+            "type": "string",
+            "title": "Classification"
+          },
+          "errorField": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errorfield"
+          },
+          "errorCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errorcode"
+          },
+          "errorMessage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errormessage"
+          },
+          "sessionId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sessionid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "rowNumber",
+          "raw",
+          "classification",
+          "errorField",
+          "errorCode",
+          "errorMessage",
+          "sessionId"
+        ],
+        "title": "PersistedRawRecordResponse"
       },
       "PreviewRecordResponse": {
         "properties": {
@@ -410,6 +815,46 @@
           "deduplicationKey"
         ],
         "title": "SessionPreviewResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
       }
     },
     "securitySchemes": {

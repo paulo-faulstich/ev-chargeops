@@ -38,6 +38,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/import-batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Import Batches */
+        get: operations["list_import_batches_v1_import_batches_get"];
+        put?: never;
+        /** Confirm Import */
+        post: operations["confirm_import_v1_import_batches_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/import-batches/{batch_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Import Batch */
+        get: operations["get_import_batch_v1_import_batches__batch_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -59,6 +94,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** Body_confirm_import_v1_import_batches_post */
+        Body_confirm_import_v1_import_batches_post: {
+            /** File */
+            file?: string | null;
+        };
         /** Body_preview_import_v1_import_batches_preview_post */
         Body_preview_import_v1_import_batches_preview_post: {
             /** File */
@@ -81,6 +121,80 @@ export interface components {
         /** ErrorResponse */
         ErrorResponse: {
             error: components["schemas"]["ErrorBody"];
+        };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
+        /** ImportBatchDetailResponse */
+        ImportBatchDetailResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Filename */
+            filename: string;
+            /** Checksum */
+            checksum: string;
+            /** Source */
+            source: string;
+            /** Status */
+            status: string;
+            /** Created */
+            created: boolean;
+            /** Totalcount */
+            totalCount: number;
+            /** Validcount */
+            validCount: number;
+            /** Invalidcount */
+            invalidCount: number;
+            /** Duplicatecount */
+            duplicateCount: number;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Records */
+            records: components["schemas"]["PersistedRawRecordResponse"][];
+        };
+        /** ImportBatchListResponse */
+        ImportBatchListResponse: {
+            /** Items */
+            items: components["schemas"]["ImportBatchResponse"][];
+        };
+        /** ImportBatchResponse */
+        ImportBatchResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Filename */
+            filename: string;
+            /** Checksum */
+            checksum: string;
+            /** Source */
+            source: string;
+            /** Status */
+            status: string;
+            /** Created */
+            created: boolean;
+            /** Totalcount */
+            totalCount: number;
+            /** Validcount */
+            validCount: number;
+            /** Invalidcount */
+            invalidCount: number;
+            /** Duplicatecount */
+            duplicateCount: number;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
         };
         /** ImportPreviewResponse */
         ImportPreviewResponse: {
@@ -122,6 +236,30 @@ export interface components {
          * @enum {string}
          */
         OrganizationRole: "manager" | "resident" | "technical_operator";
+        /** PersistedRawRecordResponse */
+        PersistedRawRecordResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Rownumber */
+            rowNumber: number;
+            /** Raw */
+            raw: {
+                [key: string]: string | null;
+            };
+            /** Classification */
+            classification: string;
+            /** Errorfield */
+            errorField: string | null;
+            /** Errorcode */
+            errorCode: string | null;
+            /** Errormessage */
+            errorMessage: string | null;
+            /** Sessionid */
+            sessionId: string | null;
+        };
         /** PreviewRecordResponse */
         PreviewRecordResponse: {
             /** Rownumber */
@@ -166,6 +304,19 @@ export interface components {
             provenance: string;
             /** Deduplicationkey */
             deduplicationKey: string;
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
         };
     };
     responses: never;
@@ -225,6 +376,99 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_import_batches_v1_import_batches_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatchListResponse"];
+                };
+            };
+        };
+    };
+    confirm_import_v1_import_batches_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_confirm_import_v1_import_batches_post"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatchResponse"];
+                };
+            };
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatchResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_import_batch_v1_import_batches__batch_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatchDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

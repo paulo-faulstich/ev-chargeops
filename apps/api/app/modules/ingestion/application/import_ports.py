@@ -4,7 +4,10 @@ from uuid import UUID
 
 from app.modules.identity.domain.auth import OrganizationScope
 from app.modules.ingestion.application.preview_import import ImportPreview
-from app.modules.ingestion.domain.import_batch import ImportBatchResult
+from app.modules.ingestion.domain.import_batch import (
+    ImportBatchResult,
+    PersistedRawRecord,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,6 +46,12 @@ class ImportRepository(Protocol):
         organization_id: UUID,
         batch_id: UUID,
     ) -> ImportBatchResult | None: ...
+
+    async def get_batch_records(
+        self,
+        organization_id: UUID,
+        batch_id: UUID,
+    ) -> tuple[PersistedRawRecord, ...]: ...
 
 
 class OriginalFileStore(Protocol):

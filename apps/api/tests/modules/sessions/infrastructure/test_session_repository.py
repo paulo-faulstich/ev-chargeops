@@ -158,6 +158,25 @@ async def test_list_sessions_is_organization_scoped_and_does_not_trust_card_id(
         started_at=datetime(2026, 8, 31, 23, 59, tzinfo=UTC),
         card_id_raw="RAW-CARD-MUST-NOT-ASSIGN",
     )
+    later_matching_session = await add_session(
+        async_session,
+        organization_id=first_organization_id,
+        site_id=first_site_id,
+        charger_id=first_charger_id,
+        import_batch_id=first_batch_id,
+        id_suffix=4,
+        started_at=datetime(2026, 8, 31, 23, 59, tzinfo=UTC),
+    )
+    await add_session(
+        async_session,
+        organization_id=first_organization_id,
+        site_id=first_site_id,
+        charger_id=first_charger_id,
+        import_batch_id=first_batch_id,
+        id_suffix=5,
+        started_at=datetime(2026, 8, 31, 23, 58, tzinfo=UTC),
+        status="completed",
+    )
     await add_session(
         async_session,
         organization_id=first_organization_id,
@@ -205,11 +224,14 @@ async def test_list_sessions_is_organization_scoped_and_does_not_trust_card_id(
         status="pending_review",
     )
 
-    assert [item.id for item in items] == [first_session.id]
-    assert items[0].identity_confidence == "unknown"
-    assert items[0].unit_id is None
-    assert items[0].unit_code is None
-    assert items[0].resident_name is None
+    assert [item.id for item in items] == [
+        later_matching_session.id,
+        first_session.id,
+    ]
+    assert items[1].identity_confidence == "unknown"
+    assert items[1].unit_id is None
+    assert items[1].unit_code is None
+    assert items[1].resident_name is None
 
 
 async def test_list_sessions_includes_explicit_assignment_and_resident(
@@ -240,10 +262,24 @@ async def test_list_sessions_includes_explicit_assignment_and_resident(
         email="resident@example.test",
         display_name="Resident One",
     )
+    resident_with_tied_created_at = ProfileModel(
+        id=identifier(11, 2),
+        auth_user_id=identifier(12, 2),
+        email="resident-tie@example.test",
+        display_name="Resident Tie",
+    )
+    later_resident = ProfileModel(
+        id=identifier(11, 3),
+        auth_user_id=identifier(12, 3),
+        email="resident-later@example.test",
+        display_name="Resident Later",
+    )
     async_session.add_all(
         [
             unit,
             resident,
+            resident_with_tied_created_at,
+            later_resident,
             MembershipModel(
                 id=identifier(13, 0),
                 organization_id=organization_id,
@@ -253,9 +289,25 @@ async def test_list_sessions_includes_explicit_assignment_and_resident(
                 created_at=datetime(2026, 8, 1, tzinfo=UTC),
             ),
             MembershipModel(
+                id=identifier(13, 3),
+                organization_id=organization_id,
+                profile_id=later_resident.id,
+                unit_id=unit.id,
+                role="resident",
+                created_at=datetime(2026, 8, 3, tzinfo=UTC),
+            ),
+            MembershipModel(
                 id=identifier(13, 1),
                 organization_id=organization_id,
                 profile_id=resident.id,
+                unit_id=unit.id,
+                role="resident",
+                created_at=datetime(2026, 8, 2, tzinfo=UTC),
+            ),
+            MembershipModel(
+                id=identifier(13, 2),
+                organization_id=organization_id,
+                profile_id=resident_with_tied_created_at.id,
                 unit_id=unit.id,
                 role="resident",
                 created_at=datetime(2026, 8, 2, tzinfo=UTC),
@@ -322,8 +374,8 @@ async def test_list_assignment_units_is_scoped_and_keeps_vacant_units(
     )
     async_session.add_all(
         [
-            occupied_unit,
             vacant_unit,
+            occupied_unit,
             other_organization_unit,
             resident,
             other_resident,

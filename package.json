@@ -2,13 +2,16 @@
   "name": "ev-chargeops",
   "private": true,
   "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=22.13.0 <23"
+  },
   "scripts": {
     "dev:web": "pnpm --dir apps/web dev",
     "dev:api": "uv run --project apps/api uvicorn app.main:app --app-dir apps/api --reload",
     "db:upgrade": "uv run --project apps/api alembic -c apps/api/alembic.ini upgrade head",
     "db:check": "uv run --project apps/api alembic -c apps/api/alembic.ini check",
     "test:web": "pnpm --dir apps/web test:e2e",
-    "test:api": "uv run --project apps/api pytest apps/api/tests -q",
+    "test:api": "uv run --project apps/api pytest apps/api/tests --ignore=apps/api/tests/integration -q",
     "test:integration": "uv run --project apps/api pytest apps/api/tests/integration -q",
     "lint:web": "pnpm --dir apps/web lint",
     "lint:api": "uv run --project apps/api ruff check apps/api/app apps/api/tests",

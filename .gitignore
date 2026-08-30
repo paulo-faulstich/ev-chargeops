@@ -15,6 +15,10 @@ node_modules/
 .env.*
 !.env.example
 
+# Artefatos locais do Checkpoint A
+/ev_chargeops_local.db
+/apps/api/.data/original-imports/
+
 # Worktrees e artefatos locais de execução
 .worktrees/
 .superpowers/

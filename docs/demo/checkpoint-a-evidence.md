@@ -11,15 +11,21 @@ Ambiente do gate: Node.js `22.19.0`, pnpm `11.19.0`, branch
 
 | Evidência | Comando | Resultado |
 |---|---|---|
-| Gate completo | `pnpm check` | Aprovado: Ruff; mypy em 48 arquivos; 114 testes da API; 5 de integração; Alembic e OpenAPI sem drift; 7 testes e typecheck do client; ESLint; build Webpack; 15 testes Playwright |
+| Gate completo | `pnpm check` | Aprovado: Ruff; mypy em 48 arquivos; 109 testes unitários/contrato da API; 5 de integração; Alembic e OpenAPI sem drift; 7 testes e typecheck do client; ESLint; build Webpack; 15 testes Playwright |
 | Higiene de diff | `git diff --check` | Aprovado, sem saída |
-| Higiene de credenciais | busca versionada por padrões de segredo | Aprovado: nenhum URL PostgreSQL com senha, JWT ou valor real de chave Supabase; e-mails versionados restantes usam somente o domínio reservado `example.test` |
+| Higiene de credenciais | busca versionada por padrões de segredo | Aprovado: nenhum URL PostgreSQL com senha, JWT ou valor real de chave Supabase foi detectado na implementação e documentação do Checkpoint A |
 
 Antes do gate, `pnpm db:upgrade` levou o SQLite local descartável ao head. O
 gate cobre lint e typecheck da API, testes da API e de integração,
 verificação de drift do Alembic e OpenAPI, testes e typecheck do client,
 lint e build Webpack da web e testes Playwright. Os testes locais usam SQLite,
 fixture auth e armazenamento isolado; não acessam o projeto Supabase.
+
+Os CSVs sintéticos legados da Sprint 01 contêm endereços de exemplo nos
+domínios `exemplo.com` e `mercadopop.com`; eles não são credenciais, não fazem
+parte do material operacional do Checkpoint A e um desses domínios não é
+reservado. A busca de higiene não usa a presença de um e-mail como prova de
+segredo ou de ausência dele.
 
 Critérios locais rastreáveis no gate:
 

@@ -1,9 +1,16 @@
+from dataclasses import dataclass
 from typing import Protocol
 from uuid import UUID
 
 from app.modules.identity.domain.auth import OrganizationScope
 from app.modules.ingestion.application.preview_import import ImportPreview
 from app.modules.ingestion.domain.import_batch import ImportBatchResult
+
+
+@dataclass(frozen=True, slots=True)
+class StoredOriginalFile:
+    path: str
+    created: bool
 
 
 class ImportRepository(Protocol):
@@ -45,7 +52,7 @@ class OriginalFileStore(Protocol):
         checksum: str,
         filename: str,
         content: bytes,
-    ) -> str: ...
+    ) -> StoredOriginalFile: ...
 
     async def delete(self, storage_path: str) -> None: ...
 

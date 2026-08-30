@@ -5,7 +5,10 @@ from uuid import UUID
 
 import httpx
 
-from app.modules.ingestion.application.import_ports import OriginalFileStorageError
+from app.modules.ingestion.application.import_ports import (
+    OriginalFileStorageError,
+    StoredOriginalFile,
+)
 
 BUCKET = "sems-imports"
 
@@ -31,7 +34,23 @@ def _object_path(
     checksum: str,
     filename: str,
 ) -> str:
-    return f"{organization_id}/{checksum}/{_sanitize_filename(filename)}"
+    _sanitize_filename(filename)
+    return f"{organization_id}/{checksum}/source.csv"
+
+
+def _is_existing_object(response: httpx.Response) -> bool:
+    if response.status_code == httpx.codes.CONFLICT:
+        return True
+    if response.status_code != httpx.codes.BAD_REQUEST:
+        return False
+    try:
+        payload = response.json()
+    except ValueError:
+        return False
+    status_code = str(payload.get("statusCode", ""))
+    error = str(payload.get("error", "")).lower()
+    message = str(payload.get("message", "")).lower()
+    return status_code == "409" or error == "duplicate" or "already exists" in message
 
 
 class LocalOriginalFileStore:
@@ -44,7 +63,7 @@ class LocalOriginalFileStore:
         checksum: str,
         filename: str,
         content: bytes,
-    ) -> str:
+    ) -> StoredOriginalFile:
         object_path = _object_path(organization_id, checksum, filename)
         import_directory = (self.root / str(organization_id) / checksum).resolve()
         target = (self.root / object_path).resolve()
@@ -53,17 +72,25 @@ class LocalOriginalFileStore:
                 "Original file path resolves outside import directory."
             )
         import_directory.mkdir(parents=True, exist_ok=True)
+        created = True
         try:
             with target.open("xb") as stored_file:
                 stored_file.write(content)
         except FileExistsError:
-            if target.read_bytes() != content:
+            created = False
+            try:
+                existing_content = target.read_bytes()
+            except OSError as error:
+                raise OriginalFileStorageError(
+                    "Original file read failed."
+                ) from error
+            if existing_content != content:
                 raise OriginalFileStorageError(
                     "Original file object already exists with different content."
                 ) from None
         except OSError as error:
             raise OriginalFileStorageError("Original file write failed.") from error
-        return object_path
+        return StoredOriginalFile(path=object_path, created=created)
 
     async def delete(self, storage_path: str) -> None:
         relative_path = PurePosixPath(storage_path)
@@ -108,7 +135,7 @@ class SupabaseOriginalFileStore:
         checksum: str,
         filename: str,
         content: bytes,
-    ) -> str:
+    ) -> StoredOriginalFile:
         object_path = _object_path(organization_id, checksum, filename)
         try:
             response = await self.client.post(
@@ -121,10 +148,12 @@ class SupabaseOriginalFileStore:
                 },
                 content=content,
             )
+            if _is_existing_object(response):
+                return StoredOriginalFile(path=object_path, created=False)
             response.raise_for_status()
         except httpx.HTTPError as error:
             raise OriginalFileStorageError("Original file upload failed.") from error
-        return object_path
+        return StoredOriginalFile(path=object_path, created=True)
 
     async def delete(self, storage_path: str) -> None:
         try:

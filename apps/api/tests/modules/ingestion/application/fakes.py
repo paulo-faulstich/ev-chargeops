@@ -8,6 +8,7 @@ from app.modules.identity.domain.auth import OrganizationRole, OrganizationScope
 from app.modules.ingestion.application.import_ports import (
     ImportRepository,
     OriginalFileStore,
+    StoredOriginalFile,
 )
 from app.modules.ingestion.application.preview_import import (
     ImportPreview,
@@ -84,10 +85,14 @@ class FakeImportRepository(ImportRepository):
         *,
         existing_keys: set[str] | None = None,
         existing_batch: ImportBatchResult | None = None,
+        find_results: list[ImportBatchResult | None | Exception] | None = None,
+        save_result: ImportBatchResult | None = None,
         save_error: Exception | None = None,
     ) -> None:
         self._existing_keys = existing_keys or set()
         self._existing_batch = existing_batch
+        self.find_results = list(find_results or [])
+        self.save_result = save_result
         self.save_error = save_error
         self.existing_key_calls: list[tuple[UUID, set[str]]] = []
         self.find_batch_calls: list[tuple[UUID, str]] = []
@@ -112,6 +117,11 @@ class FakeImportRepository(ImportRepository):
         checksum: str,
     ) -> ImportBatchResult | None:
         self.find_batch_calls.append((organization_id, checksum))
+        if self.find_results:
+            result = self.find_results.pop(0)
+            if isinstance(result, Exception):
+                raise result
+            return result
         return self._existing_batch
 
     async def save_import(
@@ -124,6 +134,8 @@ class FakeImportRepository(ImportRepository):
         self.saved_storage_paths.append(storage_path)
         if self.save_error is not None:
             raise self.save_error
+        if self.save_result is not None:
+            return self.save_result
 
         for index, record in enumerate(preview.records, start=1):
             raw_record = PersistedRawRecord(
@@ -174,8 +186,16 @@ class FakeImportRepository(ImportRepository):
 
 
 class FakeOriginalFileStore(OriginalFileStore):
-    def __init__(self, path: str = "imports/org/checksum.csv") -> None:
+    def __init__(
+        self,
+        path: str = "imports/org/source.csv",
+        *,
+        created: bool = True,
+        delete_error: Exception | None = None,
+    ) -> None:
         self.path = path
+        self.created = created
+        self.delete_error = delete_error
         self.put_calls: list[tuple[UUID, str, str, bytes]] = []
         self.deleted_paths: list[str] = []
 
@@ -185,9 +205,11 @@ class FakeOriginalFileStore(OriginalFileStore):
         checksum: str,
         filename: str,
         content: bytes,
-    ) -> str:
+    ) -> StoredOriginalFile:
         self.put_calls.append((organization_id, checksum, filename, content))
-        return self.path
+        return StoredOriginalFile(path=self.path, created=self.created)
 
     async def delete(self, storage_path: str) -> None:
         self.deleted_paths.append(storage_path)
+        if self.delete_error is not None:
+            raise self.delete_error

@@ -1,9 +1,10 @@
 from dataclasses import replace
 from datetime import UTC, datetime
+from typing import Literal
 from uuid import UUID
 
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.audit.infrastructure.models import AuditEventModel
@@ -17,6 +18,19 @@ from app.modules.ingestion.infrastructure.models import (
     RawImportRecordModel,
 )
 from app.modules.organizations.infrastructure.models import ChargerModel
+
+CHECKSUM_CONSTRAINT = "uq_import_batches_organization_id_checksum"
+SESSION_KEY_CONSTRAINT = (
+    "uq_charging_sessions_organization_id_deduplication_key"
+)
+SQLITE_CHECKSUM_CONSTRAINT = (
+    "UNIQUE constraint failed: import_batches.organization_id, "
+    "import_batches.checksum"
+)
+SQLITE_SESSION_KEY_CONSTRAINT = (
+    "UNIQUE constraint failed: charging_sessions.organization_id, "
+    "charging_sessions.deduplication_key"
+)
 
 
 class SqlAlchemyImportRepository:
@@ -66,19 +80,45 @@ class SqlAlchemyImportRepository:
         while True:
             try:
                 return await self._save_once(scope, reviewed, storage_path)
-            except IntegrityError:
+            except IntegrityError as error:
+                conflict = self._recognized_conflict(error)
                 await self.session.rollback()
-                replay = await self.find_batch_by_checksum(
-                    scope.organization_id,
-                    preview.checksum,
-                )
-                if replay is not None:
+                if conflict == "checksum":
+                    replay = await self.find_batch_by_checksum(
+                        scope.organization_id,
+                        preview.checksum,
+                    )
+                    if replay is None:
+                        raise
                     return replace(replay, created=False)
+                if conflict == "session_key":
+                    rereviewed = await ReviewImport(self).execute(scope, reviewed)
+                    if rereviewed == reviewed:
+                        raise
+                    reviewed = rereviewed
+                    continue
+                raise
+            except SQLAlchemyError:
+                await self.session.rollback()
+                raise
 
-                rereviewed = await ReviewImport(self).execute(scope, reviewed)
-                if rereviewed == reviewed:
-                    raise
-                reviewed = rereviewed
+    @staticmethod
+    def _recognized_conflict(
+        error: IntegrityError,
+    ) -> Literal["checksum", "session_key"] | None:
+        diagnostic = getattr(error.orig, "diag", None)
+        constraint_name = getattr(diagnostic, "constraint_name", None)
+        if constraint_name == CHECKSUM_CONSTRAINT:
+            return "checksum"
+        if constraint_name == SESSION_KEY_CONSTRAINT:
+            return "session_key"
+
+        message = str(error.orig)
+        if SQLITE_CHECKSUM_CONSTRAINT in message:
+            return "checksum"
+        if SQLITE_SESSION_KEY_CONSTRAINT in message:
+            return "session_key"
+        return None
 
     async def list_batches(
         self,

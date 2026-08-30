@@ -226,8 +226,20 @@ function EmptyDashboard() {
           <li>
             <span>03</span>
             <div>
-              <strong>Calculamos os custos</strong>
-              <p>O administrador confere valores antes de fechar o mês.</p>
+              <strong>A IA analisa o fechamento</strong>
+              <p>
+                Cruza consumo, duração, potência, tarifa e histórico para emitir
+                um parecer com evidências.
+              </p>
+            </div>
+          </li>
+          <li>
+            <span>04</span>
+            <div>
+              <strong>O administrador aprova</strong>
+              <p>
+                Revisa as recomendações e exceções antes de fechar o mês.
+              </p>
             </div>
           </li>
         </ol>

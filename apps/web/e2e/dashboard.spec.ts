@@ -82,6 +82,12 @@ test("guides a first-time manager to import SEMS sessions", async ({ page }) => 
   ).toHaveAttribute("href", "/settings/data-sources");
   await expect(page.getByText("Importar sessões", { exact: true })).toBeVisible();
   await expect(page.getByText("Revisar atribuições", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("A IA analisa o fechamento", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("O administrador aprova", { exact: true }),
+  ).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
   expect(

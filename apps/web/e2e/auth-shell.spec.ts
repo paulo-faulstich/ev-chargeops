@@ -43,6 +43,16 @@ test("marks Sessions as permanent operational navigation", async ({ page }) => {
   await expect(
     operation.getByRole("link", { name: "Visão geral" }),
   ).toHaveAttribute("href", "/dashboard");
+  const appHeader = page.getByRole("banner");
+  await expect(appHeader).toContainText("LAB FIAP Eco Smart Home");
+  await expect(
+    appHeader.getByLabel("Administrador Paulo Faulstich"),
+  ).toBeVisible();
+  expect(
+    await page.getByRole("heading", { name: "Sessões" }).evaluate(
+      (heading) => Number.parseFloat(getComputedStyle(heading).fontSize),
+    ),
+  ).toBeLessThanOrEqual(42);
 });
 
 test("redirects an unauthenticated Supabase session to login", async ({
@@ -78,5 +88,11 @@ test("keeps data sources visibly scoped under settings on mobile", async ({
   await expect(settingsNavigation.getByText("Configurações")).toBeVisible();
   await expect(
     settingsNavigation.getByRole("link", { name: "Fontes de dados" }),
+  ).toBeVisible();
+  await expect(page.getByRole("banner")).toContainText(
+    "LAB FIAP Eco Smart Home",
+  );
+  await expect(
+    page.getByRole("banner").getByLabel("Administrador Paulo Faulstich"),
   ).toBeVisible();
 });

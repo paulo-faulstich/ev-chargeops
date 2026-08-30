@@ -69,26 +69,18 @@ export function DashboardOverview({ accessToken }: { accessToken: string }) {
 
   return (
     <div className="dashboard-overview">
-      <div className="dashboard-context-bar">
-        <div>
-          <p className="dashboard-site-name">LAB FIAP Eco Smart Home</p>
-          <p className="dashboard-site-meta">Gestão condominial · 1 carregador</p>
-        </div>
-        <div className="dashboard-period-context">
-          <span>{state.summary?.periodLabel ?? "Período atual"}</span>
-          <span className="manager-avatar" aria-label="Administrador Paulo Faulstich">
-            PF
-          </span>
-        </div>
-      </div>
-
       <header className="dashboard-heading">
         <div>
           <h1>Visão geral</h1>
           <p>O que precisa de atenção para fechar o mês.</p>
         </div>
         {state.summary ? (
-          <p className="dashboard-updated">Atualizado em {state.summary.updatedAt}</p>
+          <div className="dashboard-heading-meta">
+            <strong>{state.summary.periodLabel}</strong>
+            <span className="dashboard-updated">
+              Atualizado em {state.summary.updatedAt}
+            </span>
+          </div>
         ) : null}
       </header>
 
@@ -96,12 +88,15 @@ export function DashboardOverview({ accessToken }: { accessToken: string }) {
 
       {state.status === "loading" ? <DashboardLoading /> : null}
       {state.status === "error" ? (
-        <DashboardError
-          onRetry={() => {
-            setState({ status: "loading", summary: null });
-            setRefreshGeneration((generation) => generation + 1);
-          }}
-        />
+        <div className="dashboard-state-layout">
+          <DashboardError
+            onRetry={() => {
+              setState({ status: "loading", summary: null });
+              setRefreshGeneration((generation) => generation + 1);
+            }}
+          />
+          <DashboardProcessGuide />
+        </div>
       ) : null}
       {state.status === "ready" && !state.summary ? <EmptyDashboard /> : null}
       {state.status === "ready" && state.summary ? (
@@ -169,7 +164,10 @@ function DashboardError({ onRetry }: { onRetry: () => void }) {
     <div className="dashboard-state-panel dashboard-error" role="alert">
       <div>
         <p className="utility-label">Dados indisponíveis</p>
-        <p>A visão geral não foi carregada. Tente novamente.</p>
+        <p className="dashboard-error-title">Serviço de sessões indisponível</p>
+        <p>
+          A visão geral não foi carregada. Verifique a conexão e tente novamente.
+        </p>
       </div>
       <button type="button" onClick={onRetry}>
         Atualizar dashboard
@@ -200,45 +198,49 @@ function EmptyDashboard() {
         </div>
       </section>
 
-      <section className="dashboard-next-steps" aria-labelledby="next-steps-title">
-        <h2 id="next-steps-title">O que acontece depois</h2>
-        <ol>
-          <li>
-            <span>01</span>
-            <div>
-              <strong>Validamos as sessões</strong>
-              <p>Erros e duplicidades ficam visíveis antes da confirmação.</p>
-            </div>
-          </li>
-          <li>
-            <span>02</span>
-            <div>
-              <strong>Relacionamos aos responsáveis</strong>
-              <p>Cartões e sessões pendentes entram em uma fila de revisão.</p>
-            </div>
-          </li>
-          <li>
-            <span>03</span>
-            <div>
-              <strong>A IA analisa o fechamento</strong>
-              <p>
-                Cruza consumo, duração, potência, tarifa e histórico para emitir
-                um parecer com evidências.
-              </p>
-            </div>
-          </li>
-          <li>
-            <span>04</span>
-            <div>
-              <strong>O administrador aprova</strong>
-              <p>
-                Revisa as recomendações e exceções antes de fechar o mês.
-              </p>
-            </div>
-          </li>
-        </ol>
-      </section>
+      <DashboardProcessGuide />
     </div>
+  );
+}
+
+function DashboardProcessGuide() {
+  return (
+    <section className="dashboard-next-steps" aria-labelledby="next-steps-title">
+      <h2 id="next-steps-title">O que acontece depois</h2>
+      <ol>
+        <li>
+          <span>01</span>
+          <div>
+            <strong>Validamos as sessões</strong>
+            <p>Erros e duplicidades ficam visíveis antes da confirmação.</p>
+          </div>
+        </li>
+        <li>
+          <span>02</span>
+          <div>
+            <strong>Relacionamos aos responsáveis</strong>
+            <p>Cartões e sessões pendentes entram em uma fila de revisão.</p>
+          </div>
+        </li>
+        <li>
+          <span>03</span>
+          <div>
+            <strong>A IA analisa o fechamento</strong>
+            <p>
+              Cruza consumo, duração, potência, tarifa e histórico para emitir
+              um parecer com evidências.
+            </p>
+          </div>
+        </li>
+        <li>
+          <span>04</span>
+          <div>
+            <strong>O administrador aprova</strong>
+            <p>Revisa as recomendações e exceções antes de fechar o mês.</p>
+          </div>
+        </li>
+      </ol>
+    </section>
   );
 }
 

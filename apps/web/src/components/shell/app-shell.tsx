@@ -59,7 +59,29 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <main className="app-workspace">{children}</main>
+      <div className="app-workspace">
+        <header className="app-workspace-header">
+          <div>
+            <p className="dashboard-site-name">LAB FIAP Eco Smart Home</p>
+            <p className="dashboard-site-meta">
+              Gestão condominial · 1 carregador
+            </p>
+          </div>
+          <div className="manager-context">
+            <div>
+              <span>Administrador</span>
+              <strong>Paulo Faulstich</strong>
+            </div>
+            <span
+              className="manager-avatar"
+              aria-label="Administrador Paulo Faulstich"
+            >
+              PF
+            </span>
+          </div>
+        </header>
+        <main className="app-workspace-content">{children}</main>
+      </div>
     </div>
   );
 }

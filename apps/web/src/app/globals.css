@@ -172,7 +172,54 @@ a {
 
 .app-workspace {
   min-width: 0;
-  padding: clamp(2rem, 5vw, 5rem);
+  padding: 0 clamp(2rem, 5vw, 5rem) clamp(3rem, 5vw, 5rem);
+}
+
+.app-workspace-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  width: min(100%, 78rem);
+  min-height: 5.65rem;
+  margin: 0 auto;
+  padding: 2.25rem 0 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  border-bottom: 1px solid var(--line);
+  background: rgb(6 18 28 / 0.96);
+  backdrop-filter: blur(12px);
+}
+
+.app-workspace-content {
+  padding-top: 1.2rem;
+}
+
+.manager-context {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.manager-context > div {
+  display: grid;
+  gap: 0.2rem;
+  text-align: right;
+}
+
+.manager-context span:not(.manager-avatar) {
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.56rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.manager-context strong {
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 650;
 }
 
 .dashboard-overview {
@@ -251,12 +298,12 @@ a {
   align-items: end;
   justify-content: space-between;
   gap: 2rem;
-  padding: 1.8rem 0 1.4rem;
+  padding: 0.8rem 0 1.4rem;
 }
 
 .dashboard-heading h1 {
   color: var(--ink);
-  font-size: clamp(2rem, 4vw, 3rem);
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
   font-weight: 700;
   letter-spacing: -0.05em;
   line-height: 1;
@@ -282,6 +329,36 @@ a {
   font-size: 0.58rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.dashboard-heading-meta {
+  display: grid;
+  gap: 0.35rem;
+  text-align: right;
+}
+
+.dashboard-heading-meta strong {
+  color: var(--ink);
+  font-size: 0.82rem;
+}
+
+.dashboard-state-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(20rem, 0.85fr);
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.dashboard-state-layout .dashboard-state-panel,
+.dashboard-state-layout .dashboard-next-steps {
+  margin-top: 0;
+}
+
+.dashboard-error-title {
+  margin-top: 0.7rem !important;
+  color: var(--ink);
+  font-size: 1.1rem;
+  font-weight: 700;
 }
 
 .close-progress {
@@ -1114,7 +1191,7 @@ a {
 .session-review-header h1 {
   margin-top: 0.65rem;
   color: var(--ink);
-  font-size: clamp(2.2rem, 4.6vw, 4.4rem);
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
   font-weight: 720;
   letter-spacing: -0.06em;
   line-height: 0.98;
@@ -1864,7 +1941,16 @@ textarea {
   }
 
   .app-workspace {
-    padding: 2rem 1.25rem 3rem;
+    padding: 0 1.25rem 3rem;
+  }
+
+  .app-workspace-header {
+    min-height: auto;
+    padding: 1.25rem 0;
+  }
+
+  .app-workspace-content {
+    padding-top: 1.25rem;
   }
 
   .data-sources-header {
@@ -1894,7 +1980,8 @@ textarea {
   }
 
   .dashboard-empty-layout,
-  .dashboard-analysis-grid {
+  .dashboard-analysis-grid,
+  .dashboard-state-layout {
     grid-template-columns: 1fr;
   }
 

@@ -65,6 +65,24 @@ test("guides a first-time manager to import SEMS sessions", async ({ page }) => 
   await expect(
     page.getByText("O administrador aprova", { exact: true }),
   ).toBeVisible();
+  await expect(page.getByRole("banner")).toContainText(
+    "LAB FIAP Eco Smart Home",
+  );
+  await expect(
+    page.getByLabel("Administrador Paulo Faulstich"),
+  ).toBeVisible();
+  expect(
+    await page.getByRole("heading", { name: "Visão geral" }).evaluate(
+      (heading) => Number.parseFloat(getComputedStyle(heading).fontSize),
+    ),
+  ).toBeLessThanOrEqual(42);
+
+  await page.setViewportSize({ width: 1440, height: 500 });
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await expect(page.getByRole("banner")).toBeInViewport();
+  await expect(
+    page.getByRole("banner").getByLabel("Administrador Paulo Faulstich"),
+  ).toBeInViewport();
 
   await page.setViewportSize({ width: 390, height: 844 });
   expect(
@@ -72,6 +90,23 @@ test("guides a first-time manager to import SEMS sessions", async ({ page }) => 
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
+});
+
+test("keeps the closing explanation visible when session data is unavailable", async ({
+  page,
+}) => {
+  await page.route("**/api/v1/sessions**", async (route) => {
+    await route.fulfill({ status: 503, body: "temporarily unavailable" });
+  });
+  await page.goto("/dashboard");
+
+  await expect(page.getByText("Serviço de sessões indisponível")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "O que acontece depois" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("A IA analisa o fechamento", { exact: true }),
+  ).toBeVisible();
 });
 
 test("uses canonical unknown assignments for the monthly blocker", async ({

@@ -55,9 +55,9 @@ class SessionCandidate:
         charge_port: int | None,
         card_id_raw: str | None,
     ) -> "SessionCandidate":
-        if started_at.tzinfo is None:
+        if started_at.tzinfo is None or started_at.utcoffset() is None:
             raise InvalidSession("started_at", "TIMEZONE_REQUIRED", "Start time must include a timezone.")
-        if ended_at.tzinfo is None:
+        if ended_at.tzinfo is None or ended_at.utcoffset() is None:
             raise InvalidSession("ended_at", "TIMEZONE_REQUIRED", "End time must include a timezone.")
         if ended_at <= started_at:
             raise InvalidSession("ended_at", "END_NOT_AFTER_START", "End time must be after start time.")

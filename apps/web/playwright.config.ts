@@ -27,7 +27,7 @@ export default defineConfig({
         NEXT_PUBLIC_SUPABASE_URL: "https://fixture.supabase.co",
         NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "fixture-publishable-key",
       },
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
     },
   ],
 });

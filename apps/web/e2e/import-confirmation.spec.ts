@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import { expect, test } from "@playwright/test";
@@ -70,10 +71,10 @@ test("orders import history from newest to oldest", async ({ page }) => {
             source: "sems_csv",
             status: "completed",
             created: true,
-            totalCount: 2,
-            validCount: 2,
-            invalidCount: 0,
-            duplicateCount: 0,
+            totalCount: 3,
+            validCount: 1,
+            invalidCount: 1,
+            duplicateCount: 1,
             createdAt: "2026-08-29T12:00:00Z",
           },
         ],
@@ -88,7 +89,13 @@ test("orders import history from newest to oldest", async ({ page }) => {
     .locator("tbody tr");
   await expect(historyRows).toHaveCount(2);
   await expect(historyRows.nth(0)).toContainText("newest.csv");
+  await expect(historyRows.nth(0)).toContainText(
+    "3 total · 1 válido · 1 inválido · 1 duplicado",
+  );
   await expect(historyRows.nth(1)).toContainText("oldest.csv");
+  await expect(historyRows.nth(1)).toContainText(
+    "1 total · 1 válido · 0 inválidos · 0 duplicados",
+  );
 });
 
 test("keeps confirmation errors recoverable without losing the preview", async ({
@@ -174,4 +181,89 @@ test("confirms a SEMS batch and shows idempotent descending history", async ({
   await expect(
     history.getByRole("row", { name: /sems_sessions\.csv.*Concluído/ }),
   ).toHaveCount(1);
+});
+
+test("ignores a stale initial history response after confirmation", async ({
+  page,
+}) => {
+  let releaseInitialHistory: () => void = () => undefined;
+  let markInitialHistoryRequested: () => void = () => undefined;
+  const initialHistoryGate = new Promise<void>((resolve) => {
+    releaseInitialHistory = resolve;
+  });
+  const initialHistoryRequested = new Promise<void>((resolve) => {
+    markInitialHistoryRequested = resolve;
+  });
+  let delayedHistoryCount = 0;
+  let confirmationStarted = false;
+
+  await page.route("**/api/v1/import-batches", async (route) => {
+    if (route.request().method() !== "GET") {
+      await route.continue();
+      return;
+    }
+
+    if (confirmationStarted) {
+      await route.continue();
+      return;
+    }
+
+    delayedHistoryCount += 1;
+    const delayedHistoryId = delayedHistoryCount.toString();
+    markInitialHistoryRequested();
+    await initialHistoryGate;
+    await route.fulfill({
+      contentType: "application/json",
+      headers: { "x-test-delayed-history": delayedHistoryId },
+      body: JSON.stringify({ items: [] }),
+    });
+  });
+
+  await page.goto("/settings/data-sources");
+  await initialHistoryRequested;
+
+  const fixture = await readFile(FIXTURE_PATH, "utf8");
+  await page.getByLabel("Arquivo CSV do SEMS+").setInputFiles({
+    name: "sems_race.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(fixture.replaceAll("29/08/2026", "30/08/2026")),
+  });
+  await page.getByRole("button", { name: "Analisar arquivo" }).click();
+  confirmationStarted = true;
+  const creationResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      response.url().endsWith("/api/v1/import-batches"),
+  );
+  await page.getByRole("button", { name: "Confirmar importação" }).click();
+  expect((await creationResponse).status()).toBe(201);
+
+  const newBatchRow = page
+    .getByRole("table", { name: "Histórico de importações" })
+    .getByRole("row", { name: /sems_race\.csv.*Concluído/ });
+  await expect(newBatchRow).toBeVisible();
+
+  const delayedResponses = Array.from(
+    { length: delayedHistoryCount },
+    (_, index) =>
+      page.waitForResponse(
+        (response) =>
+          response.headers()["x-test-delayed-history"] ===
+          (index + 1).toString(),
+      ),
+  );
+  releaseInitialHistory();
+  const completedDelayedResponses = await Promise.all(delayedResponses);
+  await Promise.all(
+    completedDelayedResponses.map((response) => response.finished()),
+  );
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
+
+  await expect(newBatchRow).toBeVisible();
+  await expect(page.getByText("Nenhum lote importado ainda.")).toBeHidden();
 });

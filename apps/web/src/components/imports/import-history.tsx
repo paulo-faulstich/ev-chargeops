@@ -23,6 +23,10 @@ function statusLabel(status: string) {
   return status === "completed" ? "Concluído" : status;
 }
 
+function countedLabel(count: number, singular: string, plural: string) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
 export function ImportHistory({
   batches,
   error,
@@ -91,7 +95,19 @@ export function ImportHistory({
                   <td>{sourceLabel(batch.source)}</td>
                   <td>{dateFormatter.format(new Date(batch.createdAt))}</td>
                   <td>
-                    {batch.validCount} sessões · {batch.invalidCount} inválidos
+                    {batch.totalCount} total · {countedLabel(
+                      batch.validCount,
+                      "válido",
+                      "válidos",
+                    )} · {countedLabel(
+                      batch.invalidCount,
+                      "inválido",
+                      "inválidos",
+                    )} · {countedLabel(
+                      batch.duplicateCount,
+                      "duplicado",
+                      "duplicados",
+                    )}
                   </td>
                   <td>
                     <span className="history-status">

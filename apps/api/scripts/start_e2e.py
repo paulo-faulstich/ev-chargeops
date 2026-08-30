@@ -34,15 +34,25 @@ def validate_database_path(database_path: Path, allowed_root: Path) -> Path:
     return resolved_database_path
 
 
-async def seed(database_url: str) -> None:
-    settings = Settings(
-        app_env="test",
-        auth_mode="fixture",
-        database_url=database_url,
-        supabase_url="https://lgjohsxipfctgooiuqnv.supabase.co",
-        fixture_auth_token="fixture-manager-token",
-        demo_manager_email="manager@example.test",
+def configure_e2e_environment(
+    database_url: str,
+    allowed_root: Path,
+) -> Settings:
+    os.environ.update(
+        APP_ENV="test",
+        AUTH_MODE="fixture",
+        FIXTURE_AUTH_TOKEN="fixture-manager-token",
+        DATABASE_URL=database_url,
+        SUPABASE_URL="https://lgjohsxipfctgooiuqnv.supabase.co",
+        DEMO_MANAGER_EMAIL="manager@example.test",
+        ORIGINAL_FILE_STORE="local",
+        ORIGINAL_FILES_ROOT=str(allowed_root / "original-files"),
+        SUPABASE_SERVICE_ROLE_KEY="",
     )
+    return Settings()  # type: ignore[call-arg]
+
+
+async def seed(settings: Settings) -> None:
     engine = create_engine_from_settings(settings)
     async with create_session_factory(engine)() as session:
         await seed_operational_foundation(session)
@@ -60,19 +70,11 @@ def main() -> None:
     database_path.unlink(missing_ok=True)
 
     database_url = f"sqlite+aiosqlite:///{database_path}"
-    os.environ.update(
-        APP_ENV="test",
-        AUTH_MODE="fixture",
-        FIXTURE_AUTH_TOKEN="fixture-manager-token",
-        DATABASE_URL=database_url,
-        SUPABASE_URL="https://lgjohsxipfctgooiuqnv.supabase.co",
-        DEMO_MANAGER_EMAIL="manager@example.test",
-        ORIGINAL_FILES_ROOT=str(allowed_root / "original-files"),
-    )
+    settings = configure_e2e_environment(database_url, allowed_root)
     config = Config(str(repository_root / "apps/api/alembic.ini"))
     config.set_main_option("sqlalchemy.url", database_url)
     command.upgrade(config, "head")
-    asyncio.run(seed(database_url))
+    asyncio.run(seed(settings))
     uvicorn.run("app.main:app", app_dir=str(repository_root / "apps/api"), port=8001)
 
 

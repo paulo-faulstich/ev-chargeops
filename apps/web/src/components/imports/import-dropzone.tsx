@@ -27,41 +27,46 @@ export function ImportDropzone({ accessToken }: { accessToken: string }) {
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const historyRequestGeneration = useRef(0);
   const dragDepth = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadHistory = useCallback(async () => {
+    const generation = ++historyRequestGeneration.current;
     setHistoryLoading(true);
     setHistoryError(false);
     try {
       const response = await listImportBatches(accessToken, apiUrl);
+      if (generation !== historyRequestGeneration.current) return;
       setBatches(response.items);
     } catch {
+      if (generation !== historyRequestGeneration.current) return;
       setHistoryError(true);
     } finally {
+      if (generation !== historyRequestGeneration.current) return;
       setHistoryLoading(false);
     }
   }, [accessToken]);
 
   useEffect(() => {
-    let cancelled = false;
+    const generation = ++historyRequestGeneration.current;
 
     void listImportBatches(accessToken, apiUrl)
       .then((response) => {
-        if (cancelled) return;
+        if (generation !== historyRequestGeneration.current) return;
         setBatches(response.items);
       })
       .catch(() => {
-        if (cancelled) return;
+        if (generation !== historyRequestGeneration.current) return;
         setHistoryError(true);
       })
       .finally(() => {
-        if (cancelled) return;
+        if (generation !== historyRequestGeneration.current) return;
         setHistoryLoading(false);
       });
 
     return () => {
-      cancelled = true;
+      historyRequestGeneration.current += 1;
     };
   }, [accessToken]);
 

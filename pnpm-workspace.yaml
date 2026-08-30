@@ -2,4 +2,5 @@ packages:
   - apps/web
   - packages/*
 allowBuilds:
+  sharp: false
   unrs-resolver: false

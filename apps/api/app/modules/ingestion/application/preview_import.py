@@ -12,7 +12,7 @@ from app.modules.ingestion.domain.session import SessionCandidate
 class PreviewRecord:
     row_number: int
     classification: Literal["valid", "invalid", "duplicate"]
-    raw: Mapping[str, str]
+    raw: Mapping[str, str | None]
     session: SessionCandidate | None = None
     error_field: str | None = None
     error_code: str | None = None

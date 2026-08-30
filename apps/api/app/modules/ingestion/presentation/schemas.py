@@ -30,7 +30,7 @@ class SessionPreviewResponse(ApiSchema):
 class PreviewRecordResponse(ApiSchema):
     row_number: int
     classification: str
-    raw: dict[str, str]
+    raw: dict[str, str | None]
     session: SessionPreviewResponse | None = None
     error_field: str | None = None
     error_code: str | None = None

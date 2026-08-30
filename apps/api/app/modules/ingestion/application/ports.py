@@ -8,7 +8,7 @@ from app.modules.ingestion.domain.session import SessionCandidate, SourceKind
 @dataclass(frozen=True, slots=True)
 class SourceRecord:
     row_number: int
-    raw: Mapping[str, str]
+    raw: Mapping[str, str | None]
 
 
 class ChargingSessionSource(Protocol):

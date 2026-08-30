@@ -96,7 +96,7 @@ class SemsCsvSource:
             card_id_raw=self._value(raw, "Card ID", record.row_number).strip() or None,
         )
 
-    def _value(self, raw: Mapping[str, str], field: str, row_number: int) -> str:
+    def _value(self, raw: Mapping[str, str | None], field: str, row_number: int) -> str:
         value = raw.get(field)
         if value is None:
             raise InvalidSession(

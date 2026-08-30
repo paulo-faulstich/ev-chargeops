@@ -3,6 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 const UNIT_A_ID = "40000000-0000-0000-0000-000000000001";
 const UNIT_B_ID = "40000000-0000-0000-0000-000000000002";
 const FIRST_SESSION_ID = "90000000-0000-0000-0000-000000000001";
+const JULY_SESSION_ID = "90000000-0000-0000-0000-000000000007";
 
 const pendingSessions = {
   items: [
@@ -51,6 +52,26 @@ const assignmentUnits = {
       id: UNIT_B_ID,
       code: "A-102",
       displayName: "Unidade A-102",
+      residentName: null,
+    },
+  ],
+};
+
+const julySessions = {
+  items: [
+    {
+      id: JULY_SESSION_ID,
+      startedAt: "2026-07-18T18:00:00Z",
+      endedAt: "2026-07-18T18:45:00Z",
+      energyKwh: "4.250",
+      chargerSerial: "97500NAP25BL0008",
+      source: "sems_export",
+      provenance: "observed",
+      identityConfidence: "unknown",
+      status: "pending_review",
+      unitId: null,
+      unitCode: null,
+      unitName: null,
       residentName: null,
     },
   ],
@@ -135,6 +156,90 @@ async function routeSessionReview(
   });
 
   return () => assignmentBody;
+}
+
+async function routeCrossPeriodReview(
+  page: Page,
+  options: {
+    assignmentGate?: Promise<void>;
+    onAssignmentStart?: () => void;
+    julyLoadGate?: Promise<void>;
+    onJulyLoadStart?: () => void;
+  } = {},
+) {
+  await page.route("**/api/v1/sessions**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+
+    if (
+      request.method() === "GET" &&
+      url.pathname === "/api/v1/sessions"
+    ) {
+      if (url.searchParams.get("period") === "2026-07") {
+        options.onJulyLoadStart?.();
+        await options.julyLoadGate;
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify(julySessions),
+        });
+        return;
+      }
+
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify(pendingSessions),
+      });
+      return;
+    }
+
+    if (
+      request.method() === "PUT" &&
+      url.pathname === `/api/v1/sessions/${FIRST_SESSION_ID}/assignment`
+    ) {
+      options.onAssignmentStart?.();
+      await options.assignmentGate;
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          assignment: {
+            id: "a0000000-0000-0000-0000-000000000001",
+            sessionId: FIRST_SESSION_ID,
+            unitId: UNIT_A_ID,
+            assignedBy: "60000000-0000-0000-0000-000000000001",
+            justification: "Confirmado pela portaria",
+            createdAt: "2026-08-30T12:00:00Z",
+            updatedAt: "2026-08-30T12:00:00Z",
+          },
+          session: {
+            id: FIRST_SESSION_ID,
+            startedAt: "2026-08-29T20:10:00Z",
+            endedAt: "2026-08-29T21:10:00Z",
+            energyKwh: "7.000",
+            chargerSerial: "97500NAP25BL0008",
+            source: "sems_export",
+            provenance: "observed",
+            identityConfidence: "assigned",
+            status: "ready",
+            unitId: UNIT_A_ID,
+            unitCode: "A-101",
+            unitName: "Unidade A-101",
+            residentName: "Ana Oliveira",
+          },
+          created: true,
+        }),
+      });
+      return;
+    }
+
+    await route.abort();
+  });
+
+  await page.route("**/api/v1/assignment-units", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify(assignmentUnits),
+    });
+  });
 }
 
 test("redirects an unauthenticated session review to login", async ({ page }) => {
@@ -268,6 +373,157 @@ test("freezes the visible review context while an assignment is in flight", asyn
   await expect(
     page.getByRole("region", { name: "Evidência da sessão" }),
   ).toContainText("3,50 kWh");
+});
+
+test("ignores an August assignment completion after external navigation loads July", async ({
+  page,
+}) => {
+  let releaseAssignment: () => void = () => undefined;
+  let markAssignmentStarted: () => void = () => undefined;
+  const assignmentGate = new Promise<void>((resolve) => {
+    releaseAssignment = resolve;
+  });
+  const assignmentStarted = new Promise<void>((resolve) => {
+    markAssignmentStarted = resolve;
+  });
+  await routeCrossPeriodReview(page, {
+    assignmentGate,
+    onAssignmentStart: markAssignmentStarted,
+  });
+
+  await page.goto("/sessions?status=pending_review&period=2026-08");
+  await page.getByLabel("Unidade responsável").selectOption(UNIT_A_ID);
+  await page.getByLabel("Justificativa").fill("Confirmado pela portaria");
+  await page
+    .getByRole("button", { name: "Atribuir e revisar próxima" })
+    .click();
+  await assignmentStarted;
+
+  await page.evaluate(() => {
+    window.history.pushState(
+      null,
+      "",
+      "/sessions?status=pending_review&period=2026-07",
+    );
+  });
+  await expect(page).toHaveURL(
+    "/sessions?status=pending_review&period=2026-07",
+  );
+  await expect(page.getByText("Julho de 2026", { exact: true })).toBeVisible();
+  const evidence = page.getByRole("region", { name: "Evidência da sessão" });
+  await expect(evidence).toContainText("4,25 kWh");
+
+  const assignmentResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PUT" &&
+      response.url().endsWith(`/api/v1/sessions/${FIRST_SESSION_ID}/assignment`),
+  );
+  releaseAssignment();
+  await assignmentResponse;
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
+
+  await expect(page).toHaveURL(
+    "/sessions?status=pending_review&period=2026-07",
+  );
+  await expect(page.getByText("Julho de 2026", { exact: true })).toBeVisible();
+  await expect(evidence).toContainText("4,25 kWh");
+  await expect(evidence).not.toContainText("3,50 kWh");
+});
+
+test("hides August evidence while a canonical July load is pending", async ({
+  page,
+}) => {
+  let releaseJulyLoad: () => void = () => undefined;
+  let markJulyLoadStarted: () => void = () => undefined;
+  const julyLoadGate = new Promise<void>((resolve) => {
+    releaseJulyLoad = resolve;
+  });
+  const julyLoadStarted = new Promise<void>((resolve) => {
+    markJulyLoadStarted = resolve;
+  });
+  await routeCrossPeriodReview(page, {
+    julyLoadGate,
+    onJulyLoadStart: markJulyLoadStarted,
+  });
+
+  await page.goto("/sessions?status=pending_review&period=2026-08");
+  await expect(
+    page.getByRole("region", { name: "Evidência da sessão" }),
+  ).toContainText("7,00 kWh");
+
+  await page.evaluate(() => {
+    window.history.pushState(
+      null,
+      "",
+      "/sessions?status=pending_review&period=2026-07",
+    );
+  });
+  await julyLoadStarted;
+
+  try {
+    await expect(page.getByText("Carregando sessões e unidades disponíveis…")).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Evidência da sessão" }),
+    ).toHaveCount(0);
+  } finally {
+    releaseJulyLoad();
+  }
+
+  await expect(
+    page.getByRole("region", { name: "Evidência da sessão" }),
+  ).toContainText("4,25 kWh");
+});
+
+test("uses roving focus and arrow keys across session actions", async ({ page }) => {
+  await routeSessionReview(page);
+  await page.goto("/sessions?status=pending_review&period=2026-08");
+
+  const firstButton = page
+    .getByRole("row", { name: /7,00 kWh/ })
+    .getByRole("button", { name: /7,00 kWh/ });
+  const secondButton = page
+    .getByRole("row", { name: /3,50 kWh/ })
+    .getByRole("button", { name: /3,50 kWh/ });
+  await expect(firstButton).toHaveAttribute("tabindex", "0");
+  await expect(secondButton).toHaveAttribute("tabindex", "-1");
+
+  await firstButton.focus();
+  await firstButton.press("ArrowDown");
+  await expect(secondButton).toBeFocused();
+  await expect(secondButton).toHaveAttribute("aria-pressed", "true");
+  await expect(firstButton).toHaveAttribute("tabindex", "-1");
+  await expect(secondButton).toHaveAttribute("tabindex", "0");
+  await expect(
+    page.getByRole("region", { name: "Evidência da sessão" }),
+  ).toContainText("3,50 kWh");
+
+  await page.keyboard.press("Tab");
+  await expect(page.getByLabel("Unidade responsável")).toBeFocused();
+});
+
+test("keeps start and energy values in distinct associated table columns", async ({
+  page,
+}) => {
+  await routeSessionReview(page);
+  await page.goto("/sessions?status=pending_review&period=2026-08");
+
+  const table = page.getByRole("table", { name: "Sessões pendentes" });
+  const headers = table.getByRole("columnheader");
+  await expect(headers).toHaveCount(2);
+  await expect(headers.nth(0)).toHaveAttribute("id", "session-start-heading");
+  await expect(headers.nth(1)).toHaveAttribute("id", "session-energy-heading");
+
+  const row = table.getByRole("row", { name: /7,00 kWh/ });
+  const cells = row.getByRole("cell");
+  await expect(cells).toHaveCount(2);
+  await expect(cells.nth(0)).toHaveAttribute("headers", "session-start-heading");
+  await expect(cells.nth(1)).toHaveAttribute("headers", "session-energy-heading");
+  await expect(row.getByRole("button", { name: /7,00 kWh/ })).toBeVisible();
 });
 
 test("canonicalizes a contradictory session status before showing the queue", async ({

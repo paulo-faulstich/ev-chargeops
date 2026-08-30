@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  FormEvent,
+  KeyboardEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   assignSession,
   listAssignmentUnits,
@@ -28,9 +35,9 @@ type ReviewData = {
 };
 
 type ReviewState =
-  | { status: "loading"; data: null }
-  | { status: "error"; data: null }
-  | { status: "ready"; data: ReviewData };
+  | { status: "loading"; data: null; period: string }
+  | { status: "error"; data: null; period: string }
+  | { status: "ready"; data: ReviewData; period: string };
 
 function currentPeriod(): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -83,7 +90,11 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
   const filtersCanonical =
     requestedPeriod === period && requestedStatus === "pending_review";
   const canonicalUrl = `/sessions?status=pending_review&period=${period}`;
-  const [state, setState] = useState<ReviewState>({ status: "loading", data: null });
+  const [state, setState] = useState<ReviewState>({
+    status: "loading",
+    data: null,
+    period,
+  });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [unitId, setUnitId] = useState("");
   const [justification, setJustification] = useState("");
@@ -92,20 +103,36 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
   >("idle");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [refreshGeneration, setRefreshGeneration] = useState(0);
-  const isSubmitting = submissionState === "submitting";
+  const [interactionPeriod, setInteractionPeriod] = useState(period);
+  const loadRequestId = useRef(0);
+  const assignmentRequestId = useRef(0);
+  const currentContext = useRef({ period, selectedId });
+  const isCurrentInteraction = interactionPeriod === period;
+  const isSubmitting =
+    isCurrentInteraction && submissionState === "submitting";
 
   useEffect(() => {
     if (!filtersCanonical) router.replace(canonicalUrl);
   }, [canonicalUrl, filtersCanonical, router]);
 
   useEffect(() => {
+    currentContext.current = { period, selectedId };
+  }, [period, selectedId]);
+
+  useEffect(() => {
+    const requestId = ++loadRequestId.current;
     if (!filtersCanonical) return;
     let ignore = false;
 
     void loadReviewData(accessToken, period)
       .then((data) => {
-        if (ignore) return;
-        setState({ status: "ready", data });
+        if (ignore || requestId !== loadRequestId.current) return;
+        setState({ status: "ready", data, period });
+        setInteractionPeriod(period);
+        setUnitId("");
+        setJustification("");
+        setSubmissionState("idle");
+        setSuccessMessage(null);
         setSelectedId((current) =>
           data.pendingSessions.some((session) => session.id === current)
             ? current
@@ -113,7 +140,13 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
         );
       })
       .catch(() => {
-        if (!ignore) setState({ status: "error", data: null });
+        if (ignore || requestId !== loadRequestId.current) return;
+        setState({ status: "error", data: null, period });
+        setInteractionPeriod(period);
+        setUnitId("");
+        setJustification("");
+        setSubmissionState("idle");
+        setSuccessMessage(null);
       });
 
     return () => {
@@ -122,16 +155,22 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
   }, [accessToken, filtersCanonical, period, refreshGeneration]);
 
   const selectedSession = useMemo(() => {
-    if (!filtersCanonical || state.status !== "ready") return null;
+    if (
+      !filtersCanonical ||
+      state.status !== "ready" ||
+      state.period !== period
+    ) {
+      return null;
+    }
     return (
       state.data.pendingSessions.find((session) => session.id === selectedId) ??
       state.data.pendingSessions[0] ??
       null
     );
-  }, [filtersCanonical, selectedId, state]);
+  }, [filtersCanonical, period, selectedId, state]);
 
   const selectedUnit =
-    state.status === "ready"
+    isCurrentInteraction && state.status === "ready" && state.period === period
       ? state.data.units.find((unit) => unit.id === unitId)
       : undefined;
 
@@ -150,6 +189,10 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
 
     setSubmissionState("submitting");
     setSuccessMessage(null);
+    const requestId = ++assignmentRequestId.current;
+    const submittedLoadRequestId = loadRequestId.current;
+    const submittedPeriod = period;
+    const submittedSessionId = selectedSession.id;
 
     try {
       await assignSession(
@@ -159,7 +202,16 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
         apiUrl,
       );
 
-      if (state.status !== "ready") return;
+      if (
+        requestId !== assignmentRequestId.current ||
+        loadRequestId.current !== submittedLoadRequestId ||
+        currentContext.current.period !== submittedPeriod ||
+        currentContext.current.selectedId !== submittedSessionId ||
+        state.status !== "ready" ||
+        state.period !== submittedPeriod
+      ) {
+        return;
+      }
       const selectedIndex = state.data.pendingSessions.findIndex(
         (session) => session.id === selectedSession.id,
       );
@@ -171,6 +223,7 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
 
       setState({
         status: "ready",
+        period: submittedPeriod,
         data: {
           ...state.data,
           allSessions: state.data.allSessions.map((session) =>
@@ -193,13 +246,22 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
         }`,
       );
     } catch {
+      if (
+        requestId !== assignmentRequestId.current ||
+        loadRequestId.current !== submittedLoadRequestId ||
+        currentContext.current.period !== submittedPeriod ||
+        currentContext.current.selectedId !== submittedSessionId
+      ) {
+        return;
+      }
       setSubmissionState("error");
     }
   }
 
   function updatePeriod(nextPeriod: string) {
     if (isSubmitting || !isPeriod(nextPeriod)) return;
-    setState({ status: "loading", data: null });
+    setState({ status: "loading", data: null, period: nextPeriod });
+    setInteractionPeriod(nextPeriod);
     setSelectedId(null);
     setUnitId("");
     setJustification("");
@@ -208,9 +270,10 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
     router.replace(`/sessions?status=pending_review&period=${nextPeriod}`);
   }
 
-  const displayState: ReviewState = filtersCanonical
-    ? state
-    : { status: "loading", data: null };
+  const displayState: ReviewState =
+    filtersCanonical && state.period === period
+      ? state
+      : { status: "loading", data: null, period };
 
   return (
     <div className="session-review-page">
@@ -258,7 +321,7 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
       {displayState.status === "error" ? (
         <SessionLoadError
           onRetry={() => {
-            setState({ status: "loading", data: null });
+            setState({ status: "loading", data: null, period });
             setRefreshGeneration((generation) => generation + 1);
           }}
         />
@@ -282,8 +345,8 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
           <SessionDecision
             session={selectedSession}
             units={displayState.data.units}
-            unitId={unitId}
-            justification={justification}
+            unitId={isCurrentInteraction ? unitId : ""}
+            justification={isCurrentInteraction ? justification : ""}
             selectedUnit={selectedUnit}
             submissionState={submissionState}
             onUnitChange={setUnitId}
@@ -355,6 +418,30 @@ function SessionQueue({
   disabled: boolean;
   onSelect: (sessionId: string) => void;
 }) {
+  const buttonRefs = useRef(new Map<string, HTMLButtonElement>());
+
+  function handleQueueKeyDown(
+    event: KeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) {
+    let nextIndex: number | null = null;
+    if (event.key === "ArrowDown") {
+      nextIndex = Math.min(index + 1, sessions.length - 1);
+    } else if (event.key === "ArrowUp") {
+      nextIndex = Math.max(index - 1, 0);
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = sessions.length - 1;
+    }
+    if (nextIndex === null) return;
+
+    event.preventDefault();
+    const nextSession = sessions[nextIndex];
+    onSelect(nextSession.id);
+    buttonRefs.current.get(nextSession.id)?.focus();
+  }
+
   return (
     <section className="session-queue" aria-labelledby="session-queue-title">
       <div className="session-panel-heading">
@@ -368,33 +455,37 @@ function SessionQueue({
         <table aria-label="Sessões pendentes">
           <thead>
             <tr>
-              <th>Início</th>
-              <th>Energia</th>
+              <th id="session-start-heading" scope="col">Início</th>
+              <th id="session-energy-heading" scope="col">Energia</th>
             </tr>
           </thead>
           <tbody>
-            {sessions.map((session) => {
+            {sessions.map((session, index) => {
               const selected = session.id === selectedId;
               return (
                 <tr
                   key={session.id}
                   className={selected ? "selected" : undefined}
                 >
-                  <td colSpan={2}>
+                  <td headers="session-start-heading">
+                    <span>{formatQueueDate(session.startedAt)}</span>
+                    <small>Pendente de atribuição</small>
                     <button
                       type="button"
+                      ref={(button) => {
+                        if (button) buttonRefs.current.set(session.id, button);
+                        else buttonRefs.current.delete(session.id);
+                      }}
+                      aria-label={`Revisar sessão iniciada em ${formatQueueDate(session.startedAt)}, ${formatSessionEnergy(session.energyKwh)}, pendente de atribuição`}
                       aria-pressed={selected}
                       disabled={disabled}
+                      tabIndex={selected ? 0 : -1}
                       onClick={() => onSelect(session.id)}
-                    >
-                      <span className="session-row-start">
-                        <span>{formatQueueDate(session.startedAt)}</span>
-                        <small>Pendente de atribuição</small>
-                      </span>
-                      <span className="session-row-energy">
-                        {formatSessionEnergy(session.energyKwh)}
-                      </span>
-                    </button>
+                      onKeyDown={(event) => handleQueueKeyDown(event, index)}
+                    />
+                  </td>
+                  <td headers="session-energy-heading">
+                    {formatSessionEnergy(session.energyKwh)}
                   </td>
                 </tr>
               );

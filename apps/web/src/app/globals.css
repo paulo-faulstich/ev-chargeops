@@ -1287,6 +1287,11 @@ a {
   text-align: right;
 }
 
+.session-queue tbody tr {
+  position: relative;
+  transition: background-color 120ms ease;
+}
+
 .session-queue tbody tr:hover {
   background: #102635;
 }
@@ -1297,9 +1302,16 @@ a {
 }
 
 .session-queue td {
-  padding: 0;
+  padding: 0.9rem 0.85rem;
   border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.64rem;
   vertical-align: top;
+}
+
+.session-queue td:last-child {
+  text-align: right;
 }
 
 .session-queue tbody tr:last-child td {
@@ -1307,41 +1319,35 @@ a {
 }
 
 .session-queue td button {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
   width: 100%;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 1rem;
-  padding: 0.9rem 0.85rem;
+  padding: 0;
   border: 0;
   background: transparent;
-  color: var(--ink);
   cursor: pointer;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.64rem;
-  text-align: left;
+}
+
+.session-queue td button:focus-visible {
+  outline-offset: -3px;
 }
 
 .session-queue td button:disabled {
   cursor: wait;
 }
 
-.session-row-start,
-.session-row-start span,
-.session-row-start small {
+.session-queue td span,
+.session-queue td small {
   display: block;
 }
 
-.session-row-start small {
+.session-queue td small {
   margin-top: 0.35rem;
   color: #e4bd5f;
   font-family: ui-sans-serif, system-ui, sans-serif;
   font-size: 0.56rem;
   line-height: 1.3;
-}
-
-.session-row-energy {
-  text-align: right;
 }
 
 .session-evidence {

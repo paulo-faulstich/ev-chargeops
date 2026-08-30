@@ -1,4 +1,3 @@
-from dataclasses import replace
 from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID
@@ -115,14 +114,20 @@ async def test_assign_session_normalizes_reason_and_delegates_once() -> None:
     assert result == repository.assignment_result
 
 
-async def test_assign_session_rejects_resident_without_repository_call() -> None:
+@pytest.mark.parametrize(
+    "role",
+    tuple(role for role in OrganizationRole if role is not OrganizationRole.MANAGER),
+)
+async def test_assign_session_rejects_every_non_manager_role_without_repository_call(
+    role: OrganizationRole,
+) -> None:
     from app.modules.sessions.application.assign_session import AssignSession
 
     repository = RecordingAssignmentRepository()
 
     with pytest.raises(AssignmentForbidden):
         await AssignSession(repository, clock=lambda: NOW).execute(
-            replace(scope(), role=OrganizationRole.RESIDENT),
+            scope(role),
             SESSION_ID,
             UNIT_ID,
             "Confirmado pelo síndico",

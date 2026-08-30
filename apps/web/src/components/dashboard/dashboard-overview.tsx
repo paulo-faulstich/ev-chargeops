@@ -198,7 +198,7 @@ function EmptyDashboard() {
         </p>
         <Link href="/settings/data-sources" className="primary-dashboard-action">
           <span aria-hidden="true">↑</span>
-          Importar CSV do SEMS+
+          Importar dados
         </Link>
         <div className="safe-import-note">
           <span aria-hidden="true">◇</span>

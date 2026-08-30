@@ -38,3 +38,16 @@ def test_preview_endpoint_returns_stable_error_for_unsupported_file() -> None:
             "details": [{"field": "file"}],
         }
     }
+
+
+def test_preview_endpoint_returns_stable_error_when_file_is_omitted() -> None:
+    response = TestClient(app).post("/v1/import-batches/preview")
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "error": {
+            "code": "FILE_REQUIRED",
+            "message": "A file is required.",
+            "details": [{"field": "file"}],
+        }
+    }

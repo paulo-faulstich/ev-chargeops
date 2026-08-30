@@ -21,6 +21,20 @@ def preview_use_case() -> PreviewImport:
     return PreviewImport(SemsCsvSource(ZoneInfo("America/Sao_Paulo")))
 
 
+def error_response(error: InvalidSession) -> JSONResponse:
+    body = ErrorResponse(
+        error=ErrorBody(
+            code=error.code,
+            message=error.message,
+            details=[ErrorDetail(field=error.field)],
+        )
+    )
+    return JSONResponse(
+        status_code=422,
+        content=body.model_dump(by_alias=True),
+    )
+
+
 @router.post(
     "/preview",
     response_model=ImportPreviewResponse,
@@ -28,21 +42,15 @@ def preview_use_case() -> PreviewImport:
     responses={422: {"model": ErrorResponse}},
 )
 async def preview_import(
-    file: Annotated[UploadFile, File(...)],
     use_case: Annotated[PreviewImport, Depends(preview_use_case)],
+    file: Annotated[UploadFile | None, File()] = None,
 ) -> ImportPreviewResponse | JSONResponse:
+    if file is None:
+        return error_response(
+            InvalidSession("file", "FILE_REQUIRED", "A file is required.")
+        )
     try:
         result = use_case.execute(file.filename or "", await file.read())
     except InvalidSession as error:
-        body = ErrorResponse(
-            error=ErrorBody(
-                code=error.code,
-                message=error.message,
-                details=[ErrorDetail(field=error.field)],
-            )
-        )
-        return JSONResponse(
-            status_code=422,
-            content=body.model_dump(by_alias=True),
-        )
+        return error_response(error)
     return ImportPreviewResponse.from_result(result)

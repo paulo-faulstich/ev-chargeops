@@ -15,11 +15,13 @@ export function ImportDropzone() {
   const [loading, setLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const dragDepth = useRef(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function selectFile(selectedFile: File | null) {
     if (selectedFile && !selectedFile.name.toLowerCase().endsWith(".csv")) {
       setFile(null);
       setError("Selecione um arquivo CSV exportado do SEMS+.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
@@ -54,6 +56,7 @@ export function ImportDropzone() {
     setIsDragging(false);
     if (loading) return;
 
+    if (fileInputRef.current) fileInputRef.current.value = "";
     selectFile(event.dataTransfer.files.item(0));
   }
 
@@ -76,6 +79,7 @@ export function ImportDropzone() {
     setFile(null);
     setPreview(null);
     setError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   if (preview) {
@@ -102,7 +106,7 @@ export function ImportDropzone() {
       aria-labelledby="upload-title"
       className={`border p-5 transition-colors sm:p-8 lg:p-10 ${
         isDragging
-          ? "border-solid border-cyan-200 bg-[#102a38]"
+          ? "border-solid border-cyan-200 bg-[#102a38] ring-1 ring-cyan-200/60 shadow-[0_0_28px_rgba(34,211,238,0.16)]"
           : "border-dashed border-cyan-300/45 bg-[#0b1b28]"
       }`}
       onDragEnter={handleDragEnter}
@@ -122,6 +126,7 @@ export function ImportDropzone() {
           </p>
           <input
             id="sems-file"
+            ref={fileInputRef}
             aria-describedby="upload-guidance"
             className="mt-3 block w-full max-w-2xl cursor-pointer border border-[#426071] bg-[#07131d] px-3 py-2 text-sm text-[#c2d2dc] file:mr-4 file:border-0 file:bg-cyan-300 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-[#07131d]"
             type="file"

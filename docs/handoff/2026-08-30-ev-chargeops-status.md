@@ -1,5 +1,7 @@
 # EV ChargeOps — Handoff de produto e engenharia
 
+> **Próxima IA:** use primeiro o prompt operacional em [`NEXT_AI_PROMPT.md`](NEXT_AI_PROMPT.md). Este documento é a evidência detalhada de apoio.
+
 **Data:** 30 de agosto de 2026  
 **Worktree:** `/Users/paulofaulstich/Dropbox/Workspace/__claude/personal/education/fiap/challenges/good-we/ev-chargeops/.worktrees/dashboard-operational`  
 **Branch:** `codex/dashboard-operational`  

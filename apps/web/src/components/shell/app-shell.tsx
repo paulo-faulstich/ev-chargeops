@@ -1,8 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+
+import { logout } from "@/app/(app)/actions";
 
 const operationalDestinations = [
   { href: "/dashboard", label: "Visão geral" },
@@ -19,7 +22,18 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span className="product-signal" aria-hidden="true" />
           <div>
             <p className="product-name">EV ChargeOps</p>
-            <p className="product-scope">LAB FIAP · Gestão</p>
+            <div className="product-partnership">
+              <span>FIAP Challenge</span>
+              <span aria-hidden="true">×</span>
+              <Image
+                src="/brands/goodwe-logo.svg"
+                width={88}
+                height={13}
+                alt="GoodWe: Smart Energy Innovator"
+                priority
+              />
+            </div>
+            <p className="product-scope">Powered by GoodWe / SEMS+</p>
           </div>
         </div>
 
@@ -64,21 +78,47 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div>
             <p className="dashboard-site-name">LAB FIAP Eco Smart Home</p>
             <p className="dashboard-site-meta">
-              Gestão condominial · 1 carregador
+              Gestão condominial · 1 carregador · dados SEMS+
             </p>
           </div>
-          <div className="manager-context">
-            <div>
-              <span>Administrador</span>
-              <strong>Paulo Faulstich</strong>
-            </div>
-            <span
-              className="manager-avatar"
-              aria-label="Administrador Paulo Faulstich"
+          <details className="manager-menu">
+            <summary
+              className="manager-context"
+              role="button"
+              aria-label="Abrir menu de Paulo Faulstich"
             >
-              PF
-            </span>
-          </div>
+              <div>
+                <span>Administrador</span>
+                <strong>Paulo Faulstich</strong>
+              </div>
+              <span
+                className="manager-avatar"
+                aria-label="Administrador Paulo Faulstich"
+              >
+                PF
+              </span>
+              <span className="manager-menu-chevron" aria-hidden="true">
+                ▾
+              </span>
+            </summary>
+            <div
+              className="manager-popover"
+              role="menu"
+              aria-label="Perfil do usuário"
+            >
+              <div className="manager-popover-identity">
+                <span className="utility-label">Conta ativa</span>
+                <strong>Paulo Faulstich</strong>
+                <span>Administrador do condomínio</span>
+              </div>
+              <form action={logout}>
+                <button type="submit" role="menuitem">
+                  <span>Sair</span>
+                  <span aria-hidden="true">→</span>
+                </button>
+              </form>
+            </div>
+          </details>
         </header>
         <main className="app-workspace-content">{children}</main>
       </div>

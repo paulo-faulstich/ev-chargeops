@@ -1,7 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 
+import {
+  FIXTURE_SIGNED_OUT_COOKIE,
+  isFixtureAuth,
+} from "@/lib/auth/mode";
 import { createClient } from "@/lib/supabase/server";
 
 export type LoginState = { error: string | null };
@@ -15,6 +20,12 @@ export async function login(
 
   if (!email || !password) {
     return { error: "Informe e-mail e senha para continuar." };
+  }
+
+  if (isFixtureAuth()) {
+    const cookieStore = await cookies();
+    cookieStore.delete(FIXTURE_SIGNED_OUT_COOKIE);
+    redirect("/dashboard");
   }
 
   const supabase = await createClient();

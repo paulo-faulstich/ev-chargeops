@@ -17,6 +17,11 @@ escopo por organização, importação idempotente e persistência de lotes,
 registros brutos e sessões. A experiência autenticada começa no dashboard; o
 CSV do SEMS+ é um adapter administrativo temporário, não o produto principal.
 
+O co-branding da interface identifica GoodWe e SEMS+ como tecnologia e fonte
+do ecossistema demonstrado no FIAP Challenge. EV ChargeOps permanece claramente
+nomeado como a solução acadêmica proposta; o protótipo não se apresenta como
+produto oficial ou comercial da GoodWe.
+
 ### Pré-requisitos
 
 - Node.js `>=22.13.0 <23` (conforme `.nvmrc`) e pnpm `11.19.0`;
@@ -53,10 +58,11 @@ pnpm dev:api
 pnpm dev:web
 ```
 
-Abra `http://localhost:3000/dashboard`. A origem SEMS+ fica em
-`http://localhost:3000/settings/data-sources`, onde o fixture
+Abra `http://localhost:3407/dashboard`. A origem SEMS+ fica em
+`http://localhost:3407/settings/data-sources`, onde o fixture
 `apps/api/tests/fixtures/sems_sessions.csv` pode ser revisado e confirmado. A
-API local atende em `http://localhost:8000`.
+API local atende em `http://localhost:8407`. Essas portas são reservadas ao
+ChargeOps para evitar conflito com outros projetos locais.
 
 O fluxo operacional entregue é recorrente: depois de confirmar um lote, use
 **Continuar fechamento** para abrir o dashboard do período. O dashboard lê as

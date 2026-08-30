@@ -14,6 +14,9 @@ cp apps/web/.env.example apps/web/.env.local
 pnpm dev:web
 ```
 
+A aplicação fica disponível em `http://localhost:3407`. O proxy local encaminha
+`/api/*` para a API do ChargeOps em `http://127.0.0.1:8407`.
+
 No modo `local/test`, defina `AUTH_MODE` como fixture no arquivo local. Esse
 modo usa um token restrito ao ambiente não produtivo e não exige conta
 Supabase. O Next.js encaminha `/api/*` para a API FastAPI e mantém o bearer

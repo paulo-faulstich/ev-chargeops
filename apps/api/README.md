@@ -19,6 +19,8 @@ uv run --project apps/api python apps/api/scripts/seed_operational_foundation.py
 pnpm dev:api
 ```
 
+A API local escuta em `http://127.0.0.1:8407`.
+
 O script raiz `db:upgrade` executa
 `uv run --project apps/api alembic -c apps/api/alembic.ini upgrade head`.
 O seed pode ser repetido sem duplicar a organização, o site, o carregador ou

@@ -33,6 +33,41 @@ test("opens the manager product at the dashboard", async ({ page }) => {
   await expect(operation.locator('[aria-disabled="true"]')).toHaveCount(0);
 });
 
+test("identifies EV ChargeOps as a GoodWe-powered FIAP solution", async ({
+  page,
+}) => {
+  await page.goto("/dashboard");
+
+  await expect(
+    page.getByRole("img", { name: "GoodWe: Smart Energy Innovator" }),
+  ).toBeVisible();
+  await expect(page.getByText("FIAP Challenge")).toBeVisible();
+  await expect(page.getByText("Powered by GoodWe / SEMS+")).toBeVisible();
+});
+
+test("allows the manager to sign out and enter the local fixture again", async ({
+  page,
+}) => {
+  await page.goto("/dashboard");
+
+  await page
+    .getByRole("button", { name: "Abrir menu de Paulo Faulstich" })
+    .click();
+  const profileMenu = page.getByRole("menu", { name: "Perfil do usuário" });
+  await expect(profileMenu).toBeVisible();
+  await profileMenu.getByRole("menuitem", { name: "Sair" }).click();
+
+  await expect(page).toHaveURL(/\/login$/);
+  await page.getByLabel("E-mail").fill("manager@example.test");
+  await page.getByLabel("Senha").fill("fixture-password");
+  await page.getByRole("button", { name: "Entrar" }).click();
+
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(
+    page.getByRole("heading", { name: "Visão geral" }),
+  ).toBeVisible();
+});
+
 test("marks Recargas as permanent operational navigation", async ({ page }) => {
   await page.route("**/api/v1/sessions**", async (route) => {
     await route.fulfill({

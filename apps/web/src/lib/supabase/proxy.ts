@@ -1,7 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
-import { isFixtureAuth } from "@/lib/auth/mode";
+import {
+  FIXTURE_SIGNED_OUT_COOKIE,
+  isFixtureAuth,
+} from "@/lib/auth/mode";
 
 function redirectWithCookies(
   request: NextRequest,
@@ -26,7 +29,8 @@ export async function updateSession(request: NextRequest) {
 
   if (isFixtureAuth()) {
     const isAuthenticated =
-      request.headers.get("x-ev-auth-test") !== "missing";
+      request.headers.get("x-ev-auth-test") !== "missing" &&
+      request.cookies.get(FIXTURE_SIGNED_OUT_COOKIE)?.value !== "1";
 
     if (!isAuthenticated && !isLoginRoute) {
       return redirectWithCookies(

@@ -1,6 +1,7 @@
 import "server-only";
 
 export const FIXTURE_ACCESS_TOKEN = "fixture-manager-token";
+export const FIXTURE_SIGNED_OUT_COOKIE = "ev-chargeops-fixture-signed-out";
 
 const authMode = process.env.AUTH_MODE ?? "supabase";
 

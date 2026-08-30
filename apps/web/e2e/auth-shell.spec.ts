@@ -5,7 +5,7 @@ test("opens the manager product at the dashboard", async ({ page }) => {
 
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(
-    page.getByRole("heading", { name: "Visão operacional" }),
+    page.getByRole("heading", { name: "Visão geral" }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Fontes de dados" }),

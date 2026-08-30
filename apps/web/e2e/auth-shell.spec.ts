@@ -33,16 +33,29 @@ test("opens the manager product at the dashboard", async ({ page }) => {
   await expect(operation.locator('[aria-disabled="true"]')).toHaveCount(0);
 });
 
-test("identifies EV ChargeOps as a GoodWe-powered FIAP solution", async ({
+test("separates the product identity from the GoodWe installation context", async ({
   page,
 }) => {
   await page.goto("/dashboard");
 
+  const productIdentity = page.locator(".product-identity");
+  const appHeader = page.getByRole("banner");
+
   await expect(
-    page.getByRole("img", { name: "GoodWe: Smart Energy Innovator" }),
+    productIdentity.getByRole("img", {
+      name: "GoodWe: Smart Energy Innovator",
+    }),
   ).toBeVisible();
-  await expect(page.getByText("FIAP Challenge")).toBeVisible();
-  await expect(page.getByText("Powered by GoodWe / SEMS+")).toBeVisible();
+  await expect(productIdentity.getByText("FIAP Challenge")).toBeVisible();
+  await expect(
+    productIdentity.getByText("Powered by GoodWe / SEMS+"),
+  ).toHaveCount(0);
+  await expect(appHeader.getByText("Powered by GoodWe / SEMS+")).toBeVisible();
+  await expect(
+    appHeader.getByText(
+      "Instalação: LAB FIAP Eco Smart Home · 1 carregador",
+    ),
+  ).toBeVisible();
 });
 
 test("allows the manager to sign out and enter the local fixture again", async ({

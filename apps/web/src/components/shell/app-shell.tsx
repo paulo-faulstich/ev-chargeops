@@ -27,13 +27,12 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span aria-hidden="true">×</span>
               <Image
                 src="/brands/goodwe-logo.svg"
-                width={88}
-                height={13}
+                width={74}
+                height={11}
                 alt="GoodWe: Smart Energy Innovator"
                 priority
               />
             </div>
-            <p className="product-scope">Powered by GoodWe / SEMS+</p>
           </div>
         </div>
 
@@ -76,9 +75,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="app-workspace">
         <header className="app-workspace-header">
           <div>
-            <p className="dashboard-site-name">LAB FIAP Eco Smart Home</p>
+            <p className="dashboard-site-name">Powered by GoodWe / SEMS+</p>
             <p className="dashboard-site-meta">
-              Gestão condominial · 1 carregador · dados SEMS+
+              Instalação: LAB FIAP Eco Smart Home · 1 carregador
             </p>
           </div>
           <details className="manager-menu">

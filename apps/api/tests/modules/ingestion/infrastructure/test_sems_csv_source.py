@@ -10,6 +10,7 @@ from app.modules.ingestion.domain.session import IdentityConfidence, SourceKind
 from app.modules.ingestion.infrastructure.sems_csv_source import SemsCsvSource
 
 FIXTURE = Path(__file__).parents[3] / "fixtures" / "sems_sessions.csv"
+EXPECTED_HEADER = "Start Time,End Time,Charging Energy(kWh),Charging Port,Card ID,Device SN"
 
 
 def test_sems_csv_normalizes_observed_fields_to_utc() -> None:
@@ -38,3 +39,36 @@ def test_sems_csv_explains_invalid_energy_with_row_number() -> None:
     assert error.value.field == "Charging Energy(kWh)"
     assert error.value.code == "INVALID_DECIMAL"
     assert "row 2" in error.value.message
+
+
+@pytest.mark.parametrize(
+    "invalid_header",
+    [
+        f"{EXPECTED_HEADER},Extra Column",
+        "Start Time,End Time,Charging Energy(kWh),Charging Port,Card ID,Device SN,Device SN",
+        "End Time,Start Time,Charging Energy(kWh),Charging Port,Card ID,Device SN",
+    ],
+    ids=["added", "duplicate", "reordered"],
+)
+def test_sems_csv_rejects_schema_changes_other_than_missing_columns(invalid_header: str) -> None:
+    source = SemsCsvSource(default_timezone=ZoneInfo("America/Sao_Paulo"))
+    content = FIXTURE.read_text(encoding="utf-8").replace(EXPECTED_HEADER, invalid_header, 1).encode()
+
+    with pytest.raises(InvalidSession) as error:
+        source.read(content)
+
+    assert error.value.field == "file"
+    assert error.value.code == "INVALID_SCHEMA"
+    assert error.value.message == "CSV columns must exactly match the SEMS v1 schema."
+
+
+def test_sems_csv_preserves_missing_columns_error() -> None:
+    source = SemsCsvSource(default_timezone=ZoneInfo("America/Sao_Paulo"))
+    content = FIXTURE.read_text(encoding="utf-8").replace(",Device SN", "", 1).encode()
+
+    with pytest.raises(InvalidSession) as error:
+        source.read(content)
+
+    assert error.value.field == "file"
+    assert error.value.code == "MISSING_COLUMNS"
+    assert error.value.message == "Missing columns: Device SN"

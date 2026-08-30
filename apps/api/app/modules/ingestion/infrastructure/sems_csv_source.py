@@ -8,14 +8,15 @@ from app.modules.ingestion.application.ports import SourceRecord
 from app.modules.ingestion.domain.errors import InvalidSession
 from app.modules.ingestion.domain.session import SessionCandidate, SourceKind
 
-REQUIRED_COLUMNS = {
+SEMS_V1_COLUMNS = (
     "Start Time",
     "End Time",
     "Charging Energy(kWh)",
     "Charging Port",
     "Card ID",
     "Device SN",
-}
+)
+REQUIRED_COLUMNS = set(SEMS_V1_COLUMNS)
 
 
 class SemsCsvSource:
@@ -31,10 +32,16 @@ class SemsCsvSource:
             raise InvalidSession("file", "INVALID_ENCODING", "CSV must use UTF-8 encoding.") from error
 
         reader = csv.DictReader(StringIO(text))
-        columns = set(reader.fieldnames or [])
-        missing = sorted(REQUIRED_COLUMNS - columns)
+        columns = reader.fieldnames or []
+        missing = sorted(REQUIRED_COLUMNS - set(columns))
         if missing:
             raise InvalidSession("file", "MISSING_COLUMNS", f"Missing columns: {', '.join(missing)}")
+        if tuple(columns) != SEMS_V1_COLUMNS:
+            raise InvalidSession(
+                "file",
+                "INVALID_SCHEMA",
+                "CSV columns must exactly match the SEMS v1 schema.",
+            )
 
         return [SourceRecord(row_number=index, raw=dict(row)) for index, row in enumerate(reader, start=2)]
 

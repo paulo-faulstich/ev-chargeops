@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.identity.domain.auth import (
@@ -25,6 +26,26 @@ class SqlAlchemyScopeRepository:
         self.demo_manager_email = demo_manager_email
 
     async def resolve(self, principal: AuthPrincipal) -> OrganizationScope | None:
+        scope = await self._resolve_existing(principal)
+        if scope is not None:
+            return scope
+
+        if principal.email != self.demo_manager_email:
+            return None
+
+        try:
+            return await self._bootstrap_manager(principal)
+        except IntegrityError:
+            await self.session.rollback()
+            scope = await self._resolve_existing(principal)
+            if scope is None:
+                raise
+            return scope
+
+    async def _resolve_existing(
+        self,
+        principal: AuthPrincipal,
+    ) -> OrganizationScope | None:
         profile = await self.session.scalar(
             select(ProfileModel).where(ProfileModel.auth_user_id == principal.user_id)
         )
@@ -32,10 +53,15 @@ class SqlAlchemyScopeRepository:
             membership = await self._first_membership(profile.id)
             if membership is not None:
                 return self._scope(principal, profile, membership)
+        return None
 
-        if principal.email != self.demo_manager_email:
-            return None
-
+    async def _bootstrap_manager(
+        self,
+        principal: AuthPrincipal,
+    ) -> OrganizationScope:
+        profile = await self.session.scalar(
+            select(ProfileModel).where(ProfileModel.auth_user_id == principal.user_id)
+        )
         if profile is None:
             profile = ProfileModel(
                 auth_user_id=principal.user_id,

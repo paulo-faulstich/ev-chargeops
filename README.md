@@ -10,6 +10,46 @@ Este repositório é o documento central da Sprint 01. Ele reúne a pesquisa das
 
 ---
 
+## Desenvolvimento local: preview de importação SEMS+
+
+### Pré-requisitos
+
+- Node.js 22 (conforme `.nvmrc`) e pnpm 11;
+- Python 3.12 ou superior e [uv](https://docs.astral.sh/uv/).
+
+Instale as dependências JavaScript e Python a partir da raiz do repositório:
+
+```bash
+pnpm install
+uv sync --project apps/api
+```
+
+Crie os arquivos locais de configuração a partir dos exemplos:
+
+```bash
+cp apps/web/.env.example apps/web/.env.local
+cp apps/api/.env.example apps/api/.env
+```
+
+Em terminais separados, inicie a API e a interface:
+
+```bash
+pnpm dev:api
+pnpm dev:web
+```
+
+Abra `http://localhost:3000/imports/new` e envie o fixture `apps/api/tests/fixtures/sems_sessions.csv`. A interface chama a API em `http://localhost:8000` por meio de `NEXT_PUBLIC_API_URL` e mostra a classificação da prévia.
+
+Execute todos os checks locais com:
+
+```bash
+pnpm check
+```
+
+O comando usa explicitamente o build Webpack do Next.js para manter o gate determinístico em CI e no desenvolvimento local. Os dados desta prévia não são persistidos, e autenticação não faz parte deste primeiro slice.
+
+---
+
 ## Equipe
 
 | Aluno | RM | Grupo |

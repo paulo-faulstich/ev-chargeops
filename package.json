@@ -11,6 +11,7 @@
     "lint:api": "uv run --project apps/api ruff check apps/api/app apps/api/tests",
     "generate:api": "uv run --project apps/api python apps/api/scripts/export_openapi.py && pnpm --filter @ev-chargeops/api-client generate",
     "test:api-client": "pnpm --filter @ev-chargeops/api-client test",
-    "typecheck:api-client": "pnpm --filter @ev-chargeops/api-client typecheck"
+    "typecheck:api-client": "pnpm --filter @ev-chargeops/api-client typecheck",
+    "check": "pnpm lint:api && pnpm test:api && pnpm generate:api && pnpm typecheck:api-client && pnpm lint:web && pnpm --dir apps/web exec next build --webpack && pnpm test:web"
   }
 }

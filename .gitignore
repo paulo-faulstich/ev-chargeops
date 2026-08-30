@@ -4,5 +4,9 @@ __pycache__/
 .venv/
 venv/
 
+# Worktrees e artefatos locais de execução
+.worktrees/
+.superpowers/
+
 # Sistema
 .DS_Store

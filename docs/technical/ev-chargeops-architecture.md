@@ -56,6 +56,11 @@ flowchart LR
 
 O Next.js não acessa tabelas operacionais diretamente. O FastAPI concentra autorização, regras, auditoria, integrações e os módulos analíticos. Esses módulos compartilham o mesmo deploy inicialmente, mas dependem de ports próprios para permitir extração futura.
 
+O dashboard também não reconstrói sessões a partir de registros brutos de
+importação. Ele consulta o read model canônico de sessões; assim, atribuições
+auditadas aparecem imediatamente nos totais por unidade e nenhum `Card ID` ou
+serial de carregador é promovido a identidade de cobrança.
+
 ## 4. Estrutura do monorepo
 
 ```text
@@ -198,7 +203,8 @@ POST   /v1/import-batches
 GET    /v1/import-batches/:id
 GET    /v1/sessions
 GET    /v1/sessions/:id
-POST   /v1/sessions/:id/assignments
+PUT    /v1/sessions/:id/assignment
+GET    /v1/assignment-units
 GET    /v1/tariffs
 POST   /v1/tariffs/sync
 POST   /v1/billing-periods
@@ -299,6 +305,7 @@ Uma interface conversacional poderá narrar resultados persistidos, mas não sub
 - **Integração:** SQLAlchemy/PostgreSQL, autenticação, isolamento e endpoints.
 - **Consumer contract:** respostas sanitizadas dos sandboxes de ANEEL e Mercado Pago.
 - **E2E:** importar, atribuir, fechar, emitir, criar Pix e visualizar como morador.
+- **Handoff operacional:** confirmar lote, continuar no dashboard canônico, abrir a fila filtrada do período e atribuir uma sessão com justificativa.
 - **Segurança:** acesso cruzado, arquivos inválidos, replay de webhook e ausência de segredos.
 
 ## 17. Deployment

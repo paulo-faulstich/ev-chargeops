@@ -1,78 +1,55 @@
 import { expect, test, type Page } from "@playwright/test";
+import type { SessionResponse } from "@ev-chargeops/api-client";
 
-const batch = {
-  id: "70000000-0000-0000-0000-000000000001",
-  filename: "sems_sessions.csv",
-  checksum: "dashboard-fixture",
-  source: "sems_csv",
-  status: "completed",
-  created: true,
-  totalCount: 2,
-  validCount: 2,
-  invalidCount: 0,
-  duplicateCount: 0,
-  createdAt: "2026-08-29T22:00:00Z",
+const unknownSessions: { items: SessionResponse[] } = {
+  items: [
+    {
+      id: "90000000-0000-0000-0000-000000000001",
+      startedAt: "2026-08-29T20:10:00Z",
+      endedAt: "2026-08-29T21:10:00Z",
+      energyKwh: "7.000",
+      chargerSerial: "97500NAP25BL0008",
+      source: "sems_export",
+      provenance: "observed",
+      identityConfidence: "unknown",
+      status: "pending_review",
+      unitId: null,
+      unitCode: null,
+      unitName: null,
+      residentName: null,
+    },
+    {
+      id: "90000000-0000-0000-0000-000000000002",
+      startedAt: "2026-08-29T21:30:00Z",
+      endedAt: "2026-08-29T22:00:00Z",
+      energyKwh: "3.500",
+      chargerSerial: "97500NAP25BL0008",
+      source: "sems_export",
+      provenance: "observed",
+      identityConfidence: "unknown",
+      status: "pending_review",
+      unitId: null,
+      unitCode: null,
+      unitName: null,
+      residentName: null,
+    },
+  ],
 };
 
-async function routeDashboardData(page: Page, populated: boolean) {
-  await page.route("**/api/v1/import-batches**", async (route) => {
-    const pathname = new URL(route.request().url()).pathname;
-
-    if (pathname === "/api/v1/import-batches") {
-      await route.fulfill({
-        contentType: "application/json",
-        body: JSON.stringify({ items: populated ? [batch] : [] }),
-      });
-      return;
-    }
-
+async function routeDashboardSessions(
+  page: Page,
+  items: SessionResponse[],
+) {
+  await page.route("**/api/v1/sessions**", async (route) => {
     await route.fulfill({
       contentType: "application/json",
-      body: JSON.stringify({
-        ...batch,
-        records: [
-          {
-            id: "80000000-0000-0000-0000-000000000001",
-            rowNumber: 2,
-            raw: {
-              "Start Time": "29/08/2026 17:10:00",
-              "End Time": "29/08/2026 18:10:00",
-              "Charging Energy(kWh)": "7.00",
-              "Charging Port": "1",
-              "Card ID": "97500NAP25BL0008",
-              "Device SN": "97500NAP25BL0008",
-            },
-            classification: "valid",
-            errorField: null,
-            errorCode: null,
-            errorMessage: null,
-            sessionId: "90000000-0000-0000-0000-000000000001",
-          },
-          {
-            id: "80000000-0000-0000-0000-000000000002",
-            rowNumber: 3,
-            raw: {
-              "Start Time": "29/08/2026 18:30:00",
-              "End Time": "29/08/2026 19:00:00",
-              "Charging Energy(kWh)": "3.50",
-              "Charging Port": "1",
-              "Card ID": "",
-              "Device SN": "97500NAP25BL0008",
-            },
-            classification: "valid",
-            errorField: null,
-            errorCode: null,
-            errorMessage: null,
-            sessionId: "90000000-0000-0000-0000-000000000002",
-          },
-        ],
-      }),
+      body: JSON.stringify({ items }),
     });
   });
 }
 
 test("guides a first-time manager to import SEMS sessions", async ({ page }) => {
-  await routeDashboardData(page, false);
+  await routeDashboardSessions(page, []);
   await page.goto("/dashboard");
 
   await expect(page.getByRole("heading", { name: "Visão geral" })).toBeVisible();
@@ -97,23 +74,57 @@ test("guides a first-time manager to import SEMS sessions", async ({ page }) => 
   ).toBe(true);
 });
 
-test("turns imported sessions into an actionable monthly dashboard", async ({
+test("uses canonical unknown assignments for the monthly blocker", async ({
   page,
 }) => {
-  await routeDashboardData(page, true);
+  await routeDashboardSessions(page, unknownSessions.items);
   await page.goto("/dashboard");
 
   await expect(page.getByText("Agosto 2026", { exact: true })).toBeVisible();
-  await expect(page.getByText("10,50 kWh", { exact: true })).toBeVisible();
-  await expect(page.getByText(/R\$\s*9,87/)).toBeVisible();
-  await expect(page.getByText("1 de 2", { exact: true })).toBeVisible();
   await expect(
-    page.getByText("1 sessão ainda não pode ser cobrada porque falta identificar o responsável."),
+    page.getByLabel("Indicadores do período").getByText("10,50 kWh", {
+      exact: true,
+    }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Revisar 1 pendência" }),
-  ).toHaveAttribute("href", "/settings/data-sources");
+    page.getByLabel("Indicadores do período").getByText(/R\$\s*9,87/),
+  ).toBeVisible();
+  await expect(page.getByText("0 de 2", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText(
+      "2 sessões ainda não podem ser cobradas porque falta identificar o responsável.",
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Revisar 2 pendências" }),
+  ).toHaveAttribute(
+    "href",
+    "/sessions?status=pending_review&period=2026-08",
+  );
   await expect(
     page.getByRole("table", { name: "Custos por responsável" }),
   ).toContainText("Não atribuído");
+});
+
+test("groups assigned costs by condominium unit, never charger identity", async ({
+  page,
+}) => {
+  await routeDashboardSessions(page, [
+    {
+      ...unknownSessions.items[0],
+      identityConfidence: "assigned",
+      status: "ready",
+      unitId: "40000000-0000-0000-0000-000000000001",
+      unitCode: "A-101",
+      unitName: "Unidade A-101",
+      residentName: "Ana Oliveira",
+    },
+    unknownSessions.items[1],
+  ]);
+  await page.goto("/dashboard");
+
+  await expect(page.getByText("1 de 2", { exact: true })).toBeVisible();
+  const costs = page.getByRole("table", { name: "Custos por responsável" });
+  await expect(costs).toContainText("Unidade A-101");
+  await expect(costs).not.toContainText("97500NAP25BL0008");
 });

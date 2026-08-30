@@ -4,11 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-const futureDestinations = [
-  "Moradores e custos",
-  "Sessões",
-  "Insights",
-  "Faturas",
+const operationalDestinations = [
+  { href: "/dashboard", label: "Visão geral" },
+  { href: "/sessions", label: "Sessões" },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -25,26 +23,17 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </div>
 
-        <nav aria-label="Navegação principal" className="primary-navigation">
-          <p className="navigation-label">Fechamento mensal</p>
-          <Link
-            href="/dashboard"
-            aria-current={pathname === "/dashboard" ? "page" : undefined}
-            className={`nav-link${pathname === "/dashboard" ? " active" : ""}`}
-          >
-            <span className="nav-node" aria-hidden="true" />
-            Visão geral
-          </Link>
-          {futureDestinations.map((label) => (
-            <span
-              key={label}
-              role="link"
-              aria-disabled="true"
-              className="nav-link disabled"
+        <nav aria-label="Operação" className="primary-navigation">
+          <p className="navigation-label">Operação</p>
+          {operationalDestinations.map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              aria-current={pathname === href ? "page" : undefined}
+              className={`nav-link${pathname === href ? " active" : ""}`}
             >
-              <span className="nav-node" aria-hidden="true" />
               {label}
-            </span>
+            </Link>
           ))}
         </nav>
 
@@ -57,7 +46,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             }
             className={`nav-link secondary${pathname === "/settings/data-sources" ? " active" : ""}`}
           >
-            <span className="nav-node" aria-hidden="true" />
             Fontes de dados
           </Link>
         </nav>

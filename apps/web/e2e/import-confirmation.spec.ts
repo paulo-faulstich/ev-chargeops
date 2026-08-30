@@ -132,7 +132,7 @@ test("confirms a SEMS batch and shows idempotent descending history", async ({
   await page.getByLabel("Arquivo CSV do SEMS+").setInputFiles(FIXTURE_PATH);
   await page.getByRole("button", { name: "Analisar arquivo" }).click();
 
-  await expect(page.getByText("2 válidos")).toBeVisible();
+  await expect(page.getByText("2 válidos", { exact: true })).toBeVisible();
   await expect(page.getByText("Nenhum registro foi gravado")).toBeVisible();
   await expect(page.getByText("Nenhum lote importado ainda.")).toBeVisible();
 
@@ -144,9 +144,24 @@ test("confirms a SEMS batch and shows idempotent descending history", async ({
   await page.getByRole("button", { name: "Confirmar importação" }).click();
   expect((await creationResponse).status()).toBe(201);
 
-  await expect(page.getByRole("status")).toContainText(
-    "2 sessões importadas; nenhum registro inválido.",
-  );
+  await expect(
+    page.getByText("Importação concluída", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("2 sessões adicionadas")).toBeVisible();
+  await expect(page.getByText("Agosto 2026", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("0 inválidos · 0 duplicados", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Continuar fechamento" }),
+  ).toHaveAttribute("href", "/dashboard");
+  await expect(
+    page.getByRole("button", { name: "Importar outro arquivo" }),
+  ).toBeVisible();
+  await expect(page.getByText("Confirmação necessária")).toBeHidden();
+  await expect(
+    page.getByRole("button", { name: "Importar novamente" }),
+  ).toBeHidden();
   const history = page.getByRole("table", {
     name: "Histórico de importações",
   });
@@ -171,12 +186,16 @@ test("confirms a SEMS batch and shows idempotent descending history", async ({
       response.request().method() === "POST" &&
       response.url().endsWith("/api/v1/import-batches"),
   );
-  await page.getByRole("button", { name: "Importar novamente" }).click();
+  await page.getByRole("button", { name: "Importar outro arquivo" }).click();
+  await expect(page.getByLabel("Arquivo CSV do SEMS+")).toBeVisible();
+  await page.getByLabel("Arquivo CSV do SEMS+").setInputFiles(FIXTURE_PATH);
+  await page.getByRole("button", { name: "Analisar arquivo" }).click();
+  await page.getByRole("button", { name: "Confirmar importação" }).click();
   expect((await replayResponse).status()).toBe(200);
 
-  await expect(page.getByRole("status")).toContainText(
-    "Lote já importado; nenhuma nova sessão criada.",
-  );
+  await expect(
+    page.getByText("Lote já existente; nenhuma sessão duplicada"),
+  ).toBeVisible();
   await expect(page.getByText("1 lote", { exact: true })).toBeVisible();
   await expect(
     history.getByRole("row", { name: /sems_sessions\.csv.*Concluído/ }),
@@ -266,4 +285,50 @@ test("ignores a stale initial history response after confirmation", async ({
 
   await expect(newBatchRow).toBeVisible();
   await expect(page.getByText("Nenhum lote importado ainda.")).toBeHidden();
+});
+
+test("hands a confirmed SEMS import to the manager action queue", async ({
+  page,
+}) => {
+  const fixture = await readFile(FIXTURE_PATH, "utf8");
+
+  await page.goto("/settings/data-sources");
+  await page.getByLabel("Arquivo CSV do SEMS+").setInputFiles({
+    name: "sems_monthly_close.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(fixture.replaceAll("29/08/2026", "29/09/2026")),
+  });
+  await page.getByRole("button", { name: "Analisar arquivo" }).click();
+  const confirmationResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      response.url().endsWith("/api/v1/import-batches"),
+  );
+  await page.getByRole("button", { name: "Confirmar importação" }).click();
+  const confirmed = await confirmationResponse;
+  expect(confirmed.status(), await confirmed.text()).toBe(201);
+
+  await expect(page.getByText("2 sessões adicionadas")).toBeVisible();
+  await page.getByRole("link", { name: "Continuar fechamento" }).click();
+
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.getByText("Setembro 2026", { exact: true })).toBeVisible();
+  await expect(page.getByText("0 de 2", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Revisar 2 pendências" }).click();
+
+  await expect(page).toHaveURL(
+    /\/sessions\?status=pending_review&period=2026-09$/,
+  );
+  await page
+    .getByLabel("Unidade responsável")
+    .selectOption({ label: "Unidade A-101" });
+  await page
+    .getByLabel("Justificativa")
+    .fill("Responsável confirmado pelo administrador");
+  await page
+    .getByRole("button", { name: "Atribuir e revisar próxima" })
+    .click();
+
+  await expect(page.getByRole("status")).toContainText("Unidade A-101");
+  await expect(page.getByText("1 pendência no período")).toBeVisible();
 });

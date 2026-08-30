@@ -10,6 +10,39 @@ test("opens the manager product at the dashboard", async ({ page }) => {
   await expect(
     page.getByRole("link", { name: "Fontes de dados" }),
   ).toBeVisible();
+  const operation = page.getByRole("navigation", { name: "Operação" });
+  await expect(operation.getByText("Operação", { exact: true })).toBeVisible();
+  await expect(
+    operation.getByRole("link", { name: "Visão geral" }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(
+    operation.getByRole("link", { name: "Sessões" }),
+  ).toHaveAttribute("href", "/sessions");
+  await expect(operation.locator('[aria-disabled="true"]')).toHaveCount(0);
+});
+
+test("marks Sessions as permanent operational navigation", async ({ page }) => {
+  await page.route("**/api/v1/sessions**", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ items: [] }),
+    });
+  });
+  await page.route("**/api/v1/assignment-units", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ items: [] }),
+    });
+  });
+  await page.goto("/sessions?status=pending_review&period=2026-08");
+
+  const operation = page.getByRole("navigation", { name: "Operação" });
+  await expect(
+    operation.getByRole("link", { name: "Sessões" }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(
+    operation.getByRole("link", { name: "Visão geral" }),
+  ).toHaveAttribute("href", "/dashboard");
 });
 
 test("redirects an unauthenticated Supabase session to login", async ({

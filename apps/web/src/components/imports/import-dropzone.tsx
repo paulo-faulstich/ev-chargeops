@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
 import {
   confirmImport,
@@ -14,6 +15,27 @@ import { PreviewSummary } from "./preview-summary";
 import { PreviewTable } from "./preview-table";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "/api";
+
+const periodFormatter = new Intl.DateTimeFormat("pt-BR", {
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+function previewPeriod(preview: ImportPreviewResponse): string {
+  const sessionDates = preview.records.flatMap((record) => {
+    if (!record.session) return [];
+    const date = new Date(record.session.startedAt);
+    return Number.isNaN(date.getTime()) ? [] : [date];
+  });
+  if (sessionDates.length === 0) return "Período não identificado";
+
+  const latest = sessionDates.reduce((current, date) =>
+    date > current ? date : current,
+  );
+  const label = periodFormatter.format(latest).replace(" de ", " ");
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
 
 export function ImportDropzone({ accessToken }: { accessToken: string }) {
   const [file, setFile] = useState<File | null>(null);
@@ -171,38 +193,53 @@ export function ImportDropzone({ accessToken }: { accessToken: string }) {
                   : "Nenhum registro foi gravado."}
               </p>
             </div>
-            <button type="button" onClick={reset} className="border border-[#426071] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:border-cyan-300 hover:bg-cyan-300/10">
-              Revisar outro arquivo
-            </button>
+            {!confirmation ? (
+              <button type="button" onClick={reset} className="border border-[#426071] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:border-cyan-300 hover:bg-cyan-300/10">
+                Revisar outro arquivo
+              </button>
+            ) : null}
           </div>
           <PreviewSummary preview={preview} />
           <PreviewTable preview={preview} />
 
-          <div className="confirmation-panel">
-            <div>
-              <p className="utility-label">Confirmação necessária</p>
-              <p>
-                A prévia não grava dados. Confirme para criar o lote e as
-                sessões válidas no histórico operacional.
-              </p>
-            </div>
-            <button type="button" disabled={confirming} onClick={confirm}>
-              {confirming
-                ? "Confirmando…"
-                : confirmation
-                  ? "Importar novamente"
-                  : "Confirmar importação"}
-            </button>
-          </div>
-
           {confirmation ? (
-            <p role="status" className="confirmation-status">
-              {confirmation.created
-                ? `${confirmation.validCount} sessões importadas; ${confirmation.invalidCount === 0 ? "nenhum registro inválido." : `${confirmation.invalidCount} registros inválidos.`}`
-                : "Lote já importado; nenhuma nova sessão criada."}
-            </p>
-          ) : null}
-          {confirmationError ? (
+            <section className="import-success-panel" aria-labelledby="import-success-title">
+              <div>
+                <p className="utility-label">Importação concluída</p>
+                <h2 id="import-success-title">
+                  {confirmation.created
+                    ? `${confirmation.validCount} sessões adicionadas`
+                    : "Lote já existente; nenhuma sessão duplicada"}
+                </h2>
+                <p className="import-success-period">{previewPeriod(preview)}</p>
+                <p>
+                  {confirmation.invalidCount} inválidos · {confirmation.duplicateCount} duplicados
+                </p>
+              </div>
+              <div className="import-success-actions">
+                <Link href="/dashboard" className="primary-dashboard-action compact">
+                  Continuar fechamento
+                </Link>
+                <button type="button" onClick={reset}>
+                  Importar outro arquivo
+                </button>
+              </div>
+            </section>
+          ) : (
+            <div className="confirmation-panel">
+              <div>
+                <p className="utility-label">Confirmação necessária</p>
+                <p>
+                  A prévia não grava dados. Confirme para criar o lote e as
+                  sessões válidas no histórico operacional.
+                </p>
+              </div>
+              <button type="button" disabled={confirming} onClick={confirm}>
+                {confirming ? "Confirmando…" : "Confirmar importação"}
+              </button>
+            </div>
+          )}
+          {!confirmation && confirmationError ? (
             <div role="alert" className="confirmation-error">
               A importação não foi concluída. Tente novamente.
             </div>

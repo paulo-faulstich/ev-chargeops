@@ -2,10 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import {
-  getImportBatch,
-  listImportBatches,
-} from "@ev-chargeops/api-client";
+import { listSessions } from "@ev-chargeops/api-client";
 
 import {
   buildDashboardSummary,
@@ -37,11 +34,8 @@ type DashboardState =
   | { status: "ready"; summary: DashboardSummary | null };
 
 async function fetchDashboardSummary(accessToken: string) {
-  const batches = await listImportBatches(accessToken, apiUrl);
-  const details = await Promise.all(
-    batches.items.map((batch) => getImportBatch(batch.id, accessToken, apiUrl)),
-  );
-  return buildDashboardSummary(batches.items, details);
+  const sessions = await listSessions(accessToken, {}, apiUrl);
+  return buildDashboardSummary(sessions.items);
 }
 
 export function DashboardOverview({ accessToken }: { accessToken: string }) {
@@ -315,11 +309,14 @@ function OperationalDashboard({ summary }: { summary: DashboardSummary }) {
               <p className="attention-message">{pendingMessage}</p>
               <dl>
                 <div>
-                  <dt>Morador não atribuído</dt>
+                  <dt>Unidade não atribuída</dt>
                   <dd>{summary.pendingCount}</dd>
                 </div>
               </dl>
-              <Link href="/settings/data-sources" className="primary-dashboard-action compact">
+              <Link
+                href={`/sessions?status=pending_review&period=${summary.periodKey}`}
+                className="primary-dashboard-action compact"
+              >
                 Revisar {summary.pendingCount} {summary.pendingCount === 1 ? "pendência" : "pendências"}
               </Link>
             </>

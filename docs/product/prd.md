@@ -1,10 +1,10 @@
 # EV ChargeOps - Product Requirements Document
 
-**Versão:** 0.2
+**Versão:** 0.3
 
 **Status:** aprovado para implementação
 
-**Data:** 29 de agosto de 2026
+**Data:** 30 de agosto de 2026
 
 **Problem frame:** [problem-frame.md](problem-frame.md)
 
@@ -100,6 +100,10 @@ No protótipo, uma mesma conta administrativa poderá exercer Gestor e Operador 
 ### 4.7 Experiência
 
 - O dashboard do gestor mostra energia, sessões, cobertura de atribuição, faturas, anomalias e pagamentos.
+- O dashboard deriva energia, custo estimado e cobertura somente das sessões canônicas; identificadores brutos do carregador não representam moradores ou unidades.
+- Pendências do período abrem uma fila operacional filtrada, na qual a unidade e a justificativa são registradas sem alterar energia, horários ou procedência observados.
+- Após confirmar uma importação, o gestor recebe um handoff explícito para continuar o fechamento ou iniciar outro lote.
+- A navegação principal representa destinos recorrentes (`Visão geral` e `Sessões`), enquanto a importação SEMS+ permanece em `Configurações > Fontes de dados`.
 - A visão do morador mostra consumo, sessões, composição da fatura e recomendações.
 - Toda tela que combina dados reais e demonstrativos apresenta sua procedência.
 

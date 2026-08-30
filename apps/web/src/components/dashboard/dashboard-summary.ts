@@ -1,7 +1,4 @@
-import type {
-  ImportBatchDetailResponse,
-  ImportBatchResponse,
-} from "@ev-chargeops/api-client";
+import type { SessionResponse } from "@ev-chargeops/api-client";
 
 export const ESTIMATED_TARIFF_BRL_PER_KWH = 0.94;
 
@@ -9,7 +6,9 @@ type DashboardSession = {
   startedAt: Date;
   dateKey: string;
   energyKwh: number;
-  responsibleId: string | null;
+  responsibleKey: string;
+  responsibleLabel: string;
+  assigned: boolean;
 };
 
 export type DailyUsage = {
@@ -28,6 +27,7 @@ export type ResponsibleCost = {
 };
 
 export type DashboardSummary = {
+  periodKey: string;
   periodLabel: string;
   updatedAt: string;
   totalEnergyKwh: number;
@@ -64,39 +64,19 @@ function formatPeriod(date: Date): string {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-function parseSemsDate(value: string | null | undefined): Date | null {
-  if (!value) return null;
+function sessionForDashboard(session: SessionResponse): DashboardSession | null {
+  const startedAt = new Date(session.startedAt);
+  const energyKwh = Number(session.energyKwh);
+  if (
+    Number.isNaN(startedAt.getTime()) ||
+    !Number.isFinite(energyKwh) ||
+    energyKwh <= 0
+  ) {
+    return null;
+  }
 
-  const match = value.match(
-    /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/,
-  );
-  if (!match) return null;
-
-  const [, day, month, year, hour, minute, second = "00"] = match;
-  const parsed = new Date(
-    Date.UTC(
-      Number(year),
-      Number(month) - 1,
-      Number(day),
-      Number(hour),
-      Number(minute),
-      Number(second),
-    ),
-  );
-
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-function sessionFromRecord(
-  record: ImportBatchDetailResponse["records"][number],
-): DashboardSession | null {
-  if (record.classification !== "valid" || !record.sessionId) return null;
-
-  const startedAt = parseSemsDate(record.raw["Start Time"]);
-  const energyKwh = Number(record.raw["Charging Energy(kWh)"]);
-  if (!startedAt || !Number.isFinite(energyKwh) || energyKwh <= 0) return null;
-
-  const responsibleId = record.raw["Card ID"]?.trim() || null;
+  const assigned =
+    session.identityConfidence !== "unknown" && session.unitId !== null;
   const year = startedAt.getUTCFullYear();
   const month = String(startedAt.getUTCMonth() + 1).padStart(2, "0");
   const day = String(startedAt.getUTCDate()).padStart(2, "0");
@@ -105,41 +85,40 @@ function sessionFromRecord(
     startedAt,
     dateKey: `${year}-${month}-${day}`,
     energyKwh,
-    responsibleId,
+    assigned,
+    responsibleKey: assigned ? (session.unitId as string) : "unassigned",
+    responsibleLabel: assigned
+      ? session.unitName ??
+        (session.unitCode ? `Unidade ${session.unitCode}` : "Unidade atribuída")
+      : "Não atribuído",
   };
 }
 
-function identifierLabel(identifier: string): string {
-  if (identifier.length <= 14) return identifier;
-  return `Cartão ${identifier.slice(0, 6)}…${identifier.slice(-4)}`;
-}
-
 export function buildDashboardSummary(
-  batches: ImportBatchResponse[],
-  details: ImportBatchDetailResponse[],
+  canonicalSessions: SessionResponse[],
 ): DashboardSummary | null {
-  const sessions = details.flatMap((detail) =>
-    detail.records.flatMap((record) => {
-      const session = sessionFromRecord(record);
-      return session ? [session] : [];
-    }),
-  );
+  const sessions = canonicalSessions.flatMap((session) => {
+    const normalized = sessionForDashboard(session);
+    return normalized ? [normalized] : [];
+  });
   if (sessions.length === 0) return null;
 
   const latestSession = sessions.reduce((latest, session) =>
     session.startedAt > latest.startedAt ? session : latest,
   );
-  const periodSessions = sessions.filter(
-    (session) =>
-      session.startedAt.getUTCFullYear() ===
-        latestSession.startedAt.getUTCFullYear() &&
-      session.startedAt.getUTCMonth() === latestSession.startedAt.getUTCMonth(),
+  const periodKey = latestSession.dateKey.slice(0, 7);
+  const periodSessions = sessions.filter((session) =>
+    session.dateKey.startsWith(periodKey),
   );
-
   const daily = new Map<string, number>();
   const responsible = new Map<
     string,
-    { assigned: boolean; sessionCount: number; energyKwh: number }
+    {
+      label: string;
+      assigned: boolean;
+      sessionCount: number;
+      energyKwh: number;
+    }
   >();
 
   for (const session of periodSessions) {
@@ -148,33 +127,27 @@ export function buildDashboardSummary(
       (daily.get(session.dateKey) ?? 0) + session.energyKwh,
     );
 
-    const key = session.responsibleId ?? "unassigned";
-    const current = responsible.get(key) ?? {
-      assigned: session.responsibleId !== null,
+    const current = responsible.get(session.responsibleKey) ?? {
+      label: session.responsibleLabel,
+      assigned: session.assigned,
       sessionCount: 0,
       energyKwh: 0,
     };
     current.sessionCount += 1;
     current.energyKwh += session.energyKwh;
-    responsible.set(key, current);
+    responsible.set(session.responsibleKey, current);
   }
 
   const totalEnergyKwh = periodSessions.reduce(
     (total, session) => total + session.energyKwh,
     0,
   );
-  const assignedCount = periodSessions.filter(
-    (session) => session.responsibleId,
-  ).length;
-  const latestBatchCreatedAt = batches.reduce(
-    (latest, batch) =>
-      Date.parse(batch.createdAt) > Date.parse(latest) ? batch.createdAt : latest,
-    batches[0]?.createdAt ?? new Date(0).toISOString(),
-  );
+  const assignedCount = periodSessions.filter((session) => session.assigned).length;
 
   return {
+    periodKey,
     periodLabel: formatPeriod(latestSession.startedAt),
-    updatedAt: updatedFormatter.format(new Date(latestBatchCreatedAt)),
+    updatedAt: updatedFormatter.format(latestSession.startedAt),
     totalEnergyKwh,
     estimatedCost: totalEnergyKwh * ESTIMATED_TARIFF_BRL_PER_KWH,
     sessionCount: periodSessions.length,
@@ -190,7 +163,7 @@ export function buildDashboardSummary(
     responsibleCosts: [...responsible.entries()]
       .map(([key, value]) => ({
         key,
-        label: value.assigned ? identifierLabel(key) : "Não atribuído",
+        label: value.label,
         assigned: value.assigned,
         sessionCount: value.sessionCount,
         energyKwh: value.energyKwh,

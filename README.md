@@ -58,6 +58,14 @@ Abra `http://localhost:3000/dashboard`. A origem SEMS+ fica em
 `apps/api/tests/fixtures/sems_sessions.csv` pode ser revisado e confirmado. A
 API local atende em `http://localhost:8000`.
 
+O fluxo operacional entregue é recorrente: depois de confirmar um lote, use
+**Continuar fechamento** para abrir o dashboard do período. O dashboard lê as
+sessões canônicas persistidas, mostra energia e custo estimado por unidade e
+leva as identidades desconhecidas para `/sessions`, onde o gestor registra a
+atribuição e a justificativa. **Fontes de dados** permanece uma configuração;
+novos arquivos podem ser importados sem transformar a navegação em um stepper
+de uso único.
+
 ### Modo demo
 
 O modo `demo` usa Supabase PostgreSQL, Auth e Storage, com token de acesso

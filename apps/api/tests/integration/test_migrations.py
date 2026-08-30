@@ -23,11 +23,14 @@ OPERATIONAL_TABLES = {
 }
 
 
-def upgrade_database(tmp_path: Path) -> tuple[Config, Path]:
+def upgrade_database(
+    tmp_path: Path,
+    revision: str = "head",
+) -> tuple[Config, Path]:
     database = tmp_path / "migration.db"
     config = Config("apps/api/alembic.ini")
     config.set_main_option("sqlalchemy.url", f"sqlite+aiosqlite:///{database}")
-    command.upgrade(config, "head")
+    command.upgrade(config, revision)
     return config, database
 
 
@@ -101,6 +104,45 @@ def test_initial_migration_downgrades_to_empty_schema(tmp_path: Path) -> None:
 
     tables = set(inspect(create_engine(f"sqlite:///{database}")).get_table_names())
     assert OPERATIONAL_TABLES.isdisjoint(tables)
+
+
+def test_session_assignment_migration_creates_scoped_assignment_table(
+    tmp_path: Path,
+) -> None:
+    _, database = upgrade_database(tmp_path, "20260830_0002")
+    inspector = inspect(create_engine(f"sqlite:///{database}"))
+
+    columns = {
+        column["name"] for column in inspector.get_columns("session_assignments")
+    }
+    assert {
+        "organization_id",
+        "charging_session_id",
+        "unit_id",
+        "assigned_by",
+        "justification",
+    } <= columns
+
+    unique_constraints = {
+        constraint["name"]: tuple(constraint["column_names"])
+        for constraint in inspector.get_unique_constraints("session_assignments")
+    }
+    assert unique_constraints[
+        "uq_session_assignments_organization_id_charging_session_id"
+    ] == ("organization_id", "charging_session_id")
+
+
+def test_session_assignment_migration_downgrade_removes_only_assignment_table(
+    tmp_path: Path,
+) -> None:
+    config, database = upgrade_database(tmp_path, "20260830_0002")
+    engine = create_engine(f"sqlite:///{database}")
+    before_downgrade = set(inspect(engine).get_table_names())
+
+    command.downgrade(config, "20260829_0001")
+
+    after_downgrade = set(inspect(engine).get_table_names())
+    assert after_downgrade == before_downgrade - {"session_assignments"}
 
 
 class CapturedAlembicUrl(Exception):

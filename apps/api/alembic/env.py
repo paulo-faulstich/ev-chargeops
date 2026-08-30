@@ -13,6 +13,7 @@ from app.modules.ingestion.infrastructure import (
 from app.modules.organizations.infrastructure import (
     models as organization_models,  # noqa: F401
 )
+from app.modules.sessions.infrastructure import models as session_models  # noqa: F401
 from app.shared.config import Settings
 from app.shared.database import normalize_async_database_url
 from app.shared.sqlalchemy import Base

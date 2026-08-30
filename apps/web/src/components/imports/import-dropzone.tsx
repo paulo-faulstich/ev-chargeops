@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, type DragEvent } from "react";
 import { previewImport, type ImportPreviewResponse } from "@ev-chargeops/api-client";
 
 import { PreviewSummary } from "./preview-summary";
@@ -13,6 +13,49 @@ export function ImportDropzone() {
   const [preview, setPreview] = useState<ImportPreviewResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragDepth = useRef(0);
+
+  function selectFile(selectedFile: File | null) {
+    if (selectedFile && !selectedFile.name.toLowerCase().endsWith(".csv")) {
+      setFile(null);
+      setError("Selecione um arquivo CSV exportado do SEMS+.");
+      return;
+    }
+
+    setFile(selectedFile);
+    setError(null);
+  }
+
+  function handleDragEnter(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+    if (loading) return;
+
+    dragDepth.current += 1;
+    setIsDragging(true);
+  }
+
+  function handleDragOver(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = loading ? "none" : "copy";
+  }
+
+  function handleDragLeave(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+    if (loading) return;
+
+    dragDepth.current = Math.max(0, dragDepth.current - 1);
+    if (dragDepth.current === 0) setIsDragging(false);
+  }
+
+  function handleDrop(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+    dragDepth.current = 0;
+    setIsDragging(false);
+    if (loading) return;
+
+    selectFile(event.dataTransfer.files.item(0));
+  }
 
   async function analyze() {
     if (!file) return;
@@ -55,7 +98,18 @@ export function ImportDropzone() {
   }
 
   return (
-    <section aria-labelledby="upload-title" className="border border-dashed border-cyan-300/45 bg-[#0b1b28] p-5 sm:p-8 lg:p-10">
+    <section
+      aria-labelledby="upload-title"
+      className={`border p-5 transition-colors sm:p-8 lg:p-10 ${
+        isDragging
+          ? "border-solid border-cyan-200 bg-[#102a38]"
+          : "border-dashed border-cyan-300/45 bg-[#0b1b28]"
+      }`}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-end">
         <div>
           <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-200">Etapa 01 · origem do dado</p>
@@ -63,15 +117,18 @@ export function ImportDropzone() {
           <p className="mt-3 max-w-2xl text-sm leading-6 text-[#90a7b8]">A análise verifica cada linha e mostra a classificação antes de criar qualquer lote de importação.</p>
 
           <label htmlFor="sems-file" className="mt-7 block text-sm font-medium text-white">Arquivo CSV do SEMS+</label>
+          <p id="upload-guidance" className={`mt-2 text-sm ${isDragging ? "font-medium text-cyan-100" : "text-[#90a7b8]"}`}>
+            {isDragging ? "Solte o CSV para selecionar" : "Arraste e solte o CSV neste painel ou use o seletor abaixo."}
+          </p>
           <input
             id="sems-file"
+            aria-describedby="upload-guidance"
             className="mt-3 block w-full max-w-2xl cursor-pointer border border-[#426071] bg-[#07131d] px-3 py-2 text-sm text-[#c2d2dc] file:mr-4 file:border-0 file:bg-cyan-300 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-[#07131d]"
             type="file"
             accept=".csv,text/csv"
             disabled={loading}
             onChange={(event) => {
-              setFile(event.target.files?.[0] ?? null);
-              setError(null);
+              selectFile(event.target.files?.[0] ?? null);
             }}
           />
           {file ? <p className="mt-3 font-mono text-xs text-cyan-100">Selecionado: {file.name}</p> : <p className="mt-3 text-sm text-[#90a7b8]">Nenhum arquivo selecionado.</p>}

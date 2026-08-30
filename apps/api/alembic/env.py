@@ -1,15 +1,20 @@
 import asyncio
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+from alembic import context
 from app.modules.audit.infrastructure import models as audit_models  # noqa: F401
-from app.modules.ingestion.infrastructure import models as ingestion_models  # noqa: F401
-from app.modules.organizations.infrastructure import models as organization_models  # noqa: F401
+from app.modules.ingestion.infrastructure import (
+    models as ingestion_models,  # noqa: F401
+)
+from app.modules.organizations.infrastructure import (
+    models as organization_models,  # noqa: F401
+)
 from app.shared.config import Settings
+from app.shared.database import normalize_async_database_url
 from app.shared.sqlalchemy import Base
 
 config = context.config
@@ -25,7 +30,12 @@ def database_url() -> str:
     return Settings(supabase_url="http://localhost").database_url
 
 
-config.set_main_option("sqlalchemy.url", database_url())
+config.set_main_option(
+    "sqlalchemy.url",
+    normalize_async_database_url(database_url()).render_as_string(
+        hide_password=False
+    ),
+)
 target_metadata = Base.metadata
 
 

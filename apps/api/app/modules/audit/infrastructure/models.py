@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import JSON, DateTime, ForeignKey, String
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.shared.sqlalchemy import Base, UuidPrimaryKeyMixin
@@ -23,3 +23,16 @@ class AuditEventModel(UuidPrimaryKeyMixin, Base):
     entity_type: Mapped[str] = mapped_column(String(64), nullable=False)
     entity_id: Mapped[UUID] = mapped_column(index=True)
     metadata_json: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+
+    __table_args__ = (
+        Index(
+            "ix_audit_events_organization_id_actor_profile_id",
+            "organization_id",
+            "actor_profile_id",
+        ),
+        Index(
+            "ix_audit_events_organization_id_entity_id",
+            "organization_id",
+            "entity_id",
+        ),
+    )

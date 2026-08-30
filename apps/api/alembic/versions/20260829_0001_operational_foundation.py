@@ -8,6 +8,7 @@ Create Date: 2026-08-29
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "20260829_0001"
@@ -70,6 +71,11 @@ def upgrade() -> None:
     )
     op.create_index("ix_chargers_organization_id", "chargers", ["organization_id"])
     op.create_index("ix_chargers_site_id", "chargers", ["site_id"])
+    op.create_index(
+        "ix_chargers_organization_id_site_id",
+        "chargers",
+        ["organization_id", "site_id"],
+    )
     op.create_table(
         "units",
         sa.Column("organization_id", sa.Uuid(), nullable=False),
@@ -126,6 +132,11 @@ def upgrade() -> None:
         "ix_memberships_organization_id", "memberships", ["organization_id"]
     )
     op.create_index("ix_memberships_profile_id", "memberships", ["profile_id"])
+    op.create_index(
+        "ix_memberships_organization_id_profile_id",
+        "memberships",
+        ["organization_id", "profile_id"],
+    )
     op.create_table(
         "import_batches",
         sa.Column("organization_id", sa.Uuid(), nullable=False),
@@ -172,9 +183,14 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     create_unique_constraint(
-        "uq_raw_import_records_import_batch_id_row_number",
+        "uq_raw_import_records_organization_id_id",
         "raw_import_records",
-        ["import_batch_id", "row_number"],
+        ["organization_id", "id"],
+    )
+    create_unique_constraint(
+        "uq_raw_import_records_organization_id_import_batch_id_row_number",
+        "raw_import_records",
+        ["organization_id", "import_batch_id", "row_number"],
     )
     op.create_index(
         "ix_raw_import_records_import_batch_id",
@@ -185,6 +201,11 @@ def upgrade() -> None:
         "ix_raw_import_records_organization_id",
         "raw_import_records",
         ["organization_id"],
+    )
+    op.create_index(
+        "ix_raw_import_records_organization_id_import_batch_id",
+        "raw_import_records",
+        ["organization_id", "import_batch_id"],
     )
     op.create_table(
         "charging_sessions",
@@ -210,14 +231,17 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["charger_id"], ["chargers.id"]),
         sa.ForeignKeyConstraint(["import_batch_id"], ["import_batches.id"]),
         sa.ForeignKeyConstraint(["organization_id"], ["organizations.id"]),
-        sa.ForeignKeyConstraint(["raw_record_id"], ["raw_import_records.id"]),
+        sa.ForeignKeyConstraint(
+            ["organization_id", "raw_record_id"],
+            ["raw_import_records.organization_id", "raw_import_records.id"],
+        ),
         sa.ForeignKeyConstraint(["site_id"], ["sites.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
     create_unique_constraint(
-        "uq_charging_sessions_raw_record_id",
+        "uq_charging_sessions_organization_id_raw_record_id",
         "charging_sessions",
-        ["raw_record_id"],
+        ["organization_id", "raw_record_id"],
     )
     create_unique_constraint(
         "uq_charging_sessions_organization_id_deduplication_key",
@@ -238,6 +262,21 @@ def upgrade() -> None:
         ["organization_id"],
     )
     op.create_index("ix_charging_sessions_site_id", "charging_sessions", ["site_id"])
+    op.create_index(
+        "ix_charging_sessions_organization_id_site_id",
+        "charging_sessions",
+        ["organization_id", "site_id"],
+    )
+    op.create_index(
+        "ix_charging_sessions_organization_id_charger_id",
+        "charging_sessions",
+        ["organization_id", "charger_id"],
+    )
+    op.create_index(
+        "ix_charging_sessions_organization_id_import_batch_id",
+        "charging_sessions",
+        ["organization_id", "import_batch_id"],
+    )
     op.create_table(
         "audit_events",
         sa.Column("organization_id", sa.Uuid(), nullable=False),
@@ -258,6 +297,16 @@ def upgrade() -> None:
     op.create_index("ix_audit_events_entity_id", "audit_events", ["entity_id"])
     op.create_index(
         "ix_audit_events_organization_id", "audit_events", ["organization_id"]
+    )
+    op.create_index(
+        "ix_audit_events_organization_id_actor_profile_id",
+        "audit_events",
+        ["organization_id", "actor_profile_id"],
+    )
+    op.create_index(
+        "ix_audit_events_organization_id_entity_id",
+        "audit_events",
+        ["organization_id", "entity_id"],
     )
 
 

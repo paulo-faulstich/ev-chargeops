@@ -1,7 +1,7 @@
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, Numeric, String, UniqueConstraint
+from sqlalchemy import ForeignKey, Index, Numeric, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.shared.sqlalchemy import Base, TimestampMixin, UuidPrimaryKeyMixin
@@ -36,7 +36,10 @@ class ChargerModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
         Numeric(10, 3), nullable=False
     )
 
-    __table_args__ = (UniqueConstraint("organization_id", "serial"),)
+    __table_args__ = (
+        UniqueConstraint("organization_id", "serial"),
+        Index("ix_chargers_organization_id_site_id", "organization_id", "site_id"),
+    )
 
 
 class UnitModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
@@ -71,4 +74,11 @@ class MembershipModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
     )
     role: Mapped[str] = mapped_column(String(32), nullable=False)
 
-    __table_args__ = (UniqueConstraint("organization_id", "profile_id"),)
+    __table_args__ = (
+        UniqueConstraint("organization_id", "profile_id"),
+        Index(
+            "ix_memberships_organization_id_profile_id",
+            "organization_id",
+            "profile_id",
+        ),
+    )

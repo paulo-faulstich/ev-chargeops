@@ -6,6 +6,8 @@ from sqlalchemy import (
     JSON,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
+    Index,
     Numeric,
     String,
     Text,
@@ -52,7 +54,15 @@ class RawImportRecordModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
     error_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    __table_args__ = (UniqueConstraint("import_batch_id", "row_number"),)
+    __table_args__ = (
+        UniqueConstraint("organization_id", "id"),
+        UniqueConstraint("organization_id", "import_batch_id", "row_number"),
+        Index(
+            "ix_raw_import_records_organization_id_import_batch_id",
+            "organization_id",
+            "import_batch_id",
+        ),
+    )
 
 
 class ChargingSessionModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
@@ -66,9 +76,7 @@ class ChargingSessionModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
     import_batch_id: Mapped[UUID] = mapped_column(
         ForeignKey("import_batches.id"), index=True
     )
-    raw_record_id: Mapped[UUID] = mapped_column(
-        ForeignKey("raw_import_records.id"), unique=True
-    )
+    raw_record_id: Mapped[UUID] = mapped_column(nullable=False)
     source: Mapped[str] = mapped_column(String(32), nullable=False)
     external_id: Mapped[str | None] = mapped_column(String(160), nullable=True)
     deduplication_key: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -84,5 +92,25 @@ class ChargingSessionModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
     status: Mapped[str] = mapped_column(String(32), nullable=False)
 
     __table_args__ = (
+        ForeignKeyConstraint(
+            ("organization_id", "raw_record_id"),
+            ("raw_import_records.organization_id", "raw_import_records.id"),
+        ),
+        UniqueConstraint("organization_id", "raw_record_id"),
         UniqueConstraint("organization_id", "deduplication_key"),
+        Index(
+            "ix_charging_sessions_organization_id_site_id",
+            "organization_id",
+            "site_id",
+        ),
+        Index(
+            "ix_charging_sessions_organization_id_charger_id",
+            "organization_id",
+            "charger_id",
+        ),
+        Index(
+            "ix_charging_sessions_organization_id_import_batch_id",
+            "organization_id",
+            "import_batch_id",
+        ),
     )

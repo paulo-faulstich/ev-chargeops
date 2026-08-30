@@ -13,10 +13,15 @@ from sqlalchemy.ext.asyncio import (
 from app.shared.config import Settings, get_settings
 
 
-def create_engine_from_settings(settings: Settings) -> AsyncEngine:
-    url: URL = make_url(settings.database_url)
+def normalize_async_database_url(database_url: str) -> URL:
+    url: URL = make_url(database_url)
     if url.drivername in {"postgres", "postgresql"}:
         url = url.set(drivername="postgresql+psycopg")
+    return url
+
+
+def create_engine_from_settings(settings: Settings) -> AsyncEngine:
+    url = normalize_async_database_url(settings.database_url)
     return create_async_engine(url, pool_pre_ping=True)
 
 

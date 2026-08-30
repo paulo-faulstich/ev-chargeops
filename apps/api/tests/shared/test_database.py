@@ -28,7 +28,7 @@ async def test_plain_postgres_url_uses_async_psycopg_driver() -> None:
     settings = Settings(
         app_env="local",
         auth_mode="fixture",
-        database_url="postgresql://postgres:secret@localhost/postgres",
+        database_url="postgresql://example.invalid/postgres",
         supabase_url="https://lgjohsxipfctgooiuqnv.supabase.co",
         fixture_auth_token="fixture-manager-token",
     )

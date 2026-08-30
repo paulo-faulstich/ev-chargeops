@@ -1,0 +1,16 @@
+{
+  "name": "@ev-chargeops/api-client",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "generate": "openapi-typescript openapi.json -o src/schema.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "openapi-typescript": "latest",
+    "typescript": "^5",
+    "vitest": "latest"
+  }
+}

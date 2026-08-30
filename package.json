@@ -8,6 +8,9 @@
     "test:web": "pnpm --dir apps/web test:e2e",
     "test:api": "uv run --project apps/api pytest apps/api/tests -q",
     "lint:web": "pnpm --dir apps/web lint",
-    "lint:api": "uv run --project apps/api ruff check apps/api/app apps/api/tests"
+    "lint:api": "uv run --project apps/api ruff check apps/api/app apps/api/tests",
+    "generate:api": "uv run --project apps/api python apps/api/scripts/export_openapi.py && pnpm --filter @ev-chargeops/api-client generate",
+    "test:api-client": "pnpm --filter @ev-chargeops/api-client test",
+    "typecheck:api-client": "pnpm --filter @ev-chargeops/api-client typecheck"
   }
 }

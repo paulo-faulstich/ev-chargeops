@@ -10,11 +10,16 @@ Este repositório é o documento central da Sprint 01. Ele reúne a pesquisa das
 
 ---
 
-## Desenvolvimento local: preview de importação SEMS+
+## Execução do Checkpoint A
+
+O Checkpoint A implementa a fundação operacional da Sprint 02: autenticação,
+escopo por organização, importação idempotente e persistência de lotes,
+registros brutos e sessões. A experiência autenticada começa no dashboard; o
+CSV do SEMS+ é um adapter administrativo temporário, não o produto principal.
 
 ### Pré-requisitos
 
-- Node.js 22 (conforme `.nvmrc`) e pnpm 11;
+- Node.js `>=22.13.0 <23` (conforme `.nvmrc`) e pnpm `11.19.0`;
 - Python 3.12 ou superior e [uv](https://docs.astral.sh/uv/).
 
 Instale as dependências JavaScript e Python a partir da raiz do repositório:
@@ -24,21 +29,52 @@ pnpm install
 uv sync --project apps/api
 ```
 
-Crie os arquivos locais de configuração a partir dos exemplos:
+### Modo local/test
+
+O modo `local/test` usa SQLite, armazenamento local e autenticação fixture.
+Ele não exige conta externa. Crie os arquivos locais a partir dos exemplos e
+ajuste `AUTH_MODE` para `fixture` nos dois aplicativos:
 
 ```bash
 cp apps/web/.env.example apps/web/.env.local
 cp apps/api/.env.example apps/api/.env
 ```
 
-Em terminais separados, inicie a API e a interface:
+Crie o schema, carregue a fundação operacional repetível e, em terminais
+separados, inicie a API e a interface:
+
+```bash
+pnpm db:upgrade
+uv run --project apps/api python apps/api/scripts/seed_operational_foundation.py
+```
 
 ```bash
 pnpm dev:api
 pnpm dev:web
 ```
 
-Abra `http://localhost:3000/imports/new` e envie o fixture `apps/api/tests/fixtures/sems_sessions.csv`. A interface chama a API em `http://localhost:8000` por meio de `NEXT_PUBLIC_API_URL` e mostra a classificação da prévia.
+Abra `http://localhost:3000/dashboard`. A origem SEMS+ fica em
+`http://localhost:3000/settings/data-sources`, onde o fixture
+`apps/api/tests/fixtures/sems_sessions.csv` pode ser revisado e confirmado. A
+API local atende em `http://localhost:8000`.
+
+### Modo demo
+
+O modo `demo` usa Supabase PostgreSQL, Auth e Storage, com token de acesso
+realmente assinado e sem fixture auth. Configure apenas em arquivos ignorados
+as variáveis `APP_ENV`, `AUTH_MODE`, `DATABASE_URL`, `SUPABASE_URL`,
+`SUPABASE_JWT_AUDIENCE`, `SUPABASE_SERVICE_ROLE_KEY`, `ORIGINAL_FILE_STORE` e
+`DEMO_MANAGER_EMAIL` no backend; no frontend, configure
+`NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` e `AUTH_MODE`.
+
+Para um backend persistente, use a conexão PostgreSQL direta quando IPv6
+estiver disponível. Em ambientes somente IPv4, use o **Supavisor session** na
+porta `5432`. Nunca versione a connection string, senhas, chaves ou dados da
+conta de demonstração. Migrações, seed, criação do bucket privado e a primeira
+importação no projeto remoto são escritas externas e exigem confirmação
+explícita no momento da ação. Consulte os guias da [API](apps/api/README.md) e
+da [web](apps/web/README.md).
 
 Execute todos os checks locais com:
 
@@ -46,7 +82,10 @@ Execute todos os checks locais com:
 pnpm check
 ```
 
-O comando usa explicitamente o build Webpack do Next.js para manter o gate determinístico em CI e no desenvolvimento local. Os dados desta prévia não são persistidos, e autenticação não faz parte deste primeiro slice.
+O gate executa Ruff, mypy, testes unitários e de integração da API, verifica
+drift do Alembic e do contrato OpenAPI, valida o client TypeScript e executa
+lint, build Webpack e Playwright da web. Nenhum teste local usa o projeto
+Supabase nem envia comandos ao equipamento GoodWe/FIAP.
 
 ---
 
@@ -55,8 +94,6 @@ O comando usa explicitamente o build Webpack do Next.js para manter o gate deter
 | Aluno | RM | Grupo |
 |---|---|---|
 | Paulo Roberto Faulstich Rego | 572292 | 27 |
-
-Contato: paulo.faulstich@gmail.com
 
 ---
 

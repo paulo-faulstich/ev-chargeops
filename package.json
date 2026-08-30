@@ -9,12 +9,14 @@
     "db:check": "uv run --project apps/api alembic -c apps/api/alembic.ini check",
     "test:web": "pnpm --dir apps/web test:e2e",
     "test:api": "uv run --project apps/api pytest apps/api/tests -q",
+    "test:integration": "uv run --project apps/api pytest apps/api/tests/integration -q",
     "lint:web": "pnpm --dir apps/web lint",
     "lint:api": "uv run --project apps/api ruff check apps/api/app apps/api/tests",
+    "typecheck:api": "uv run --project apps/api mypy apps/api/app",
     "generate:api": "uv run --project apps/api python apps/api/scripts/export_openapi.py && pnpm --filter @ev-chargeops/api-client generate",
     "check:api-contract": "pnpm generate:api && git diff --exit-code HEAD -- packages/api-client/openapi.json packages/api-client/src/schema.ts",
     "test:api-client": "pnpm --filter @ev-chargeops/api-client test",
     "typecheck:api-client": "pnpm --filter @ev-chargeops/api-client typecheck",
-    "check": "pnpm lint:api && pnpm test:api && pnpm check:api-contract && pnpm test:api-client && pnpm typecheck:api-client && pnpm lint:web && pnpm --dir apps/web exec next build --webpack && pnpm test:web"
+    "check": "pnpm lint:api && pnpm typecheck:api && pnpm test:api && pnpm test:integration && pnpm db:check && pnpm check:api-contract && pnpm test:api-client && pnpm typecheck:api-client && pnpm lint:web && pnpm --dir apps/web exec next build --webpack && pnpm test:web"
   }
 }

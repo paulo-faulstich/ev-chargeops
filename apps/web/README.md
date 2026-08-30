@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# EV ChargeOps Web
 
-## Getting Started
+Interface Next.js do produto operacional. A rota autenticada padrão é
+`/dashboard`; a importação do SEMS+ fica em
+`/settings/data-sources` como configuração secundária.
 
-First, run the development server:
+## Requisitos e execução local
+
+Use Node.js `>=22.13.0 <23` e pnpm `11.19.0`. A partir da raiz:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+cp apps/web/.env.example apps/web/.env.local
+pnpm dev:web
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+No modo `local/test`, defina `AUTH_MODE` como fixture no arquivo local. Esse
+modo usa um token restrito ao ambiente não produtivo e não exige conta
+Supabase. O Next.js encaminha `/api/*` para a API FastAPI e mantém o bearer
+token fora de URLs.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Modo demo
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+No modo `demo`, use autenticação Supabase e uma sessão real assinada. Defina
+somente em `apps/web/.env.local`:
 
-## Learn More
+- `AUTH_MODE`
+- `NEXT_PUBLIC_API_URL`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `API_PROXY_TARGET`
 
-To learn more about Next.js, take a look at the following resources:
+Somente a publishable key pode ser exposta ao browser. Nunca coloque
+`DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, senhas ou tokens nesse arquivo ou
+em qualquer variável `NEXT_PUBLIC_*`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Rotas do produto
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `/login`: autenticação por senha no modo demo.
+- `/dashboard`: home autenticada e fundação do fechamento operacional.
+- `/settings/data-sources`: preview, confirmação e histórico de importações.
+- `/imports/new`: compatibilidade; redireciona para a fonte secundária.
 
-## Deploy on Vercel
+O proxy do Next.js atualiza a sessão e protege as rotas. Uma sessão ausente
+redireciona para `/login`; um usuário autenticado que abre a raiz ou o login é
+direcionado para `/dashboard`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Verificação
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Na raiz:
+
+```bash
+pnpm lint:web
+pnpm --dir apps/web exec next build --webpack
+pnpm test:web
+```
+
+Os testes Playwright iniciam servidores locais isolados, usam SQLite e fixture
+auth e não acessam Supabase.

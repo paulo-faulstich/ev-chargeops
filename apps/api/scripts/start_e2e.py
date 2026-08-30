@@ -34,21 +34,28 @@ def validate_database_path(database_path: Path, allowed_root: Path) -> Path:
     return resolved_database_path
 
 
+def build_e2e_environment(
+    database_url: str,
+    allowed_root: Path,
+) -> dict[str, str]:
+    return {
+        "APP_ENV": "test",
+        "AUTH_MODE": "fixture",
+        "FIXTURE_AUTH_TOKEN": "fixture-manager-token",
+        "DATABASE_URL": database_url,
+        "SUPABASE_URL": "https://lgjohsxipfctgooiuqnv.supabase.co",
+        "DEMO_MANAGER_EMAIL": "manager@example.test",
+        "ORIGINAL_FILE_STORE": "local",
+        "ORIGINAL_FILES_ROOT": str(allowed_root / "original-files"),
+        "SUPABASE_SERVICE_ROLE_KEY": "",
+    }
+
+
 def configure_e2e_environment(
     database_url: str,
     allowed_root: Path,
 ) -> Settings:
-    os.environ.update(
-        APP_ENV="test",
-        AUTH_MODE="fixture",
-        FIXTURE_AUTH_TOKEN="fixture-manager-token",
-        DATABASE_URL=database_url,
-        SUPABASE_URL="https://lgjohsxipfctgooiuqnv.supabase.co",
-        DEMO_MANAGER_EMAIL="manager@example.test",
-        ORIGINAL_FILE_STORE="local",
-        ORIGINAL_FILES_ROOT=str(allowed_root / "original-files"),
-        SUPABASE_SERVICE_ROLE_KEY="",
-    )
+    os.environ.update(build_e2e_environment(database_url, allowed_root))
     return Settings()  # type: ignore[call-arg]
 
 

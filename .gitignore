@@ -3,6 +3,17 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+.pytest_cache/
+.ruff_cache/
+
+# JavaScript
+.next/
+node_modules/
+
+# Environment
+.env
+.env.*
+!.env.example
 
 # Worktrees e artefatos locais de execução
 .worktrees/

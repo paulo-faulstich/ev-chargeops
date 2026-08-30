@@ -1,3 +1,4 @@
+from io import StringIO
 from pathlib import Path
 from typing import NoReturn
 
@@ -131,3 +132,20 @@ def test_alembic_normalizes_plain_postgresql_url_without_connecting(
     assert captured.value.url == (
         "postgresql+psycopg://chargeops@example.invalid/chargeops"
     )
+
+
+def test_postgresql_offline_upgrade_compiles_complete_scoped_schema() -> None:
+    output = StringIO()
+    config = Config("apps/api/alembic.ini", output_buffer=output)
+    config.set_main_option(
+        "sqlalchemy.url",
+        "postgresql://chargeops@example.invalid/chargeops",
+    )
+
+    command.upgrade(config, "head", sql=True)
+
+    sql = output.getvalue()
+    assert "UNIQUE (organization_id, import_batch_id, row_number)" in sql
+    assert "INSERT INTO alembic_version" in sql
+    assert "20260829_0001" in sql
+    assert sql.rstrip().endswith("COMMIT;")

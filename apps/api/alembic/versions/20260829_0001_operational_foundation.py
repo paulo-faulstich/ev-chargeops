@@ -188,7 +188,7 @@ def upgrade() -> None:
         ["organization_id", "id"],
     )
     create_unique_constraint(
-        "uq_raw_import_records_organization_id_import_batch_id_row_number",
+        "uq_raw_import_records_org_import_batch_row_number",
         "raw_import_records",
         ["organization_id", "import_batch_id", "row_number"],
     )

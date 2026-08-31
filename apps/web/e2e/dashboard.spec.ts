@@ -174,8 +174,8 @@ test("uses canonical unknown assignments for the monthly blocker", async ({
     "/sessions?status=pending_review&period=2026-08",
   );
   await expect(
-    page.getByRole("table", { name: "Consumo por responsável" }),
-  ).toContainText("Não atribuído");
+    page.getByRole("link", { name: "Ir para o fechamento" }),
+  ).toBeVisible();
 });
 
 test("groups assigned costs by condominium unit, never charger identity", async ({
@@ -193,9 +193,8 @@ test("groups assigned costs by condominium unit, never charger identity", async 
     },
     unknownSessions.items[1],
   ]);
-  await page.goto("/dashboard");
+  await page.goto("/closing");
 
-  await expect(page.getByText("1 de 2", { exact: true })).toBeVisible();
   const costs = page.getByRole("table", { name: "Consumo por responsável" });
   await expect(costs).toContainText("Unidade A-101");
   await expect(costs).not.toContainText("97500NAP25BL0008");

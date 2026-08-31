@@ -78,7 +78,7 @@ export function InvoiceView({
   invoiceId: string;
   accessToken: string;
 }) {
-  const { context: residentContext } = useResidentContext();
+  const { context: residentContext, enter } = useResidentContext();
   // The result is tagged with the request it answers, so switching invoice or
   // entering a resident context shows loading again without the effect having
   // to write state on its way in.
@@ -173,14 +173,27 @@ export function InvoiceView({
             {issued.date}
           </p>
         </div>
-        <button
-          type="button"
-          className="primary-dashboard-action compact"
-          onClick={() => void download()}
-          disabled={downloading}
-        >
-          {downloading ? "Gerando PDF…" : "Baixar PDF"}
-        </button>
+        <div className="invoice-heading-actions">
+          {residentContext === null ? (
+            // The resident's view is this same page, scoped. Offering it here
+            // means the manager never has to go looking for a second screen.
+            <button
+              type="button"
+              className="invoice-secondary-action"
+              onClick={() => void enter(invoice.unitId)}
+            >
+              Ver como o morador
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="primary-dashboard-action compact"
+            onClick={() => void download()}
+            disabled={downloading}
+          >
+            {downloading ? "Gerando PDF…" : "Baixar PDF"}
+          </button>
+        </div>
       </header>
 
       <section className="invoice-block" aria-labelledby="invoice-total-title">

@@ -73,11 +73,26 @@ endpoint de gestor rejeita por construção.
 
 ### 8. Web
 
-Página única de fatura com os quatro blocos da seção 9, fluxo de fechamento no
-dashboard, decisão de achados críticos, banner de morador com saída em um
-clique. A constante `ESTIMATED_TARIFF_BRL_PER_KWH = 0.94` **foi removida**: o
-painel virou "Consumo por responsável", em kWh medido, e valor devido só existe
-em fatura emitida.
+A constante `ESTIMATED_TARIFF_BRL_PER_KWH = 0.94` **foi removida**: valor devido
+só existe em fatura emitida.
+
+A navegação separa dois ritmos, porque acompanhamento diário e decisão mensal
+não são a mesma coisa:
+
+```
+Operação     → /dashboard  (visão geral)   /sessions (recargas)
+Faturamento  → /closing    (fechamento)    /invoices (faturas)
+Configurações→ /settings/data-sources
+```
+
+- `/dashboard` acompanha: quatro indicadores (incluindo a reconciliação externa
+  contra o agregado do carregador), consumo diário, atenção necessária e um
+  bloco compacto de destaques do fechamento que aponta para `/closing`.
+- `/closing` é a decisão: readiness, bloqueios, parecer, decisão dos achados
+  críticos, aprovar e emitir, faturas emitidas e o consumo por responsável que
+  se confere antes de aprovar.
+- `/invoices` lista as faturas; `/invoices/{id}` é a fatura com os quatro blocos
+  da seção 9 e o botão "Ver como o morador" ao lado do PDF.
 
 ### Endpoints
 
@@ -200,6 +215,18 @@ fechamento enquanto houver `analytical_findings` crítico com `resolved_at` nulo
 Antes não existia caminho de escrita para isso, e nenhum período com defeito
 podia fechar. Hoje `POST .../findings/{id}/decision` grava motivo, autor e
 instante, e audita. O achado nunca é apagado.
+
+**Localizador de linha precisa nomear a tabela.** A tela de recargas mostra
+duas tabelas sobre as mesmas recargas — a fila de revisão e o histórico do
+período. Um `getByRole("row", { name: /3,50 kWh/ })` sem escopo casa as duas e
+o Playwright recusa por ambiguidade. O helper `queue(page)` em
+`session-review.spec.ts` existe para isso. O mesmo vale para qualquer tabela
+nova: adicionar uma quebra localizadores por texto de telas antigas.
+
+**Só existe um `next dev` por projeto.** O Next 16 trava por diretório, não por
+porta: um dev server aceso na 3407 impede o Playwright de subir o dele na 3102,
+e a suíte morre com `Process from config.webServer was not able to start`.
+Derrube qualquer dev server antes de `pnpm test:web`.
 
 **O e2e roda serial de propósito.** Uma única API e um único SQLite servem a
 suíte inteira; com workers paralelos os testes leem as escritas uns dos outros.

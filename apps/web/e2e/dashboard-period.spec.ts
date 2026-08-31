@@ -129,9 +129,7 @@ test("buckets a late-evening session into the local day, not the UTC one", async
   await page.goto("/dashboard");
 
   await expect(page.getByText("Maio 2026", { exact: true })).toBeVisible();
-  // "Atualizado em 31 de mai., 23:30" carries the same date, so this must be
-  // the chart's own label to prove the bucketing.
-  await expect(
-    page.locator(".usage-label", { hasText: "31 de mai." }),
-  ).toBeVisible();
+  // The axis shows the day alone so a month fits, but keeps the full date in
+  // data-date. Asserting on that proves which local day the bar belongs to.
+  await expect(page.locator('.usage-label[data-date="31 de mai."]')).toBeVisible();
 });

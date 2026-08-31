@@ -2,14 +2,18 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { listSessions } from "@ev-chargeops/api-client";
+import {
+  getBillingPeriodReadiness,
+  listBillingPeriods,
+  listSessions,
+  type ReadinessResponse,
+} from "@ev-chargeops/api-client";
 
 import {
   buildDashboardSummary,
   type DashboardSummary,
   type SessionProvenance,
 } from "./dashboard-summary";
-import { PeriodClose } from "@/components/billing/period-close";
 import { PageBreadcrumb } from "@/components/shell/page-breadcrumb";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "/api";
@@ -35,6 +39,45 @@ async function fetchDashboardSummary(accessToken: string, periodKey?: string) {
   return buildDashboardSummary(sessions.items, periodKey);
 }
 
+type PeriodContext = {
+  closedPeriods: Set<string>;
+  readiness: ReadinessResponse | null;
+};
+
+/** What the billing side knows about the month on screen.
+ *
+ * The closed set comes from the periods themselves rather than from the
+ * pending count: a period with nothing pending is *ready* to close, which is
+ * not the same as closed, and a timeline that cannot tell them apart
+ * misreports the one thing it exists to show.
+ */
+async function fetchPeriodContext(
+  accessToken: string,
+  periodKey: string | undefined,
+): Promise<PeriodContext> {
+  try {
+    const periods = await listBillingPeriods(accessToken, { baseUrl: apiUrl });
+    const closedPeriods = new Set(
+      periods.items
+        .filter((period) => period.status === "closed")
+        .map((period) => period.periodValue),
+    );
+    const current =
+      periodKey === undefined
+        ? undefined
+        : periods.items.find((period) => period.periodValue === periodKey);
+    if (current === undefined) return { closedPeriods, readiness: null };
+    const readiness = await getBillingPeriodReadiness(
+      current.id,
+      accessToken,
+      { baseUrl: apiUrl },
+    );
+    return { closedPeriods, readiness: readiness.readiness };
+  } catch {
+    return { closedPeriods: new Set(), readiness: null };
+  }
+}
+
 export function DashboardOverview({ accessToken }: { accessToken: string }) {
   const [state, setState] = useState<DashboardState>({
     status: "loading",
@@ -42,6 +85,10 @@ export function DashboardOverview({ accessToken }: { accessToken: string }) {
   });
   const [refreshGeneration, setRefreshGeneration] = useState(0);
   const [selectedPeriod, setSelectedPeriod] = useState<string | undefined>();
+  const [periodContext, setPeriodContext] = useState<PeriodContext>({
+    closedPeriods: new Set(),
+    readiness: null,
+  });
 
   useEffect(() => {
     let ignore = false;
@@ -54,16 +101,25 @@ export function DashboardOverview({ accessToken }: { accessToken: string }) {
         if (!ignore) setState({ status: "error", summary: null });
       });
 
+    void fetchPeriodContext(accessToken, selectedPeriod).then((context) => {
+      if (!ignore) setPeriodContext(context);
+    });
+
     return () => {
       ignore = true;
     };
   }, [accessToken, refreshGeneration, selectedPeriod]);
 
-  const activeStage = state.summary
-    ? state.summary.pendingCount > 0
-      ? 1
-      : 2
-    : 0;
+  const periodClosed =
+    state.summary !== null &&
+    periodContext.closedPeriods.has(state.summary.periodKey);
+  const activeStage = periodClosed
+    ? closeStages.length
+    : state.summary
+      ? state.summary.pendingCount > 0
+        ? 1
+        : 2
+      : 0;
 
   return (
     <div className="dashboard-overview">
@@ -75,6 +131,8 @@ export function DashboardOverview({ accessToken }: { accessToken: string }) {
         </div>
         {state.summary ? (
           <div className="dashboard-heading-meta">
+            {/* Naming the period keeps the month from reading as a stray date. */}
+            <span className="utility-label">Período em análise</span>
             <PeriodPicker
               summary={state.summary}
               onSelect={(periodKey) => {
@@ -90,7 +148,11 @@ export function DashboardOverview({ accessToken }: { accessToken: string }) {
         ) : null}
       </header>
 
-      <CloseProgress activeStage={activeStage} summary={state.summary} />
+      <CloseProgress
+        activeStage={activeStage}
+        summary={state.summary}
+        closed={periodClosed}
+      />
 
       {state.status === "loading" ? <DashboardLoading /> : null}
       {state.status === "error" ? (
@@ -108,7 +170,8 @@ export function DashboardOverview({ accessToken }: { accessToken: string }) {
       {state.status === "ready" && state.summary ? (
         <OperationalDashboard
           summary={state.summary}
-          accessToken={accessToken}
+          readiness={periodContext.readiness}
+          closed={periodClosed}
         />
       ) : null}
     </div>
@@ -175,16 +238,20 @@ function PeriodPicker({
 function CloseProgress({
   activeStage,
   summary,
+  closed,
 }: {
   activeStage: number;
   summary: DashboardSummary | null;
+  closed: boolean;
 }) {
   return (
     <section className="close-progress" aria-labelledby="close-progress-title">
       <div className="close-progress-heading">
         <h2 id="close-progress-title">Fechamento do período</h2>
         <p>
-          {summary
+          {closed
+            ? "Mês fechado · faturas emitidas"
+            : summary
             ? summary.pendingCount > 0
               ? `${summary.pendingCount} ${summary.pendingCount === 1 ? "pendência precisa" : "pendências precisam"} ser resolvida${summary.pendingCount === 1 ? "" : "s"}`
               : "Recargas prontas para conferência de custos"
@@ -312,10 +379,12 @@ function DashboardProcessGuide() {
 
 function OperationalDashboard({
   summary,
-  accessToken,
+  readiness,
+  closed,
 }: {
   summary: DashboardSummary;
-  accessToken: string;
+  readiness: ReadinessResponse | null;
+  closed: boolean;
 }) {
   const maxDailyEnergy = Math.max(
     ...summary.dailyUsage.map((day) => day.energyKwh),
@@ -344,6 +413,15 @@ function OperationalDashboard({
           }
           warning={summary.pendingCount > 0}
         />
+        {readiness !== null && readiness.aggregateEnergyKwh !== null ? (
+          // The charger's own aggregate is the one number the equipment owner
+          // can verify independently. It is reported, never billed.
+          <MetricCard
+            label="Reconciliação externa"
+            value={`${energyFormatter.format(Number(readiness.externalDifferenceKwh ?? 0))} kWh`}
+            supporting={`Carregador mediu ${energyFormatter.format(Number(readiness.aggregateEnergyKwh))} kWh · diferença não cobrada`}
+          />
+        ) : null}
       </section>
 
       <div className="dashboard-analysis-grid">
@@ -354,15 +432,20 @@ function OperationalDashboard({
           </div>
           <div className="usage-bars" role="img" aria-label="Consumo diário de energia">
             {summary.dailyUsage.map((day) => (
-              <div className="usage-day" key={day.dateKey}>
-                <span className="usage-value">
-                  {energyFormatter.format(day.energyKwh)}
-                </span>
+              // A full month has to fit on the axis, so the column shows the
+              // day alone and carries the whole reading in its tooltip.
+              <div
+                className="usage-day"
+                key={day.dateKey}
+                title={`${day.dateLabel} · ${energyFormatter.format(day.energyKwh)} kWh`}
+              >
                 <span
                   className="usage-bar"
                   style={{ height: `${Math.max(12, (day.energyKwh / maxDailyEnergy) * 100)}%` }}
                 />
-                <span className="usage-label">{day.dateLabel}</span>
+                <span className="usage-label" data-date={day.dateLabel}>
+                  {day.dayLabel}
+                </span>
               </div>
             ))}
           </div>
@@ -397,41 +480,69 @@ function OperationalDashboard({
         </section>
       </div>
 
-      <section className="responsible-costs" aria-labelledby="responsible-costs-title">
-        <div className="dashboard-section-heading">
-          <h2 id="responsible-costs-title">Consumo por responsável</h2>
-          <span>Medido · o valor devido é decidido no fechamento</span>
-        </div>
-        <div className="responsible-table-frame">
-          <table aria-label="Consumo por responsável">
-            <thead>
-              <tr>
-                <th>Identificador</th>
-                <th>Situação</th>
-                <th>Recargas</th>
-                <th>Energia</th>
-              </tr>
-            </thead>
-            <tbody>
-              {summary.responsibleConsumption.map((responsible) => (
-                <tr key={responsible.key}>
-                  <td>{responsible.label}</td>
-                  <td>
-                    <span className={responsible.assigned ? "assigned" : "pending"}>
-                      {responsible.assigned ? "Identificado" : "Revisar"}
-                    </span>
-                  </td>
-                  <td>{responsible.sessionCount}</td>
-                  <td>{energyFormatter.format(responsible.energyKwh)} kWh</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <PeriodClose accessToken={accessToken} periodValue={summary.periodKey} />
+      <ClosingHighlights
+        summary={summary}
+        readiness={readiness}
+        closed={closed}
+      />
     </div>
+  );
+}
+
+/** The closing, reduced to what the manager needs to decide whether to go.
+ *
+ * The conference table and the approval itself live under Faturamento: this is
+ * a pointer to a monthly decision, not the decision surface.
+ */
+function ClosingHighlights({
+  summary,
+  readiness,
+  closed,
+}: {
+  summary: DashboardSummary;
+  readiness: ReadinessResponse | null;
+  closed: boolean;
+}) {
+  const blockers = readiness?.blockers ?? [];
+
+  return (
+    <section className="closing-highlights" aria-labelledby="closing-highlights-title">
+      <div className="dashboard-section-heading">
+        <h2 id="closing-highlights-title">Fechamento de {summary.periodKey}</h2>
+        <span>{closed ? "Aprovado · faturas emitidas" : "Em aberto"}</span>
+      </div>
+
+      <dl className="closing-highlight-figures">
+        <div>
+          <dt>Energia faturável</dt>
+          <dd>
+            {readiness
+              ? `${energyFormatter.format(Number(readiness.billableEnergyKwh))} kWh`
+              : "—"}
+          </dd>
+        </div>
+        <div>
+          <dt>Unidades com consumo</dt>
+          <dd>{summary.responsibleConsumption.filter((r) => r.assigned).length}</dd>
+        </div>
+        <div>
+          <dt>Bloqueios</dt>
+          <dd className={blockers.length > 0 ? "warning" : undefined}>
+            {readiness ? blockers.length : "—"}
+          </dd>
+        </div>
+      </dl>
+
+      {blockers.length > 0 ? (
+        <p className="invoice-note">
+          {blockers.map((blocker) => blocker.detail).join(" · ")}
+        </p>
+      ) : null}
+
+      <Link href="/closing" className="primary-dashboard-action compact">
+        {closed ? "Ver o fechamento" : "Ir para o fechamento"}
+      </Link>
+    </section>
   );
 }
 

@@ -12,6 +12,16 @@ const operationalDestinations = [
   { href: "/sessions", label: "Recargas" },
 ];
 
+/** Closing is a monthly decision, not daily monitoring.
+ *
+ * It approves, emits documents and records who signed, so it lives apart from
+ * the screens the manager checks in passing.
+ */
+const billingDestinations = [
+  { href: "/closing", label: "Fechamento" },
+  { href: "/invoices", label: "Faturas" },
+];
+
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
@@ -46,6 +56,20 @@ export function AppShell({ children }: { children: ReactNode }) {
               href={href}
               aria-current={pathname === href ? "page" : undefined}
               className={`nav-link${pathname === href ? " active" : ""}`}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
+
+        <nav aria-label="Faturamento" className="primary-navigation">
+          <p className="navigation-label">Faturamento</p>
+          {billingDestinations.map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              aria-current={pathname.startsWith(href) ? "page" : undefined}
+              className={`nav-link${pathname.startsWith(href) ? " active" : ""}`}
             >
               {label}
             </Link>

@@ -1,5 +1,14 @@
 import { expect, test, type Page } from "@playwright/test";
 
+/** Rows of the review queue, not of the period's full session list.
+ *
+ * The screen shows both tables, so an unscoped row locator matches the same
+ * charge twice and the assertion stops meaning "the queue holds this".
+ */
+function queue(page: Page) {
+  return page.getByRole("table", { name: "Recargas pendentes" });
+}
+
 const UNIT_A_ID = "40000000-0000-0000-0000-000000000001";
 const UNIT_B_ID = "40000000-0000-0000-0000-000000000002";
 const FIRST_SESSION_ID = "90000000-0000-0000-0000-000000000001";
@@ -264,7 +273,7 @@ test("assigns observed evidence and advances the pending queue", async ({
   ).toBeVisible();
   await expect(page.getByText("2 pendências no período")).toBeVisible();
 
-  const secondRow = page.getByRole("row", { name: /3,50 kWh/ });
+  const secondRow = queue(page).getByRole("row", { name: /3,50 kWh/ });
   await expect(secondRow).not.toHaveAttribute("tabindex");
   const secondSessionButton = secondRow.getByRole("button", {
     name: /3,50 kWh/,
@@ -274,7 +283,7 @@ test("assigns observed evidence and advances the pending queue", async ({
   await expect(
     page.getByRole("region", { name: "Evidência da recarga" }),
   ).toContainText("3,50 kWh");
-  await page
+  await queue(page)
     .getByRole("row", { name: /7,00 kWh/ })
     .getByRole("button", { name: /7,00 kWh/ })
     .click();
@@ -304,7 +313,7 @@ test("assigns observed evidence and advances the pending queue", async ({
   await expect(page.getByRole("status")).toContainText("Unidade A-101");
   await expect(page.getByText("1 pendência no período")).toBeVisible();
   await expect(page.getByLabel("Justificativa")).toHaveValue("");
-  await expect(page.getByRole("row", { name: /7,00 kWh/ })).toHaveCount(0);
+  await expect(queue(page).getByRole("row", { name: /7,00 kWh/ })).toHaveCount(0);
   await expect(evidence).toContainText("3,50 kWh");
 
   await page.screenshot({
@@ -356,7 +365,7 @@ test("freezes the visible review context while an assignment is in flight", asyn
     await expect(page.getByLabel("Unidade responsável")).toBeDisabled();
     await expect(page.getByLabel("Justificativa")).toBeDisabled();
     await expect(
-      page
+      queue(page)
         .getByRole("row", { name: /3,50 kWh/ })
         .getByRole("button", { name: /3,50 kWh/ }),
     ).toBeDisabled();
@@ -483,10 +492,10 @@ test("uses roving focus and arrow keys across session actions", async ({ page })
   await routeSessionReview(page);
   await page.goto("/sessions?status=pending_review&period=2026-08");
 
-  const firstButton = page
+  const firstButton = queue(page)
     .getByRole("row", { name: /7,00 kWh/ })
     .getByRole("button", { name: /7,00 kWh/ });
-  const secondButton = page
+  const secondButton = queue(page)
     .getByRole("row", { name: /3,50 kWh/ })
     .getByRole("button", { name: /3,50 kWh/ });
   await expect(firstButton).toHaveAttribute("tabindex", "0");
@@ -566,7 +575,7 @@ test("keeps assignment evidence and inputs after a recoverable PUT error", async
   });
 
   await page.goto("/sessions?status=pending_review&period=2026-08");
-  await page
+  await queue(page)
     .getByRole("row", { name: /7,00 kWh/ })
     .getByRole("button", { name: /7,00 kWh/ })
     .click();
@@ -677,5 +686,5 @@ test("recovers the queue after a parallel load failure", async ({ page }) => {
   await page.getByRole("button", { name: "Atualizar fila" }).click();
 
   await expect(page.getByText("2 pendências no período")).toBeVisible();
-  await expect(page.getByRole("row", { name: /7,00 kWh/ })).toBeVisible();
+  await expect(queue(page).getByRole("row", { name: /7,00 kWh/ })).toBeVisible();
 });

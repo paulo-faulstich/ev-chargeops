@@ -23,7 +23,10 @@ type DashboardSession = {
 
 export type DailyUsage = {
   dateKey: string;
+  /** Full date, for the axis tooltip: "01 de mai." */
   dateLabel: string;
+  /** Day of the month alone, so a whole month fits on the axis. */
+  dayLabel: string;
   energyKwh: number;
 };
 
@@ -70,6 +73,11 @@ const periodFormatter = new Intl.DateTimeFormat("pt-BR", {
 const dayFormatter = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit",
   month: "short",
+  timeZone: "UTC",
+});
+
+const dayNumberFormatter = new Intl.DateTimeFormat("pt-BR", {
+  day: "2-digit",
   timeZone: "UTC",
 });
 
@@ -225,6 +233,7 @@ export function buildDashboardSummary(
       .map(([dateKey, energyKwh]) => ({
         dateKey,
         dateLabel: dayFormatter.format(new Date(`${dateKey}T00:00:00Z`)),
+        dayLabel: dayNumberFormatter.format(new Date(`${dateKey}T00:00:00Z`)),
         energyKwh,
       })),
     responsibleConsumption: [...responsible.entries()]

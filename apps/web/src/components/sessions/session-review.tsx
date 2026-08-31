@@ -13,6 +13,7 @@ import {
 import {
   assignSession,
   listAssignmentUnits,
+  listBillingPeriods,
   listSessions,
   type AssignmentUnitResponse,
   type SessionResponse,
@@ -51,6 +52,25 @@ function currentPeriod(): string {
   return `${year}-${month}`;
 }
 
+/** The month to land on when the URL names none.
+ *
+ * The calendar month is a poor default: it is routinely empty while the
+ * operation is still closing an earlier one, and the screen then reports
+ * "nothing imported" about a period nobody was looking at. The billing
+ * periods say which month the operation is actually working on.
+ */
+async function resolveDefaultPeriod(accessToken: string): Promise<string> {
+  try {
+    const periods = await listBillingPeriods(accessToken, { baseUrl: apiUrl });
+    const latest = periods.items
+      .map((period) => period.periodValue)
+      .sort((left, right) => right.localeCompare(left))[0];
+    return latest ?? currentPeriod();
+  } catch {
+    return currentPeriod();
+  }
+}
+
 function isPeriod(value: string | null): value is string {
   return value !== null && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
 }
@@ -87,7 +107,13 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
   const searchParams = useSearchParams();
   const requestedPeriod = searchParams.get("period");
   const requestedStatus = searchParams.get("status");
-  const period = isPeriod(requestedPeriod) ? requestedPeriod : currentPeriod();
+  // Resolved asynchronously, so the URL is only canonicalised once the target
+  // month is known; redirecting twice would flash the wrong period.
+  const [defaultPeriod, setDefaultPeriod] = useState<string | null>(null);
+  const period = isPeriod(requestedPeriod)
+    ? requestedPeriod
+    : (defaultPeriod ?? currentPeriod());
+  const defaultResolved = isPeriod(requestedPeriod) || defaultPeriod !== null;
   const filtersCanonical =
     requestedPeriod === period && requestedStatus === "pending_review";
   const canonicalUrl = `/sessions?status=pending_review&period=${period}`;
@@ -113,8 +139,20 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
     isCurrentInteraction && submissionState === "submitting";
 
   useEffect(() => {
+    if (isPeriod(requestedPeriod)) return;
+    let ignore = false;
+    void resolveDefaultPeriod(accessToken).then((resolved) => {
+      if (!ignore) setDefaultPeriod(resolved);
+    });
+    return () => {
+      ignore = true;
+    };
+  }, [accessToken, requestedPeriod]);
+
+  useEffect(() => {
+    if (!defaultResolved) return;
     if (!filtersCanonical) router.replace(canonicalUrl);
-  }, [canonicalUrl, filtersCanonical, router]);
+  }, [canonicalUrl, defaultResolved, filtersCanonical, router]);
 
   useEffect(() => {
     currentContext.current = { period, selectedId };
@@ -338,6 +376,10 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
       displayState.data.pendingSessions.length === 0 ? (
         <NoPendingSessions period={period} />
       ) : null}
+      {displayState.status === "ready" &&
+      displayState.data.allSessions.length > 0 ? (
+        <SessionLedger sessions={displayState.data.allSessions} />
+      ) : null}
       {displayState.status === "ready" && selectedSession ? (
         <div className="session-review-grid">
           <SessionQueue
@@ -406,7 +448,64 @@ function NoPendingSessions({ period }: { period: string }) {
       <p className="utility-label">Revisão concluída</p>
       <h2 id="no-pending-title">Todas as recargas do período foram atribuídas.</h2>
       <p>{formatSessionPeriod(period)} não possui pendências de responsabilidade.</p>
-      <Link href="/dashboard">Voltar para visão geral</Link>
+    </section>
+  );
+}
+
+/** Every charging session in the period, attributed or not.
+ *
+ * The review queue only ever holds what still needs a decision, so without
+ * this the screen goes blank exactly when the operation is healthy — and the
+ * evidence the whole product rests on becomes impossible to look at.
+ */
+function SessionLedger({ sessions }: { sessions: SessionResponse[] }) {
+  const ordered = [...sessions].sort((left, right) =>
+    right.startedAt.localeCompare(left.startedAt),
+  );
+
+  return (
+    <section className="session-ledger" aria-labelledby="session-ledger-title">
+      <div className="session-panel-heading">
+        <div>
+          <p className="utility-label">Evidência do período</p>
+          <h2 id="session-ledger-title">Recargas do período</h2>
+        </div>
+        <span>{ordered.length}</span>
+      </div>
+      <div className="responsible-table-frame">
+        <table aria-label="Recargas do período">
+          <thead>
+            <tr>
+              <th scope="col">Início</th>
+              <th scope="col">Duração</th>
+              <th scope="col">Energia</th>
+              <th scope="col">Responsável</th>
+              <th scope="col">Procedência</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ordered.map((session) => (
+              <tr key={session.id}>
+                <td>{formatSessionDate(session.startedAt)}</td>
+                <td>
+                  {formatSessionDuration(session.startedAt, session.endedAt)}
+                </td>
+                <td>{formatSessionEnergy(session.energyKwh)}</td>
+                <td>
+                  {session.unitCode ? (
+                    <span className="assigned">
+                      {session.unitName ?? `Unidade ${session.unitCode}`}
+                    </span>
+                  ) : (
+                    <span className="pending">Não atribuído</span>
+                  )}
+                </td>
+                <td>{provenanceLabel(session)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }

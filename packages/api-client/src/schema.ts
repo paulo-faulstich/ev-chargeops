@@ -21,6 +21,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/resident-context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enter Resident Context
+         * @description See exactly what this unit's resident would see, for a short while.
+         *
+         *     The entrance is audited with actor, unit and instant. The context resolves
+         *     through the same authorization dependency a real resident session would
+         *     use, so every write is rejected while it is active.
+         */
+        post: operations["enter_resident_context_v1_resident_context_post"];
+        /**
+         * Exit Resident Context
+         * @description One-click exit. The departure is audited like the entrance was.
+         */
+        delete: operations["exit_resident_context_v1_resident_context_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/import-batches/preview": {
         parameters: {
             query?: never;
@@ -124,6 +152,209 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/billing-periods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Billing Periods */
+        get: operations["list_billing_periods_v1_billing_periods_get"];
+        put?: never;
+        /**
+         * Open Billing Period
+         * @description Open the month, or return the one already open. Opening is idempotent.
+         */
+        post: operations["open_billing_period_v1_billing_periods_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing-periods/{period_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Billing Period */
+        get: operations["get_billing_period_v1_billing_periods__period_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing-periods/{period_id}/readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Billing Period Readiness
+         * @description Coverage, blockers and both reconciliations for the period.
+         */
+        get: operations["get_billing_period_readiness_v1_billing_periods__period_id__readiness_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing-periods/{period_id}/closing-opinion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate Closing Opinion
+         * @description Analyse the period and record the run the manager will approve against.
+         */
+        post: operations["generate_closing_opinion_v1_billing_periods__period_id__closing_opinion_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing-periods/{period_id}/findings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Findings
+         * @description The latest opinion's findings, each addressable and with its decision.
+         */
+        get: operations["list_findings_v1_billing_periods__period_id__findings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing-periods/{period_id}/findings/{finding_id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide Finding
+         * @description Accept a finding, on the record, so it stops blocking the close.
+         *
+         *     A critical finding is the analysis refusing to let the period close
+         *     silently. Clearing it is a manager decision with a reason attached, never a
+         *     dismissal.
+         */
+        post: operations["decide_finding_v1_billing_periods__period_id__findings__finding_id__decision_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing-periods/{period_id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close Billing Period
+         * @description Approve the close and issue the period's invoices, in one transaction.
+         */
+        post: operations["close_billing_period_v1_billing_periods__period_id__close_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Invoices */
+        get: operations["list_invoices_v1_invoices_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/invoices/{invoice_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Invoice
+         * @description The invoice with the frozen records it cites.
+         *
+         *     The tariff and policy come from the snapshot frozen at close, so this page
+         *     keeps stating what the invoice was issued under even after a newer tariff
+         *     is registered.
+         */
+        get: operations["get_invoice_v1_invoices__invoice_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/invoices/{invoice_id}/document": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Invoice Document
+         * @description Stream the PDF. Two downloads of one invoice are provably identical.
+         */
+        get: operations["download_invoice_document_v1_invoices__invoice_id__document_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -164,6 +395,55 @@ export interface components {
             /** Residentname */
             residentName: string | null;
         };
+        /** BillingPeriodListResponse */
+        BillingPeriodListResponse: {
+            /** Items */
+            items: components["schemas"]["BillingPeriodResponse"][];
+        };
+        /** BillingPeriodResponse */
+        BillingPeriodResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Siteid
+             * Format: uuid
+             */
+            siteId: string;
+            /** Sitename */
+            siteName: string;
+            /** Timezone */
+            timezone: string;
+            /** Periodvalue */
+            periodValue: string;
+            /** Status */
+            status: string;
+            /** Approvedat */
+            approvedAt: string | null;
+            /** Approvedbyname */
+            approvedByName: string | null;
+            /** Tariffsnapshotid */
+            tariffSnapshotId: string | null;
+            /** Billingpolicyid */
+            billingPolicyId: string | null;
+            /** Eligibleenergykwh */
+            eligibleEnergyKwh: string | null;
+            /** Invoicedenergykwh */
+            invoicedEnergyKwh: string | null;
+            /** Aggregateenergykwh */
+            aggregateEnergyKwh: string | null;
+        };
+        /** BlockerResponse */
+        BlockerResponse: {
+            /** Code */
+            code: string;
+            /** Detail */
+            detail: string;
+            /** Count */
+            count: number;
+        };
         /** Body_confirm_import_v1_import_batches_post */
         Body_confirm_import_v1_import_batches_post: {
             /** File */
@@ -173,6 +453,69 @@ export interface components {
         Body_preview_import_v1_import_batches_preview_post: {
             /** File */
             file?: string | null;
+        };
+        /**
+         * CloseConflictResponse
+         * @description Body of every 409 from the close endpoint.
+         *
+         *     `blockers` is filled when the close was attempted with blockers remaining,
+         *     and empty when the conflict is the period's own status (already closed, or
+         *     another close in flight).
+         */
+        CloseConflictResponse: {
+            /** Code */
+            code: string;
+            /** Message */
+            message: string;
+            /** Blockers */
+            blockers: components["schemas"]["BlockerResponse"][];
+        };
+        /** ClosePeriodResponse */
+        ClosePeriodResponse: {
+            period: components["schemas"]["BillingPeriodResponse"];
+            /** Invoices */
+            invoices: components["schemas"]["InvoiceResponse"][];
+        };
+        /** ClosingOpinionResponse */
+        ClosingOpinionResponse: {
+            /**
+             * Insightrunid
+             * Format: uuid
+             */
+            insightRunId: string;
+            /** Conclusion */
+            conclusion: string;
+            /** Severity */
+            severity: string;
+            /** Confidence */
+            confidence: string;
+            /** Recommendation */
+            recommendation: string;
+            /** Samplesize */
+            sampleSize: number;
+            /** Algorithmversion */
+            algorithmVersion: string;
+            /** Parameters */
+            parameters: {
+                [key: string]: string;
+            };
+            /** Datasetchecksum */
+            datasetChecksum: string;
+            /** Findings */
+            findings: components["schemas"]["FindingResponse"][];
+        };
+        /** DecideFindingRequest */
+        DecideFindingRequest: {
+            /** Note */
+            note: string;
+        };
+        /** EnterResidentContextRequest */
+        EnterResidentContextRequest: {
+            /**
+             * Unitid
+             * Format: uuid
+             */
+            unitId: string;
         };
         /** ErrorBody */
         ErrorBody: {
@@ -191,6 +534,28 @@ export interface components {
         /** ErrorResponse */
         ErrorResponse: {
             error: components["schemas"]["ErrorBody"];
+        };
+        /** FindingListResponse */
+        FindingListResponse: {
+            /** Items */
+            items: components["schemas"]["PersistedFindingResponse"][];
+        };
+        /** FindingResponse */
+        FindingResponse: {
+            /** Code */
+            code: string;
+            /** Severity */
+            severity: string;
+            /** Confidence */
+            confidence: string;
+            /** Explanation */
+            explanation: string;
+            /** Evidence */
+            evidence: {
+                [key: string]: string;
+            };
+            /** Chargingsessionid */
+            chargingSessionId: string | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -290,6 +655,127 @@ export interface components {
             /** Records */
             records: components["schemas"]["PreviewRecordResponse"][];
         };
+        /**
+         * InvoiceContextResponse
+         * @description The frozen records the invoice cites, as the document cites them.
+         */
+        InvoiceContextResponse: {
+            /** Organizationname */
+            organizationName: string;
+            /** Sitename */
+            siteName: string;
+            /** Timezone */
+            timezone: string;
+            /** Tariffname */
+            tariffName: string;
+            /** Tariffsource */
+            tariffSource: string;
+            /** Tariffsourcereference */
+            tariffSourceReference: string | null;
+            /**
+             * Tariffvalidfrom
+             * Format: date
+             */
+            tariffValidFrom: string;
+            /** Tariffvalidto */
+            tariffValidTo: string | null;
+            /** Policyname */
+            policyName: string;
+            /** Infrafeecents */
+            infraFeeCents: number;
+            /** Lossbasispoints */
+            lossBasisPoints: number;
+            /** Provenancelabel */
+            provenanceLabel: string;
+        };
+        /** InvoiceDetailResponse */
+        InvoiceDetailResponse: {
+            invoice: components["schemas"]["InvoiceResponse"];
+            context: components["schemas"]["InvoiceContextResponse"];
+            /** Bands */
+            bands: components["schemas"]["TariffBandResponse"][];
+        };
+        /** InvoiceItemResponse */
+        InvoiceItemResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Chargingsessionid
+             * Format: uuid
+             */
+            chargingSessionId: string;
+            /**
+             * Startedat
+             * Format: date-time
+             */
+            startedAt: string;
+            /**
+             * Endedat
+             * Format: date-time
+             */
+            endedAt: string;
+            /** Energykwh */
+            energyKwh: string;
+            /** Bandcode */
+            bandCode: string;
+            /** Ratecentsperkwh */
+            rateCentsPerKwh: number;
+            /** Valuecents */
+            valueCents: number;
+        };
+        /** InvoiceListResponse */
+        InvoiceListResponse: {
+            /** Items */
+            items: components["schemas"]["InvoiceResponse"][];
+        };
+        /** InvoiceResponse */
+        InvoiceResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Number */
+            number: string;
+            /**
+             * Billingperiodid
+             * Format: uuid
+             */
+            billingPeriodId: string;
+            /** Periodvalue */
+            periodValue: string;
+            /**
+             * Unitid
+             * Format: uuid
+             */
+            unitId: string;
+            /** Unitcode */
+            unitCode: string;
+            /** Unitname */
+            unitName: string;
+            /** Contactlabel */
+            contactLabel: string;
+            /** Energykwh */
+            energyKwh: string;
+            /** Energyvaluecents */
+            energyValueCents: number;
+            /** Infrafeecents */
+            infraFeeCents: number;
+            /** Losssharecents */
+            lossShareCents: number;
+            /** Totalcents */
+            totalCents: number;
+            /**
+             * Issuedat
+             * Format: date-time
+             */
+            issuedAt: string;
+            /** Items */
+            items: components["schemas"]["InvoiceItemResponse"][];
+        };
         /** MeResponse */
         MeResponse: {
             /**
@@ -306,11 +792,59 @@ export interface components {
             /** Unitid */
             unitId: string | null;
         };
+        /** OpenBillingPeriodRequest */
+        OpenBillingPeriodRequest: {
+            /** Periodvalue */
+            periodValue: string;
+            /** Siteid */
+            siteId?: string | null;
+        };
         /**
          * OrganizationRole
          * @enum {string}
          */
         OrganizationRole: "manager" | "resident" | "technical_operator";
+        /** PeriodOpinionResponse */
+        PeriodOpinionResponse: {
+            period: components["schemas"]["BillingPeriodResponse"];
+            opinion: components["schemas"]["ClosingOpinionResponse"];
+        };
+        /** PeriodReadinessResponse */
+        PeriodReadinessResponse: {
+            period: components["schemas"]["BillingPeriodResponse"];
+            readiness: components["schemas"]["ReadinessResponse"];
+        };
+        /**
+         * PersistedFindingResponse
+         * @description A finding the manager can act on, with its decision if one was made.
+         */
+        PersistedFindingResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Code */
+            code: string;
+            /** Severity */
+            severity: string;
+            /** Confidence */
+            confidence: string;
+            /** Explanation */
+            explanation: string;
+            /** Evidence */
+            evidence: {
+                [key: string]: string;
+            };
+            /** Chargingsessionid */
+            chargingSessionId: string | null;
+            /** Resolvedat */
+            resolvedAt: string | null;
+            /** Resolvedbyname */
+            resolvedByName: string | null;
+            /** Resolutionnote */
+            resolutionNote: string | null;
+        };
         /** PersistedRawRecordResponse */
         PersistedRawRecordResponse: {
             /**
@@ -352,6 +886,59 @@ export interface components {
             errorCode?: string | null;
             /** Errormessage */
             errorMessage?: string | null;
+        };
+        /** ReadinessResponse */
+        ReadinessResponse: {
+            /** Periodvalue */
+            periodValue: string;
+            /** Status */
+            status: string;
+            /** Sessioncount */
+            sessionCount: number;
+            /** Billablecount */
+            billableCount: number;
+            /** Pendingcount */
+            pendingCount: number;
+            /** Discardedcount */
+            discardedCount: number;
+            /** Periodenergykwh */
+            periodEnergyKwh: string;
+            /** Billableenergykwh */
+            billableEnergyKwh: string;
+            /** Aggregateenergykwh */
+            aggregateEnergyKwh: string | null;
+            /** Internaldifferencekwh */
+            internalDifferenceKwh: string;
+            /** Externaldifferencekwh */
+            externalDifferenceKwh: string | null;
+            /** Assignmentcoverage */
+            assignmentCoverage: string;
+            /** Canclose */
+            canClose: boolean;
+            /** Blockers */
+            blockers: components["schemas"]["BlockerResponse"][];
+        };
+        /** ResidentContextResponse */
+        ResidentContextResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Unitid
+             * Format: uuid
+             */
+            unitId: string;
+            /** Unitcode */
+            unitCode: string;
+            /** Unitname */
+            unitName: string;
+            /**
+             * Expiresat
+             * Format: date-time
+             */
+            expiresAt: string;
         };
         /** SessionAssignmentDetailResponse */
         SessionAssignmentDetailResponse: {
@@ -475,6 +1062,18 @@ export interface components {
             /** Residentname */
             residentName: string | null;
         };
+        /**
+         * TariffBandResponse
+         * @description A band of the frozen tariff, and this invoice's energy priced in it.
+         */
+        TariffBandResponse: {
+            /** Code */
+            code: string;
+            /** Ratecentsperkwh */
+            rateCentsPerKwh: number;
+            /** Energyvaluecents */
+            energyValueCents: number;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -500,7 +1099,9 @@ export interface operations {
     me_v1_me_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Resident-Context"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -515,12 +1116,85 @@ export interface operations {
                     "application/json": components["schemas"]["MeResponse"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    enter_resident_context_v1_resident_context_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnterResidentContextRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResidentContextResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    exit_resident_context_v1_resident_context_delete: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Resident-Context": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     preview_import_v1_import_batches_preview_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Resident-Context"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -571,7 +1245,9 @@ export interface operations {
     list_import_batches_v1_import_batches_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Resident-Context"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -604,12 +1280,23 @@ export interface operations {
                     "application/json": components["schemas"]["HttpErrorResponse"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     confirm_import_v1_import_batches_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Resident-Context"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -669,7 +1356,9 @@ export interface operations {
     get_import_batch_v1_import_batches__batch_id__get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Resident-Context"?: string | null;
+            };
             path: {
                 batch_id: string;
             };
@@ -730,7 +1419,9 @@ export interface operations {
                 period?: string | null;
                 status?: string | null;
             };
-            header?: never;
+            header?: {
+                "X-Resident-Context"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -777,7 +1468,9 @@ export interface operations {
     list_assignment_units_v1_assignment_units_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Resident-Context"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -810,12 +1503,23 @@ export interface operations {
                     "application/json": components["schemas"]["HttpErrorResponse"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     assign_session_v1_sessions__session_id__assignment_put: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Resident-Context"?: string | null;
+            };
             path: {
                 session_id: string;
             };
@@ -870,6 +1574,673 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_billing_periods_v1_billing_periods_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Resident-Context"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingPeriodListResponse"];
+                };
+            };
+            /** @description Invalid or missing bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Organization membership and manager role required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    open_billing_period_v1_billing_periods_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Resident-Context"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpenBillingPeriodRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingPeriodResponse"];
+                };
+            };
+            /** @description Invalid or missing bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Organization membership and manager role required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Site not found in this organization. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Invalid period value. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_billing_period_v1_billing_periods__period_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Resident-Context"?: string | null;
+            };
+            path: {
+                period_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingPeriodResponse"];
+                };
+            };
+            /** @description Invalid or missing bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Organization membership and manager role required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Period not found in this organization. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_billing_period_readiness_v1_billing_periods__period_id__readiness_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Resident-Context"?: string | null;
+            };
+            path: {
+                period_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeriodReadinessResponse"];
+                };
+            };
+            /** @description Invalid or missing bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Organization membership and manager role required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Period not found in this organization. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_closing_opinion_v1_billing_periods__period_id__closing_opinion_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Resident-Context"?: string | null;
+            };
+            path: {
+                period_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeriodOpinionResponse"];
+                };
+            };
+            /** @description Invalid or missing bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Organization membership and manager role required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Period not found in this organization. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_findings_v1_billing_periods__period_id__findings_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Resident-Context"?: string | null;
+            };
+            path: {
+                period_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FindingListResponse"];
+                };
+            };
+            /** @description Invalid or missing bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Organization membership and manager role required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Period not found in this organization. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decide_finding_v1_billing_periods__period_id__findings__finding_id__decision_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Resident-Context"?: string | null;
+            };
+            path: {
+                period_id: string;
+                finding_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecideFindingRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersistedFindingResponse"];
+                };
+            };
+            /** @description Invalid or missing bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Organization membership and manager role required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Period not found in this organization. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description The finding already carries a decision. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    close_billing_period_v1_billing_periods__period_id__close_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Resident-Context"?: string | null;
+            };
+            path: {
+                period_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClosePeriodResponse"];
+                };
+            };
+            /** @description Invalid or missing bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Organization membership and manager role required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Period not found in this organization. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Close refused: blockers remain, the period is already closed, or another close is in flight. Nothing was changed. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CloseConflictResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_invoices_v1_invoices_get: {
+        parameters: {
+            query?: {
+                periodId?: string | null;
+                unitId?: string | null;
+            };
+            header?: {
+                "X-Resident-Context"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceListResponse"];
+                };
+            };
+            /** @description Invalid or missing bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Organization membership and manager role required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_invoice_v1_invoices__invoice_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Resident-Context"?: string | null;
+            };
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceDetailResponse"];
+                };
+            };
+            /** @description Invalid or missing bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Organization membership and manager role required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Invoice not found in this organization. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_invoice_document_v1_invoices__invoice_id__document_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Resident-Context"?: string | null;
+            };
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The invoice document, rendered from stored values. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    "application/pdf": unknown;
+                };
+            };
+            /** @description Invalid or missing bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Organization membership and manager role required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Invoice not found in this organization. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

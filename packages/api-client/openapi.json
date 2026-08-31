@@ -12,6 +12,30 @@
         ],
         "summary": "Me",
         "operationId": "me_v1_me_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Resident-Context",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Resident-Context"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -22,13 +46,105 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
+        }
+      }
+    },
+    "/v1/resident-context": {
+      "post": {
+        "tags": [
+          "identity"
+        ],
+        "summary": "Enter Resident Context",
+        "description": "See exactly what this unit's resident would see, for a short while.\n\nThe entrance is audited with actor, unit and instant. The context resolves\nthrough the same authorization dependency a real resident session would\nuse, so every write is rejected while it is active.",
+        "operationId": "enter_resident_context_v1_resident_context_post",
         "security": [
           {
             "HTTPBearer": []
           }
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnterResidentContextRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResidentContextResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "identity"
+        ],
+        "summary": "Exit Resident Context",
+        "description": "One-click exit. The departure is audited like the entrance was.",
+        "operationId": "exit_resident_context_v1_resident_context_delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Resident-Context",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "X-Resident-Context"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/import-batches/preview": {
@@ -38,6 +154,30 @@
         ],
         "summary": "Preview Import",
         "operationId": "preview_import_v1_import_batches_preview_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Resident-Context",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Resident-Context"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -79,74 +219,49 @@
             }
           },
           "422": {
-            "description": "Unprocessable Content",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Unprocessable Content"
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/v1/import-batches": {
-      "get": {
-        "tags": [
-          "imports"
-        ],
-        "summary": "List Import Batches",
-        "operationId": "list_import_batches_v1_import_batches_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ImportBatchListResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or missing bearer token.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Organization membership required.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
-      },
       "post": {
         "tags": [
           "imports"
         ],
         "summary": "Confirm Import",
         "operationId": "confirm_import_v1_import_batches_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Resident-Context",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Resident-Context"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -188,31 +303,99 @@
             }
           },
           "200": {
-            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ImportBatchResponse"
                 }
               }
-            }
+            },
+            "description": "OK"
           },
           "422": {
-            "description": "Unprocessable Content",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Unprocessable Content"
           }
-        },
+        }
+      },
+      "get": {
+        "tags": [
+          "imports"
+        ],
+        "summary": "List Import Batches",
+        "operationId": "list_import_batches_v1_import_batches_get",
         "security": [
           {
             "HTTPBearer": []
           }
-        ]
+        ],
+        "parameters": [
+          {
+            "name": "X-Resident-Context",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Resident-Context"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportBatchListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization membership required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/import-batches/{batch_id}": {
@@ -236,6 +419,23 @@
               "type": "string",
               "format": "uuid",
               "title": "Batch Id"
+            }
+          },
+          {
+            "name": "X-Resident-Context",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Resident-Context"
             }
           }
         ],
@@ -337,6 +537,23 @@
               ],
               "title": "Status"
             }
+          },
+          {
+            "name": "X-Resident-Context",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Resident-Context"
+            }
           }
         ],
         "responses": {
@@ -390,6 +607,30 @@
         ],
         "summary": "List Assignment Units",
         "operationId": "list_assignment_units_v1_assignment_units_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Resident-Context",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Resident-Context"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -420,13 +661,18 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/v1/sessions/{session_id}/assignment": {
@@ -450,6 +696,23 @@
               "type": "string",
               "format": "uuid",
               "title": "Session Id"
+            }
+          },
+          {
+            "name": "X-Resident-Context",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Resident-Context"
             }
           }
         ],
@@ -510,6 +773,1090 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing-periods": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "List Billing Periods",
+        "operationId": "list_billing_periods_v1_billing_periods_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Resident-Context",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Resident-Context"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingPeriodListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization membership and manager role required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "Open Billing Period",
+        "description": "Open the month, or return the one already open. Opening is idempotent.",
+        "operationId": "open_billing_period_v1_billing_periods_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Resident-Context",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Resident-Context"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenBillingPeriodRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingPeriodResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization membership and manager role required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Site not found in this organization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid period value.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing-periods/{period_id}": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "Get Billing Period",
+        "operationId": "get_billing_period_v1_billing_periods__period_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "period_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Period Id"
+            }
+          },
+          {
+            "name": "X-Resident-Context",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Resident-Context"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingPeriodResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization membership and manager role required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Period not found in this organization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing-periods/{period_id}/readiness": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "Get Billing Period Readiness",
+        "description": "Coverage, blockers and both reconciliations for the period.",
+        "operationId": "get_billing_period_readiness_v1_billing_periods__period_id__readiness_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "period_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Period Id"
+            }
+          },
+          {
+            "name": "X-Resident-Context",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Resident-Context"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeriodReadinessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization membership and manager role required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Period not found in this organization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing-periods/{period_id}/closing-opinion": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "Generate Closing Opinion",
+        "description": "Analyse the period and record the run the manager will approve against.",
+        "operationId": "generate_closing_opinion_v1_billing_periods__period_id__closing_opinion_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "period_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Period Id"
+            }
+          },
+          {
+            "name": "X-Resident-Context",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Resident-Context"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeriodOpinionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization membership and manager role required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Period not found in this organization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing-periods/{period_id}/findings": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "List Findings",
+        "description": "The latest opinion's findings, each addressable and with its decision.",
+        "operationId": "list_findings_v1_billing_periods__period_id__findings_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "period_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Period Id"
+            }
+          },
+          {
+            "name": "X-Resident-Context",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Resident-Context"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindingListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization membership and manager role required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Period not found in this organization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing-periods/{period_id}/findings/{finding_id}/decision": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "Decide Finding",
+        "description": "Accept a finding, on the record, so it stops blocking the close.\n\nA critical finding is the analysis refusing to let the period close\nsilently. Clearing it is a manager decision with a reason attached, never a\ndismissal.",
+        "operationId": "decide_finding_v1_billing_periods__period_id__findings__finding_id__decision_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "period_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Period Id"
+            }
+          },
+          {
+            "name": "finding_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Finding Id"
+            }
+          },
+          {
+            "name": "X-Resident-Context",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Resident-Context"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideFindingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersistedFindingResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization membership and manager role required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Period not found in this organization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The finding already carries a decision.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing-periods/{period_id}/close": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "Close Billing Period",
+        "description": "Approve the close and issue the period's invoices, in one transaction.",
+        "operationId": "close_billing_period_v1_billing_periods__period_id__close_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "period_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Period Id"
+            }
+          },
+          {
+            "name": "X-Resident-Context",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Resident-Context"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClosePeriodResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization membership and manager role required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Period not found in this organization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Close refused: blockers remain, the period is already closed, or another close is in flight. Nothing was changed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloseConflictResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/invoices": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "List Invoices",
+        "operationId": "list_invoices_v1_invoices_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "periodId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Periodid"
+            }
+          },
+          {
+            "name": "unitId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Unitid"
+            }
+          },
+          {
+            "name": "X-Resident-Context",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Resident-Context"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization membership and manager role required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/invoices/{invoice_id}": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "Get Invoice",
+        "description": "The invoice with the frozen records it cites.\n\nThe tariff and policy come from the snapshot frozen at close, so this page\nkeeps stating what the invoice was issued under even after a newer tariff\nis registered.",
+        "operationId": "get_invoice_v1_invoices__invoice_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "invoice_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Invoice Id"
+            }
+          },
+          {
+            "name": "X-Resident-Context",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Resident-Context"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceDetailResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization membership and manager role required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Invoice not found in this organization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/invoices/{invoice_id}/document": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "Download Invoice Document",
+        "description": "Stream the PDF. Two downloads of one invoice are provably identical.",
+        "operationId": "download_invoice_document_v1_invoices__invoice_id__document_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "invoice_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Invoice Id"
+            }
+          },
+          {
+            "name": "X-Resident-Context",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Resident-Context"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The invoice document, rendered from stored values.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              },
+              "application/pdf": {}
+            }
+          },
+          "401": {
+            "description": "Invalid or missing bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization membership and manager role required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Invoice not found in this organization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -597,6 +1944,175 @@
         ],
         "title": "AssignmentUnitResponse"
       },
+      "BillingPeriodListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BillingPeriodResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "BillingPeriodListResponse"
+      },
+      "BillingPeriodResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "siteId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Siteid"
+          },
+          "siteName": {
+            "type": "string",
+            "title": "Sitename"
+          },
+          "timezone": {
+            "type": "string",
+            "title": "Timezone"
+          },
+          "periodValue": {
+            "type": "string",
+            "title": "Periodvalue"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "approvedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approvedat"
+          },
+          "approvedByName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approvedbyname"
+          },
+          "tariffSnapshotId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tariffsnapshotid"
+          },
+          "billingPolicyId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Billingpolicyid"
+          },
+          "eligibleEnergyKwh": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eligibleenergykwh"
+          },
+          "invoicedEnergyKwh": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invoicedenergykwh"
+          },
+          "aggregateEnergyKwh": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aggregateenergykwh"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "siteId",
+          "siteName",
+          "timezone",
+          "periodValue",
+          "status",
+          "approvedAt",
+          "approvedByName",
+          "tariffSnapshotId",
+          "billingPolicyId",
+          "eligibleEnergyKwh",
+          "invoicedEnergyKwh",
+          "aggregateEnergyKwh"
+        ],
+        "title": "BillingPeriodResponse"
+      },
+      "BlockerResponse": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "detail",
+          "count"
+        ],
+        "title": "BlockerResponse"
+      },
       "Body_confirm_import_v1_import_batches_post": {
         "properties": {
           "file": {
@@ -632,6 +2148,147 @@
         },
         "type": "object",
         "title": "Body_preview_import_v1_import_batches_preview_post"
+      },
+      "CloseConflictResponse": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "blockers": {
+            "items": {
+              "$ref": "#/components/schemas/BlockerResponse"
+            },
+            "type": "array",
+            "title": "Blockers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "blockers"
+        ],
+        "title": "CloseConflictResponse",
+        "description": "Body of every 409 from the close endpoint.\n\n`blockers` is filled when the close was attempted with blockers remaining,\nand empty when the conflict is the period's own status (already closed, or\nanother close in flight)."
+      },
+      "ClosePeriodResponse": {
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/BillingPeriodResponse"
+          },
+          "invoices": {
+            "items": {
+              "$ref": "#/components/schemas/InvoiceResponse"
+            },
+            "type": "array",
+            "title": "Invoices"
+          }
+        },
+        "type": "object",
+        "required": [
+          "period",
+          "invoices"
+        ],
+        "title": "ClosePeriodResponse"
+      },
+      "ClosingOpinionResponse": {
+        "properties": {
+          "insightRunId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Insightrunid"
+          },
+          "conclusion": {
+            "type": "string",
+            "title": "Conclusion"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity"
+          },
+          "confidence": {
+            "type": "string",
+            "title": "Confidence"
+          },
+          "recommendation": {
+            "type": "string",
+            "title": "Recommendation"
+          },
+          "sampleSize": {
+            "type": "integer",
+            "title": "Samplesize"
+          },
+          "algorithmVersion": {
+            "type": "string",
+            "title": "Algorithmversion"
+          },
+          "parameters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Parameters"
+          },
+          "datasetChecksum": {
+            "type": "string",
+            "title": "Datasetchecksum"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/FindingResponse"
+            },
+            "type": "array",
+            "title": "Findings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "insightRunId",
+          "conclusion",
+          "severity",
+          "confidence",
+          "recommendation",
+          "sampleSize",
+          "algorithmVersion",
+          "parameters",
+          "datasetChecksum",
+          "findings"
+        ],
+        "title": "ClosingOpinionResponse"
+      },
+      "DecideFindingRequest": {
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 3,
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "note"
+        ],
+        "title": "DecideFindingRequest"
+      },
+      "EnterResidentContextRequest": {
+        "properties": {
+          "unitId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Unitid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "unitId"
+        ],
+        "title": "EnterResidentContextRequest"
       },
       "ErrorBody": {
         "properties": {
@@ -683,6 +2340,71 @@
           "error"
         ],
         "title": "ErrorResponse"
+      },
+      "FindingListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PersistedFindingResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "FindingListResponse"
+      },
+      "FindingResponse": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity"
+          },
+          "confidence": {
+            "type": "string",
+            "title": "Confidence"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          },
+          "evidence": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Evidence"
+          },
+          "chargingSessionId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chargingsessionid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "severity",
+          "confidence",
+          "explanation",
+          "evidence",
+          "chargingSessionId"
+        ],
+        "title": "FindingResponse"
       },
       "HTTPValidationError": {
         "properties": {
@@ -915,6 +2637,275 @@
         ],
         "title": "ImportPreviewResponse"
       },
+      "InvoiceContextResponse": {
+        "properties": {
+          "organizationName": {
+            "type": "string",
+            "title": "Organizationname"
+          },
+          "siteName": {
+            "type": "string",
+            "title": "Sitename"
+          },
+          "timezone": {
+            "type": "string",
+            "title": "Timezone"
+          },
+          "tariffName": {
+            "type": "string",
+            "title": "Tariffname"
+          },
+          "tariffSource": {
+            "type": "string",
+            "title": "Tariffsource"
+          },
+          "tariffSourceReference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tariffsourcereference"
+          },
+          "tariffValidFrom": {
+            "type": "string",
+            "format": "date",
+            "title": "Tariffvalidfrom"
+          },
+          "tariffValidTo": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tariffvalidto"
+          },
+          "policyName": {
+            "type": "string",
+            "title": "Policyname"
+          },
+          "infraFeeCents": {
+            "type": "integer",
+            "title": "Infrafeecents"
+          },
+          "lossBasisPoints": {
+            "type": "integer",
+            "title": "Lossbasispoints"
+          },
+          "provenanceLabel": {
+            "type": "string",
+            "title": "Provenancelabel"
+          }
+        },
+        "type": "object",
+        "required": [
+          "organizationName",
+          "siteName",
+          "timezone",
+          "tariffName",
+          "tariffSource",
+          "tariffSourceReference",
+          "tariffValidFrom",
+          "tariffValidTo",
+          "policyName",
+          "infraFeeCents",
+          "lossBasisPoints",
+          "provenanceLabel"
+        ],
+        "title": "InvoiceContextResponse",
+        "description": "The frozen records the invoice cites, as the document cites them."
+      },
+      "InvoiceDetailResponse": {
+        "properties": {
+          "invoice": {
+            "$ref": "#/components/schemas/InvoiceResponse"
+          },
+          "context": {
+            "$ref": "#/components/schemas/InvoiceContextResponse"
+          },
+          "bands": {
+            "items": {
+              "$ref": "#/components/schemas/TariffBandResponse"
+            },
+            "type": "array",
+            "title": "Bands"
+          }
+        },
+        "type": "object",
+        "required": [
+          "invoice",
+          "context",
+          "bands"
+        ],
+        "title": "InvoiceDetailResponse"
+      },
+      "InvoiceItemResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "chargingSessionId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chargingsessionid"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Startedat"
+          },
+          "endedAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Endedat"
+          },
+          "energyKwh": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Energykwh"
+          },
+          "bandCode": {
+            "type": "string",
+            "title": "Bandcode"
+          },
+          "rateCentsPerKwh": {
+            "type": "integer",
+            "title": "Ratecentsperkwh"
+          },
+          "valueCents": {
+            "type": "integer",
+            "title": "Valuecents"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "chargingSessionId",
+          "startedAt",
+          "endedAt",
+          "energyKwh",
+          "bandCode",
+          "rateCentsPerKwh",
+          "valueCents"
+        ],
+        "title": "InvoiceItemResponse"
+      },
+      "InvoiceListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/InvoiceResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "InvoiceListResponse"
+      },
+      "InvoiceResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "number": {
+            "type": "string",
+            "title": "Number"
+          },
+          "billingPeriodId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Billingperiodid"
+          },
+          "periodValue": {
+            "type": "string",
+            "title": "Periodvalue"
+          },
+          "unitId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Unitid"
+          },
+          "unitCode": {
+            "type": "string",
+            "title": "Unitcode"
+          },
+          "unitName": {
+            "type": "string",
+            "title": "Unitname"
+          },
+          "contactLabel": {
+            "type": "string",
+            "title": "Contactlabel"
+          },
+          "energyKwh": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Energykwh"
+          },
+          "energyValueCents": {
+            "type": "integer",
+            "title": "Energyvaluecents"
+          },
+          "infraFeeCents": {
+            "type": "integer",
+            "title": "Infrafeecents"
+          },
+          "lossShareCents": {
+            "type": "integer",
+            "title": "Losssharecents"
+          },
+          "totalCents": {
+            "type": "integer",
+            "title": "Totalcents"
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Issuedat"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/InvoiceItemResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "number",
+          "billingPeriodId",
+          "periodValue",
+          "unitId",
+          "unitCode",
+          "unitName",
+          "contactLabel",
+          "energyKwh",
+          "energyValueCents",
+          "infraFeeCents",
+          "lossShareCents",
+          "totalCents",
+          "issuedAt",
+          "items"
+        ],
+        "title": "InvoiceResponse"
+      },
       "MeResponse": {
         "properties": {
           "profileId": {
@@ -952,6 +2943,31 @@
         ],
         "title": "MeResponse"
       },
+      "OpenBillingPeriodRequest": {
+        "properties": {
+          "periodValue": {
+            "type": "string",
+            "title": "Periodvalue"
+          },
+          "siteId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Siteid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "periodValue"
+        ],
+        "title": "OpenBillingPeriodRequest"
+      },
       "OrganizationRole": {
         "type": "string",
         "enum": [
@@ -960,6 +2976,131 @@
           "technical_operator"
         ],
         "title": "OrganizationRole"
+      },
+      "PeriodOpinionResponse": {
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/BillingPeriodResponse"
+          },
+          "opinion": {
+            "$ref": "#/components/schemas/ClosingOpinionResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "period",
+          "opinion"
+        ],
+        "title": "PeriodOpinionResponse"
+      },
+      "PeriodReadinessResponse": {
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/BillingPeriodResponse"
+          },
+          "readiness": {
+            "$ref": "#/components/schemas/ReadinessResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "period",
+          "readiness"
+        ],
+        "title": "PeriodReadinessResponse"
+      },
+      "PersistedFindingResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity"
+          },
+          "confidence": {
+            "type": "string",
+            "title": "Confidence"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          },
+          "evidence": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Evidence"
+          },
+          "chargingSessionId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chargingsessionid"
+          },
+          "resolvedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolvedat"
+          },
+          "resolvedByName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolvedbyname"
+          },
+          "resolutionNote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolutionnote"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "severity",
+          "confidence",
+          "explanation",
+          "evidence",
+          "chargingSessionId",
+          "resolvedAt",
+          "resolvedByName",
+          "resolutionNote"
+        ],
+        "title": "PersistedFindingResponse",
+        "description": "A finding the manager can act on, with its decision if one was made."
       },
       "PersistedRawRecordResponse": {
         "properties": {
@@ -1124,6 +3265,143 @@
           "raw"
         ],
         "title": "PreviewRecordResponse"
+      },
+      "ReadinessResponse": {
+        "properties": {
+          "periodValue": {
+            "type": "string",
+            "title": "Periodvalue"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "sessionCount": {
+            "type": "integer",
+            "title": "Sessioncount"
+          },
+          "billableCount": {
+            "type": "integer",
+            "title": "Billablecount"
+          },
+          "pendingCount": {
+            "type": "integer",
+            "title": "Pendingcount"
+          },
+          "discardedCount": {
+            "type": "integer",
+            "title": "Discardedcount"
+          },
+          "periodEnergyKwh": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Periodenergykwh"
+          },
+          "billableEnergyKwh": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Billableenergykwh"
+          },
+          "aggregateEnergyKwh": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aggregateenergykwh"
+          },
+          "internalDifferenceKwh": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Internaldifferencekwh"
+          },
+          "externalDifferenceKwh": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Externaldifferencekwh"
+          },
+          "assignmentCoverage": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Assignmentcoverage"
+          },
+          "canClose": {
+            "type": "boolean",
+            "title": "Canclose"
+          },
+          "blockers": {
+            "items": {
+              "$ref": "#/components/schemas/BlockerResponse"
+            },
+            "type": "array",
+            "title": "Blockers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "periodValue",
+          "status",
+          "sessionCount",
+          "billableCount",
+          "pendingCount",
+          "discardedCount",
+          "periodEnergyKwh",
+          "billableEnergyKwh",
+          "aggregateEnergyKwh",
+          "internalDifferenceKwh",
+          "externalDifferenceKwh",
+          "assignmentCoverage",
+          "canClose",
+          "blockers"
+        ],
+        "title": "ReadinessResponse"
+      },
+      "ResidentContextResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "unitId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Unitid"
+          },
+          "unitCode": {
+            "type": "string",
+            "title": "Unitcode"
+          },
+          "unitName": {
+            "type": "string",
+            "title": "Unitname"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expiresat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "unitId",
+          "unitCode",
+          "unitName",
+          "expiresAt"
+        ],
+        "title": "ResidentContextResponse"
       },
       "SessionAssignmentDetailResponse": {
         "properties": {
@@ -1405,6 +3683,30 @@
           "residentName"
         ],
         "title": "SessionResponse"
+      },
+      "TariffBandResponse": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "rateCentsPerKwh": {
+            "type": "integer",
+            "title": "Ratecentsperkwh"
+          },
+          "energyValueCents": {
+            "type": "integer",
+            "title": "Energyvaluecents"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "rateCentsPerKwh",
+          "energyValueCents"
+        ],
+        "title": "TariffBandResponse",
+        "description": "A band of the frozen tariff, and this invoice's energy priced in it."
       },
       "ValidationError": {
         "properties": {

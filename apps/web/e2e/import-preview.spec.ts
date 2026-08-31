@@ -12,24 +12,45 @@ test("permanently redirects the legacy import route to data-source settings", as
   expect(response.headers().location).toBe("/settings/data-sources");
 });
 
+/**
+ * A preview is checked against what the database already holds, so a session
+ * another spec confirmed earlier comes back as a duplicate rather than valid.
+ * These tests state a clean two-valid preview, so they bring their own day.
+ */
+const FIXTURE_DAY = "29/08/2026";
+const PREVIEW_DAY = "11/11/2026";
+const DROP_DAY = "12/11/2026";
+
+async function uniqueFixture(day: string): Promise<string> {
+  const contents = await readFile(
+    path.resolve(process.cwd(), "../api/tests/fixtures/sems_sessions.csv"),
+    "utf8",
+  );
+  return contents.replaceAll(FIXTURE_DAY, day);
+}
+
 test("previews a SEMS export with explicit provenance", async ({ page }) => {
   await page.goto("/imports/new");
-  await page.getByLabel("Arquivo CSV do SEMS+").setInputFiles(
-    path.resolve(process.cwd(), "../api/tests/fixtures/sems_sessions.csv"),
-  );
+  await page.getByLabel("Arquivo CSV do SEMS+").setInputFiles({
+    name: "sems_sessions.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(await uniqueFixture(PREVIEW_DAY)),
+  });
   await page.getByRole("button", { name: "Analisar arquivo" }).click();
 
-  await expect(page.getByText("2 registros")).toBeVisible();
-  await expect(page.getByText("2 válidos")).toBeVisible();
-  await expect(page.getByText("0 inválidos")).toBeVisible();
-  await expect(page.getByText("0 duplicados")).toBeVisible();
+  // Scoped to the analysis panel: the import history repeats the same counts,
+  // so an unscoped match depends on what earlier tests happened to import.
+  const summary = page.getByLabel("Resumo da análise");
+  await expect(summary.getByText("2 registros")).toBeVisible();
+  await expect(summary.getByText("2 válidos")).toBeVisible();
+  await expect(summary.getByText("0 inválidos")).toBeVisible();
+  await expect(summary.getByText("0 duplicados")).toBeVisible();
   await expect(page.getByText("Fonte real").first()).toBeVisible();
   await expect(page.getByText("Identidade desconhecida").first()).toBeVisible();
 });
 
 test("selects and previews a SEMS export dropped on the upload panel", async ({ page }) => {
-  const fixturePath = path.resolve(process.cwd(), "../api/tests/fixtures/sems_sessions.csv");
-  const fixtureContents = await readFile(fixturePath, "utf8");
+  const fixtureContents = await uniqueFixture(DROP_DAY);
 
   await page.goto("/imports/new");
 
@@ -67,8 +88,9 @@ test("selects and previews a SEMS export dropped on the upload panel", async ({ 
   await expect(page.getByText("Selecionado: sems_sessions.csv")).toBeVisible();
   await page.getByRole("button", { name: "Analisar arquivo" }).click();
 
-  await expect(page.getByText("2 registros")).toBeVisible();
-  await expect(page.getByText("2 válidos")).toBeVisible();
+  const dropped = page.getByLabel("Resumo da análise");
+  await expect(dropped.getByText("2 registros")).toBeVisible();
+  await expect(dropped.getByText("2 válidos")).toBeVisible();
 });
 
 test("rejects a non-CSV file dropped on the upload panel", async ({ page }) => {

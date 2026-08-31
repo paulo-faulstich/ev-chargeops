@@ -161,9 +161,6 @@ test("uses canonical unknown assignments for the monthly blocker", async ({
       exact: true,
     }),
   ).toBeVisible();
-  await expect(
-    page.getByLabel("Indicadores do período").getByText(/R\$\s*9,87/),
-  ).toBeVisible();
   await expect(page.getByText("0 de 2", { exact: true })).toBeVisible();
   await expect(
     page.getByText(
@@ -177,7 +174,7 @@ test("uses canonical unknown assignments for the monthly blocker", async ({
     "/sessions?status=pending_review&period=2026-08",
   );
   await expect(
-    page.getByRole("table", { name: "Custos por responsável" }),
+    page.getByRole("table", { name: "Consumo por responsável" }),
   ).toContainText("Não atribuído");
 });
 
@@ -199,7 +196,7 @@ test("groups assigned costs by condominium unit, never charger identity", async 
   await page.goto("/dashboard");
 
   await expect(page.getByText("1 de 2", { exact: true })).toBeVisible();
-  const costs = page.getByRole("table", { name: "Custos por responsável" });
+  const costs = page.getByRole("table", { name: "Consumo por responsável" });
   await expect(costs).toContainText("Unidade A-101");
   await expect(costs).not.toContainText("97500NAP25BL0008");
 });

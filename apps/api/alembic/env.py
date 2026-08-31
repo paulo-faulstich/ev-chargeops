@@ -7,6 +7,8 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 from app.modules.audit.infrastructure import models as audit_models  # noqa: F401
+from app.modules.billing.infrastructure import models as billing_models  # noqa: F401
+from app.modules.identity.infrastructure import models as identity_models  # noqa: F401
 from app.modules.ingestion.infrastructure import (
     models as ingestion_models,  # noqa: F401
 )

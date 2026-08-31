@@ -1,236 +1,223 @@
-# Prompt de continuação para a próxima IA
+# EV ChargeOps — prompt de continuação
 
-Você está assumindo um trabalho em andamento no projeto **EV ChargeOps**. **Não recomece o projeto, não crie outra arquitetura e não descarte o que já foi implementado.** Continue a partir da branch e do worktree abaixo.
+> Substitui a versão anterior, escrita quando os passos 5 a 8 ainda estavam
+> pendentes. O histórico detalhado das etapas anteriores continua em
+> [`2026-08-30-ev-chargeops-status.md`](2026-08-30-ev-chargeops-status.md).
+
+Você está assumindo um trabalho em andamento. **Não recomece, não redesenhe a
+arquitetura e não descarte o que já existe.** Continue de onde parou.
 
 ## Contexto operacional obrigatório
 
-- Repositório principal: `/Users/paulofaulstich/Dropbox/Workspace/__claude/personal/education/fiap/challenges/good-we/ev-chargeops`
-- Worktree de trabalho: `/Users/paulofaulstich/Dropbox/Workspace/__claude/personal/education/fiap/challenges/good-we/ev-chargeops/.worktrees/dashboard-operational`
+- Worktree: `/Users/paulofaulstich/Dropbox/Workspace/__claude/personal/education/fiap/challenges/good-we/ev-chargeops/.worktrees/dashboard-operational`
 - Branch: `codex/dashboard-operational`
-- Commit-base do handoff: `3a5ca87 docs: record product and engineering handoff`. Este prompt foi versionado depois dele; confirme a HEAD com `git log -1 --oneline`.
-- A branch estava 25 commits à frente de `main` antes deste prompt e pode ser integrada por fast-forward depois da verificação.
-- A árvore estava limpa no momento deste prompt.
-- Não existe push ou merge pendente autorizado implicitamente. Verifique antes de executar qualquer um deles.
-- Não crie outro worktree: use o existente.
-- Não exponha nem versione segredos. Os `.env.example` documentam somente os nomes das variáveis.
+- O incremento de faturamento **está commitado**. Confirme com `git status` antes
+  de qualquer coisa e **não commite sem pedir**.
+- Não crie outro worktree. Não faça push nem merge sem autorização.
+- Responda em português. Seja direto sobre o que está pronto, simulado, pendente
+  ou bloqueado.
 
-Leia integralmente, nesta ordem, antes de alterar código:
+## Leitura obrigatória, nesta ordem
 
-1. [`2026-08-30-ev-chargeops-status.md`](2026-08-30-ev-chargeops-status.md)
-2. [`../product/problem-frame.md`](../product/problem-frame.md)
-3. [`../product/prd.md`](../product/prd.md)
-4. [`../product/success-metrics.md`](../product/success-metrics.md)
-5. [`../technical/ev-chargeops-architecture.md`](../technical/ev-chargeops-architecture.md)
-6. [`../superpowers/specs/2026-08-30-recurring-close-and-session-assignment-design.md`](../superpowers/specs/2026-08-30-recurring-close-and-session-assignment-design.md)
+1. [`../product/prd.md`](../product/prd.md) — versão 0.4, com a seção 0 explicando cada mudança
+2. [`../product/success-metrics.md`](../product/success-metrics.md) — versão 0.2
+3. [`../technical/ev-chargeops-architecture.md`](../technical/ev-chargeops-architecture.md) — versão 0.2
+4. [`../superpowers/specs/2026-08-30-tariff-close-and-invoicing-design.md`](../superpowers/specs/2026-08-30-tariff-close-and-invoicing-design.md) — **o design implementado**
+5. [`../../README.md`](../../README.md) seções 5 e 6 — modelo de rateio e papel da IA da Sprint 1
 
-## O problema de produto
+## Decisões já tomadas — não reabra sem motivo concreto
 
-Síndicos e usuários de infraestrutura compartilhada de recarga não possuem uma forma integrada e auditável de atribuir recargas a unidades, calcular consumo individual, aplicar rateio e acompanhar a cobrança. Os dados existem no SEMS+, mas não vêm conectados ao contexto condominial e a API de EV Chargers não será disponibilizada no desafio.
+- **Recorte invoice-first.** Mercado Pago, previsão e segmentação foram para P1.
+- **A unidade é o alvo da atribuição**, não o usuário. O morador aparece pelo
+  vínculo ativo; sem vínculo, a fatura mostra o nome da unidade. Isso é o
+  fallback desenhado, não uma lacuna.
+- **A visão do morador é a própria fatura**, alcançada por impersonate, pelo
+  mesmo `current_scope` que um morador real usaria. Sem segunda tela.
+- **Arredondamento uma vez por recarga.** Cada linha impressa é conferível.
+- **Faixa tarifária pelo horário de início.** Não dividir energia entre faixas.
+- **Taxa de infraestrutura fixa por unidade ativa.**
+- **Reconciliação dupla.** A interna bloqueia; a externa (contra o agregado do
+  carregador) é alerta e nunca é absorvida em nenhuma fatura.
 
-O CSV é apenas o adapter temporário causado pela falta de API. **O produto não é uma plataforma de upload.** O produto deve transformar telemetria limitada em fechamento e cobrança condominial auditáveis.
+## Estado atual: o incremento está completo e verde
 
-## O que já funciona
+- **318 testes Python**, ruff e mypy limpos, sem drift de migration.
+- **44 testes Playwright passando** (antes nunca haviam sido executados).
+- Client TypeScript com `tsc` e 19 testes vitest; web com `tsc` e `eslint`.
+- Fluxo verificado de ponta a ponta com a API no ar: período de maio fechado,
+  5 faturas, R$ 1.121,70, soma conferindo ao centavo, PDF byte-idêntico em dois
+  downloads com `ETag` igual ao sha256 do conteúdo.
 
-- Next.js/React no frontend, FastAPI/Python no backend e client TypeScript gerado de OpenAPI.
-- Autenticação/configuração Supabase e isolamento por organização.
-- Upload e drag-and-drop de CSV SEMS+.
-- Prévia, validação por linha, deduplicação, confirmação idempotente e histórico de importação.
-- Sessões canônicas chamadas de **Recargas** na interface.
-- Fila operacional para recargas sem identidade.
-- Atribuição auditável da recarga à unidade condominial, com justificativa.
-- Dashboard com energia, custo simples estimado, cobertura de atribuição, pendências e consumo diário.
-- Navegação recorrente: `Visão geral`, `Recargas`, `Fontes de dados`.
-- Header persistente com local, perfil e logout.
-- Co-branding `EV ChargeOps` + `FIAP Challenge × GoodWe`.
-- Web na porta `3407` e API na porta `8407`.
+Passos 1 a 4 (cálculo, persistência, readiness, parecer) seguem como descrito no
+histórico. O que foi concluído depois:
 
-Módulos backend existentes:
+### 5. Fechamento transacional
 
-- `audit`
-- `identity`
-- `ingestion`
-- `organizations`
-- `sessions`
+Uma transação congela `tariff_snapshot_id`, `billing_policy_id` e
+`closing_insight_run_id`, calcula, persiste faturas e itens, marca recargas como
+`billed`, congela os três totais de energia e audita. Fechar de novo devolve
+`409` sem alterar nada.
 
-Não existem ainda módulos funcionais de `tariffs`, `billing`, `payments` ou `insights`.
+### 6. PDF
 
-## Estado atual que não deve ser confundido com funcionalidade pronta
+`PdfInvoiceRenderer` (fpdf2), renderizado **a partir dos inteiros persistidos**.
+`invoice_document_lines` é a declaração pura do conteúdo; o PDF é só a
+tipografia dela. O checksum do primeiro render é gravado e todo render posterior
+é conferido contra ele.
 
-### Gráfico diário
+### 7. Contexto de morador
 
-O CSV usado na demonstração atual contém duas recargas, ambas no dia 29/08/2026. Portanto, o gráfico possui uma única barra. Isso não é bug do gráfico.
+`POST`/`DELETE /v1/resident-context`. O header `X-Resident-Context` estreita o
+escopo para `resident` + uma unidade dentro de `current_scope`, então todo
+endpoint de gestor rejeita por construção.
 
-Não invente dias e os apresente como dados reais. A solução recomendada é criar um **cenário demonstrativo mensal explicitamente rotulado**, reutilizando os dados da Sprint 1 em `data/exemplos/`, e manter a distinção visual entre:
+### 8. Web
 
-- `SEMS+ real`;
-- `Cenário demonstrativo`.
+Página única de fatura com os quatro blocos da seção 9, fluxo de fechamento no
+dashboard, decisão de achados críticos, banner de morador com saída em um
+clique. A constante `ESTIMATED_TARIFF_BRL_PER_KWH = 0.94` **foi removida**: o
+painel virou "Consumo por responsável", em kWh medido, e valor devido só existe
+em fatura emitida.
 
-### Custos
+### Endpoints
 
-O componente atual `Custos por responsável` não é uma fatura. Ele:
-
-- agrupa por unidade;
-- soma energia;
-- multiplica por uma constante frontend de `R$ 0,94/kWh`;
-- não possui tarifa versionada, infraestrutura, perdas, fechamento, snapshot ou PDF.
-
-O título recomendado é **Prévia de cobrança por unidade** e deve futuramente exibir também o morador/contato de cobrança.
-
-## Decisões de UX já tomadas pelo usuário
-
-Não reverta estas decisões sem uma razão concreta e aprovação:
-
-- A aplicação deve parecer um sistema operacional, não uma landing page.
-- Evitar títulos gigantes, margens excessivas e telas vazias.
-- Toda tela deve indicar a ação seguinte quando houver uma ação operacional.
-- Upload/importação é coadjuvante e permanece em `Configurações > Fontes de dados`.
-- A navegação lateral não é um stepper; o processo se repete todos os meses.
-- O progresso do fechamento pertence ao período e fica no dashboard.
-- Usar `Recargas`, não `Sessões`, na interface.
-- Abaixo do título da página, explicar brevemente o que existe naquele menu.
-- Breadcrumbs devem seguir a mesma estrutura e o mesmo espaçamento.
-- Perfil e logout devem permanecer visíveis em todas as telas autenticadas.
-- A interface está em português.
-- O estilo deve trazer referência à GoodWe sem fingir que o protótipo é um produto oficial da empresa.
-- A assinatura visual aprovada é a variação harmonizada atual. Não refaça o logo sem solicitação.
-- A IA deve ser híbrida e explicável: regras/evidências automáticas, decisão final do administrador.
-
-## Direção de produto recomendada, mas ainda pendente de aprovação explícita
-
-Priorizar uma vertical slice **invoice-first**:
-
-```text
-SEMS+ real ou cenário demo identificado
-  → importação auditável
-  → atribuição às unidades
-  → tarifa e rateio transparentes
-  → parecer explicável da IA
-  → aprovação do fechamento
-  → faturas por unidade/morador
-  → PDF auditável
+```
+GET    /v1/billing-periods
+POST   /v1/billing-periods                                   (idempotente)
+GET    /v1/billing-periods/{id}
+GET    /v1/billing-periods/{id}/readiness
+POST   /v1/billing-periods/{id}/closing-opinion
+GET    /v1/billing-periods/{id}/findings
+POST   /v1/billing-periods/{id}/findings/{id}/decision
+POST   /v1/billing-periods/{id}/close
+GET    /v1/invoices
+GET    /v1/invoices/{id}                     (fatura + tarifa congelada + faixas)
+GET    /v1/invoices/{id}/document             (PDF)
+POST   /v1/resident-context
+DELETE /v1/resident-context
 ```
 
-O PRD atual ainda exige previsão, segmentação e Mercado Pago sandbox. A recomendação é:
+## O que falta
 
-- P0: dataset demo com procedência, tarifa/rateio, fechamento, IA explicável, fatura e PDF, visão do morador;
-- P1: previsão, segmentação, tarifa pública integrada e Mercado Pago sandbox;
-- P2: pagamentos completos, notificações e adapters futuros.
+Nada do recorte invoice-first. O que sobrou é P1 ou polimento:
 
-**Primeira ação da próxima IA:** confirmar com Paulo se o recorte `invoice-first` está aprovado e se o Mercado Pago pode ser movido para P1. Faça uma pergunta objetiva e única. Não altere PRD ou código de billing antes dessa confirmação.
+- **Mercado Pago, previsão e segmentação** seguem adiados, documentados com os
+  IDs originais no PRD para preservar rastreabilidade com a Sprint 1.
+- **Moradores no cenário demonstrativo.** `seed_demo_scenario.py` não cria
+  vínculo de morador, então o PDF do pitch mostra "Responsável: Unidade A-101".
+  É o fallback correto, mas um nome de pessoa ficaria melhor na gravação.
+- **Login de morador** continua fora de escopo. Adicionar depois acrescenta uma
+  porta; não muda o modelo.
 
-## Depois da aprovação: sequência obrigatória
+## Armadilhas deste ambiente — leia antes de rodar qualquer coisa
 
-### 1. Atualizar contrato de produto
-
-Atualizar PRD, success metrics e arquitetura para refletir o recorte aprovado. Registrar claramente o que mudou e por quê; a Sprint 1 já foi entregue e avaliada, portanto não reescrever a história como se o planejamento anterior estivesse errado.
-
-### 2. Desenhar antes de implementar
-
-Criar um design curto para:
-
-- tarifa versionada;
-- regra de rateio;
-- período de fechamento;
-- snapshot imutável;
-- invoice e invoice items;
-- parecer da IA;
-- PDF;
-- visão do morador.
-
-Apresentar as decisões mais relevantes a Paulo para aprovação antes de começar implementação extensa.
-
-### 3. Implementar por vertical slice e testes
-
-Ordem sugerida:
-
-1. cálculo determinístico em centavos;
-2. reconciliação de energia com diferença `0,00 kWh`;
-3. persistência de tarifa, período e snapshot;
-4. dataset demonstrativo mensal e procedência;
-5. parecer explicável e bloqueios;
-6. aprovação/fechamento;
-7. faturas por unidade;
-8. geração/download do PDF;
-9. visão do morador;
-10. refinamento do dashboard e roteiro de pitch.
-
-Não implementar apenas novas telas com valores mockados. O pitch precisa demonstrar o fluxo real pelo domínio e banco.
-
-## Critérios mínimos do P0
-
-- O gestor consegue importar ou selecionar dados demonstrativos claramente rotulados.
-- Cada recarga elegível está atribuída a uma unidade ou bloqueia o fechamento.
-- O cálculo usa tarifa e regras versionadas.
-- Soma da energia faturada reconcilia com a energia elegível em `0,00 kWh`.
-- O parecer da IA mostra conclusão, severidade, confiança, evidências e recomendação.
-- O administrador aprova explicitamente o fechamento.
-- Faturas emitidas não mudam quando tarifa ou regra futura muda.
-- A fatura exibe morador/contato, unidade, recargas, energia, tarifa, infraestrutura, perdas e total.
-- O PDF é gerado e pode ser baixado.
-- A visão do morador respeita autorização e mostra apenas sua unidade.
-- Dados reais e demonstrativos nunca são apresentados como se fossem a mesma procedência.
-
-## Arquivos úteis para começar
-
-- Dashboard UI: `apps/web/src/components/dashboard/dashboard-overview.tsx`
-- Agregação atual: `apps/web/src/components/dashboard/dashboard-summary.ts`
-- Rotas web: `apps/web/src/app/(app)/`
-- Shell/navegação: `apps/web/src/components/shell/app-shell.tsx`
-- Sessões backend: `apps/api/app/modules/sessions/`
-- Ingestão backend: `apps/api/app/modules/ingestion/`
-- Migrations: `apps/api/alembic/versions/`
-- Dados ricos da Sprint 1: `data/exemplos/`
-- Fixture SEMS+ mínimo: `apps/api/tests/fixtures/sems_sessions.csv`
-- Testes de dashboard: `apps/web/e2e/dashboard.spec.ts`
-- Testes de recargas: `apps/web/e2e/session-review.spec.ts`
+- **`uv run` está bloqueado por política** dentro da sessão. Use os binários do
+  venv direto: `apps/api/.venv/bin/{python,pytest,ruff,mypy,alembic}`. Logo,
+  `pnpm check` não roda inteiro; execute etapa por etapa.
+- **Instalar pacote Python via Bash está bloqueado.** Se faltar dependência, o
+  Paulo roda `uv sync --project apps/api` fora da sessão.
+- **Testes de integração precisam rodar da raiz do repo**, não de `apps/api` — o
+  `alembic.ini` é resolvido por caminho relativo.
+- **O `next dev` só sobe com `WATCHPACK_POLLING=true`.** O projeto vive dentro do
+  Dropbox e sem isso o watcher estoura em `EMFILE`. Já está no
+  `playwright.config.ts`; se você subir o dev server à mão, lembre.
+- **`next build` recusa `AUTH_MODE=fixture`** — guard proposital.
+- **Playwright não roda dentro da sessão.** O Chromium falha com
+  `bootstrap_check_in ... Permission denied (1100)`. O Paulo roda `pnpm test:web`
+  fora. **Não afirme que os testes de UI passam sem que ele confirme.**
+- **O PATH do Codex vence o nvm.** `~/.cache/codex/codex-runtimes/.../node` vem
+  antes e é v24, enquanto o repo exige `>=22.13.0 <23` com `engineStrict`. Como o
+  `pnpm` do nvm é um shim do corepack com `#!/usr/bin/env node`, ele herda o Node
+  errado e falha com `ERR_PNPM_UNSUPPORTED_ENGINE` mesmo depois de `nvm use`. A
+  saída é `export PATH="$HOME/.nvm/versions/node/v22.19.0/bin:$PATH"` seguido de
+  `hash -r`.
+- Cuidado com heredocs no Bash: um hook bloqueia padrões de agendamento, e a
+  string `at <dígito>` num comentário já dispara falso positivo.
 
 ## Como rodar
 
 ```bash
-cd /Users/paulofaulstich/Dropbox/Workspace/__claude/personal/education/fiap/challenges/good-we/ev-chargeops/.worktrees/dashboard-operational
-pnpm install
-uv sync --project apps/api
-pnpm db:upgrade
+cd .../.worktrees/dashboard-operational
+
+apps/api/.venv/bin/alembic -c apps/api/alembic.ini upgrade head
+apps/api/.venv/bin/python apps/api/scripts/seed_demo_scenario.py
+apps/api/.venv/bin/uvicorn app.main:app --app-dir apps/api --host 127.0.0.1 --port 8407
+
+# outro terminal
+cd apps/web && WATCHPACK_POLLING=true ./node_modules/.bin/next dev --hostname 127.0.0.1 --port 3407
 ```
 
-Em terminais separados:
+`apps/api/.env` e `apps/web/.env` já existem, em modo `fixture`, gitignored.
+Token de teste: `Authorization: Bearer fixture-manager-token`.
 
-```bash
-pnpm dev:api
-pnpm dev:web
-```
-
-- Web: `http://127.0.0.1:3407`
-- API: `http://127.0.0.1:8407`
-
-Segredos não estão no Git. Use `apps/api/.env.example` e `apps/web/.env.example`; não imprima os valores reais no chat ou nos logs.
+O cenário demonstrativo fecha com maio/2026, mas **planta defeitos de propósito**:
+resolva as 4 pendências de atribuição e registre decisão nos achados críticos
+antes que o fechamento libere.
 
 ## Verificação
 
-Antes de afirmar que algo está pronto ou integrar a branch:
-
 ```bash
-pnpm check
+apps/api/.venv/bin/ruff check apps/api/app apps/api/tests
+apps/api/.venv/bin/mypy app                    # de dentro de apps/api
+apps/api/.venv/bin/python -m pytest apps/api/tests -q
+apps/api/.venv/bin/alembic -c apps/api/alembic.ini check
+apps/api/.venv/bin/python apps/api/scripts/export_openapi.py   # após mudar endpoints
+cd packages/api-client && ./node_modules/.bin/openapi-typescript openapi.json -o src/schema.ts
+cd apps/web && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/eslint src e2e
 ```
 
-O gate completo não foi executado durante a criação do handoff. Execute-o na HEAD antes de merge/push. Se houver falha, diagnostique-a antes de alterar comportamento. Não esconda falhas de ambiente como se fossem sucesso funcional.
+## Achados que não podem se perder
 
-## Integração
+**A divergência da U102.** O golden reproduz a Sprint 1 ao centavo exceto a taxa
+de infraestrutura da unidade com dois veículos: a Sprint 1 cobrava por usuário
+RFID (R$ 50,00), o modelo por unidade cobra uma vez (R$ 25,00). Fixado em
+`test_two_vehicle_unit_diverges_from_sprint1_only_on_the_fee` e documentado no
+PRD 4.4. **Não "conserte" ajustando o teste até passar.**
 
-Após implementação aprovada, testes verdes e revisão:
+**O bug de fuso, versão limites de período.** `_period_bounds` montava os limites
+do mês em UTC, jogando tudo a partir das 21h do último dia no mês seguinte — o
+horário de pico da garagem. Use **sempre** `period_bounds` de `domain/period.py`.
 
-```bash
-cd /Users/paulofaulstich/Dropbox/Workspace/__claude/personal/education/fiap/challenges/good-we/ev-chargeops
-git merge --ff-only codex/dashboard-operational
-```
+**O bug de fuso, versão persistência.** O SQLite devolve `datetime` **sem fuso**,
+e `astimezone` lê um naive como hora local *do servidor*. Numa máquina fora de
+São Paulo, isso deslocava toda data impressa — recargas de 31/05 saíam como
+01/06 — e, pior, gravava instantes com offsets misturados, o que fazia o filtro
+de período **cobrar o conjunto errado de recargas**: a mesma fatura fechava em
+R$ 1.067,43 antes e R$ 1.121,70 depois. Corrigido com `UtcDateTime` em
+`app/shared/sqlalchemy.py`, que recusa gravar naive e devolve sempre aware. Todo
+`DateTime` novo deve usar esse tipo. Um teste que existia *codificava o bug* como
+esperado; o contorno foi removido. A regressão está em
+`test_invoice_times_survive_the_round_trip_through_the_database` — os testes de
+rendering constroem datetimes aware em Python e por isso nunca pegariam isso.
 
-Não faça push sem autorização. A `main` local já estava à frente de `origin/main` no handoff.
+**Procedência derivada da origem.** `provenance_of(source)` deriva o valor, e
+`SourceKind.SIMULATED` produz `DataProvenance.SIMULATED` obrigatoriamente. O
+guardrail "zero recarga simulada apresentada como real" é garantido na
+construção, não por disciplina.
 
-## Forma de trabalhar com Paulo
+**Achado crítico só sai com decisão registrada.** `readiness` bloqueia o
+fechamento enquanto houver `analytical_findings` crítico com `resolved_at` nulo.
+Antes não existia caminho de escrita para isso, e nenhum período com defeito
+podia fechar. Hoje `POST .../findings/{id}/decision` grava motivo, autor e
+instante, e audita. O achado nunca é apagado.
 
-- Responda em português.
-- Seja direto sobre o que está entregue, simulado, pendente ou bloqueado.
-- Não deixe uma etapa longa sem atualização objetiva de progresso.
-- Se o trabalho for interrompido, preserve tudo e atualize este handoff com commits, arquivos, testes e próximo passo exato.
-- Não consuma tempo refazendo decisões visuais já aprovadas.
-- O objetivo não é maximizar quantidade de features; é apresentar uma história coerente, funcional e auditável da recarga até a cobrança.
+**O e2e roda serial de propósito.** Uma única API e um único SQLite servem a
+suíte inteira; com workers paralelos os testes leem as escritas uns dos outros.
+Além disso, o preview de importação confere duplicatas **contra o banco**, então
+um teste que confirma um lote transforma o mesmo fixture em duplicata para o
+próximo. Testes de preview trazem o próprio dia no CSV por isso.
+
+## Contexto do desafio
+
+Sprint 2 entrega em **20/09/2026**. Dois pitches: **3 minutos gravados** para a
+GoodWe e **5 minutos presenciais** na FIAP. Mesmo artefato, ênfases diferentes.
+Para a GoodWe, dado real do SEMS+ e a reconciliação contra o agregado do próprio
+equipamento — eles conseguem conferir. Para a FIAP, a reprodução do exemplo
+resolvido da Sprint 1 ao centavo.
+
+A GoodWe não expõe **nenhum campo de identidade** em toda a OpenAPI de EV Charger
+(atributos são só `model` e `ratedPower`). Essa lacuna estrutural é o que o
+produto preenche, e é o argumento mais forte do pitch. A telemetria, porém,
+suporta consulta histórica de `vehConnectStatus`, `currentChargeE`,
+`currentChargeTime` e `activePower` — a sessão é derivável da API quando houver
+credenciais. O contrato dessa derivação está na seção 7.3 da arquitetura.

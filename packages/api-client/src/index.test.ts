@@ -3,10 +3,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ApiError,
   assignSession,
+  closeBillingPeriod,
   confirmImport,
+  downloadInvoiceDocument,
+  enterResidentContext,
+  exitResidentContext,
   getImportBatch,
+  getInvoice,
   listAssignmentUnits,
   listImportBatches,
+  listInvoices,
   listSessions,
   previewImport,
 } from "./index";
@@ -297,6 +303,224 @@ describe("authenticated sessions client", () => {
         },
         body: JSON.stringify(request),
       }),
+    );
+  });
+});
+
+const invoicePayload = {
+  id: "b0000000-0000-0000-0000-000000000001",
+  number: "2026-05-A-101",
+  billingPeriodId: "c0000000-0000-0000-0000-000000000001",
+  periodValue: "2026-05",
+  unitId: "40000000-0000-0000-0000-000000000001",
+  unitCode: "A-101",
+  unitName: "Unidade A-101",
+  contactLabel: "Ana Souza",
+  energyKwh: "120.000",
+  energyValueCents: 11280,
+  infraFeeCents: 2500,
+  lossShareCents: 340,
+  totalCents: 14120,
+  issuedAt: "2026-06-01T12:00:00Z",
+  items: [],
+};
+
+const invoiceDetailPayload = {
+  invoice: invoicePayload,
+  context: {
+    organizationName: "Condomínio",
+    siteName: "Garagem",
+    timezone: "America/Sao_Paulo",
+    tariffName: "Referência",
+    tariffSource: "sprint1_reference",
+    tariffSourceReference: null,
+    tariffValidFrom: "2026-01-01",
+    tariffValidTo: null,
+    policyName: "Referência",
+    infraFeeCents: 2500,
+    lossBasisPoints: 400,
+    provenanceLabel: "dados simulados",
+  },
+  bands: [{ code: "fora_ponta", rateCentsPerKwh: 78, energyValueCents: 9360 }],
+};
+
+const residentContextPayload = {
+  id: "d0000000-0000-0000-0000-000000000001",
+  unitId: "40000000-0000-0000-0000-000000000001",
+  unitCode: "A-101",
+  unitName: "Unidade A-101",
+  expiresAt: "2026-06-01T12:15:00Z",
+};
+
+describe("billing client", () => {
+  it("lists invoices filtered by period and unit", async () => {
+    const payload = { items: [invoicePayload] };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify(payload), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      listInvoices(
+        "signed-token",
+        { periodId: "c0000000-0000-0000-0000-000000000001", unitId: "40000000-0000-0000-0000-000000000001" },
+        { baseUrl: "http://api.test" },
+      ),
+    ).resolves.toEqual(payload);
+
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      "http://api.test/v1/invoices?periodId=c0000000-0000-0000-0000-000000000001&unitId=40000000-0000-0000-0000-000000000001",
+    );
+  });
+
+  it("omits the filter query when no filter is given", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ items: [] }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await listInvoices("signed-token", {}, { baseUrl: "http://api.test" });
+
+    expect(fetchMock.mock.calls[0][0]).toBe("http://api.test/v1/invoices");
+  });
+
+  it("closes a period with POST and no body", async () => {
+    const payload = { period: {}, invoices: [invoicePayload] };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify(payload), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await closeBillingPeriod("c0000000-0000-0000-0000-000000000001", "signed-token", {
+      baseUrl: "http://api.test",
+    });
+
+    const [url, request] = fetchMock.mock.calls[0];
+    expect(url).toBe(
+      "http://api.test/v1/billing-periods/c0000000-0000-0000-0000-000000000001/close",
+    );
+    expect(request.method).toBe("POST");
+    expect(request.body).toBeUndefined();
+  });
+
+  it("surfaces the 409 body when a close is refused", async () => {
+    const conflict = { code: "PERIOD_ALREADY_CLOSED", message: "Já fechado.", blockers: [] };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify(conflict), {
+          status: 409,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const error = await closeBillingPeriod("period-1", "signed-token", {
+      baseUrl: "http://api.test",
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).status).toBe(409);
+    expect((error as ApiError).body).toEqual(conflict);
+  });
+});
+
+describe("resident context", () => {
+  it("sends the context header on a scoped read", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify(invoiceDetailPayload), { status: 200 }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getInvoice("b0000000-0000-0000-0000-000000000001", "signed-token", {
+      baseUrl: "http://api.test",
+      residentContextId: "d0000000-0000-0000-0000-000000000001",
+    });
+
+    expect(fetchMock.mock.calls[0][1].headers).toEqual({
+      Authorization: "Bearer signed-token",
+      "X-Resident-Context": "d0000000-0000-0000-0000-000000000001",
+    });
+  });
+
+  it("omits the context header when there is no context", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify(invoiceDetailPayload), { status: 200 }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getInvoice("b0000000-0000-0000-0000-000000000001", "signed-token", {
+      baseUrl: "http://api.test",
+    });
+
+    expect(fetchMock.mock.calls[0][1].headers).not.toHaveProperty(
+      "X-Resident-Context",
+    );
+  });
+
+  it("enters a context without inheriting an active one", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify(residentContextPayload), { status: 201 }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      enterResidentContext("40000000-0000-0000-0000-000000000001", "signed-token", {
+        baseUrl: "http://api.test",
+        residentContextId: "d0000000-0000-0000-0000-000000000009",
+      }),
+    ).resolves.toEqual(residentContextPayload);
+
+    const request = fetchMock.mock.calls[0][1];
+    expect(request.headers).not.toHaveProperty("X-Resident-Context");
+    expect(JSON.parse(request.body)).toEqual({
+      unitId: "40000000-0000-0000-0000-000000000001",
+    });
+  });
+
+  it("exits with the context header and reads no body from the 204", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      exitResidentContext("d0000000-0000-0000-0000-000000000001", "signed-token", {
+        baseUrl: "http://api.test",
+      }),
+    ).resolves.toBeUndefined();
+
+    const [url, request] = fetchMock.mock.calls[0];
+    expect(url).toBe("http://api.test/v1/resident-context");
+    expect(request.method).toBe("DELETE");
+    expect(request.headers["X-Resident-Context"]).toBe(
+      "d0000000-0000-0000-0000-000000000001",
+    );
+  });
+
+  it("fetches the document as bytes with the bearer token", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(new Blob([new Uint8Array([37, 80, 68, 70])]), { status: 200 }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const blob = await downloadInvoiceDocument(
+      "b0000000-0000-0000-0000-000000000001",
+      "signed-token",
+      { baseUrl: "http://api.test" },
+    );
+
+    expect(blob.size).toBe(4);
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      "http://api.test/v1/invoices/b0000000-0000-0000-0000-000000000001/document",
     );
   });
 });

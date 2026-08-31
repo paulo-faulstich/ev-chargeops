@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.modules.billing.presentation.router import router as billing_router
 from app.modules.identity.presentation.router import router as identity_router
 from app.modules.ingestion.presentation.router import router as ingestion_router
 from app.modules.sessions.presentation.router import router as sessions_router
@@ -17,6 +18,7 @@ app.add_middleware(
 app.include_router(identity_router)
 app.include_router(ingestion_router)
 app.include_router(sessions_router)
+app.include_router(billing_router)
 
 
 @app.get("/health", tags=["platform"])

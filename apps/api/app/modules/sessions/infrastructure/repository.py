@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_, select
 from sqlalchemy.exc import SQLAlchemyError
@@ -12,6 +13,7 @@ from app.modules.organizations.infrastructure.models import (
     ChargerModel,
     MembershipModel,
     ProfileModel,
+    SiteModel,
     UnitModel,
 )
 from app.modules.sessions.domain.errors import SessionNotFound, UnitNotFound
@@ -82,7 +84,9 @@ class SqlAlchemySessionRepository:
             )
         )
         if period is not None:
-            start, end = self._period_bounds(period)
+            start, end = self._period_bounds(
+                period, await self._site_timezone(organization_id)
+            )
             statement = statement.where(
                 ChargingSessionModel.started_at >= start,
                 ChargingSessionModel.started_at < end,
@@ -338,14 +342,39 @@ class SqlAlchemySessionRepository:
             created=created,
         )
 
+    async def _site_timezone(self, organization_id: UUID) -> ZoneInfo:
+        """The wall clock a monthly period is measured against.
+
+        Falls back to UTC only when the organization has no site yet. Sites in
+        different timezones would need the bounds resolved per site; with a
+        single site per organization today, one lookup is exact.
+        """
+        zone = (
+            await self.session.execute(
+                select(SiteModel.timezone)
+                .where(SiteModel.organization_id == organization_id)
+                .order_by(SiteModel.name)
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        return ZoneInfo(zone) if zone else ZoneInfo("UTC")
+
     @staticmethod
-    def _period_bounds(period: str) -> tuple[datetime, datetime]:
-        start = datetime.strptime(period, "%Y-%m").replace(tzinfo=UTC)
+    def _period_bounds(period: str, zone: ZoneInfo) -> tuple[datetime, datetime]:
+        """Month boundaries in the site's wall clock, expressed in UTC.
+
+        Building these in UTC instead would move every late-evening session of
+        the last day of the month into the next period. In São Paulo that is
+        everything from 21:00 onwards, which is peak charging time in a
+        condominium garage, so the energy would silently leave the close it
+        belongs to.
+        """
+        start = datetime.strptime(period, "%Y-%m").replace(tzinfo=zone)
         if start.month == 12:
             end = start.replace(year=start.year + 1, month=1)
         else:
             end = start.replace(month=start.month + 1)
-        return start, end
+        return start.astimezone(UTC), end.astimezone(UTC)
 
     @staticmethod
     def _as_utc(value: datetime) -> datetime:

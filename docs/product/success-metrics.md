@@ -1,70 +1,96 @@
 # EV ChargeOps - Success Metrics
 
+**Versão:** 0.2
+
 **Status:** aprovado para implementação
 
-**Data:** 29 de agosto de 2026
+**Data:** 30 de agosto de 2026
+
+**PRD:** [prd.md](prd.md)
+
+## 0. O que mudou na versão 0.2
+
+Alinhamento ao recorte invoice-first do [PRD 0.4](prd.md). As métricas de pagamento, previsão
+e segmentação foram marcadas como adiadas, sem alteração de conteúdo, para preservar
+rastreabilidade com a Sprint 1. Entraram métricas para reconciliação contra o agregado do
+fabricante, imutabilidade da fatura emitida, geração de PDF, reprodução do exemplo resolvido
+da Sprint 1 e isolamento do contexto de morador.
 
 ## 1. Princípio de medição
 
-As métricas separam sucesso do protótipo, resultado operacional futuro e critérios acadêmicos. Os targets do MVP validam comportamento do sistema; não representam ainda impacto comercial comprovado.
+As métricas separam sucesso do protótipo, resultado operacional futuro e critérios acadêmicos.
+Os targets do MVP validam comportamento do sistema; não representam ainda impacto comercial
+comprovado.
 
 ## 2. North Star Metric
 
 ### Auditable Session Coverage
 
-Percentual das sessões válidas do período que possuem procedência registrada, consumo validado, atribuição utilizável e inclusão rastreável em uma fatura.
+Percentual das recargas válidas do período que possuem procedência registrada, consumo
+validado, atribuição utilizável e inclusão rastreável em uma fatura.
 
 ```text
 Auditable Session Coverage =
-  sessões faturadas com procedência + atribuição válidas
-  ----------------------------------------------------- × 100
-             sessões válidas importadas
+  recargas faturadas com procedência + atribuição válidas
+  ------------------------------------------------------- × 100
+             recargas válidas importadas
 ```
 
-Uma sessão excluída por erro permanece no denominador até ser corrigida ou formalmente descartada com justificativa.
+Uma recarga excluída por erro permanece no denominador até ser corrigida ou formalmente
+descartada com justificativa.
 
 ## 3. Métricas de outcome
 
 | Métrica | Definição | Direção desejada |
 |---|---|---|
-| Cobertura de atribuição | Sessões válidas associadas a uma unidade / sessões válidas | Aumentar |
+| Cobertura de atribuição | Recargas válidas associadas a uma unidade / recargas válidas | Aumentar |
 | Consumo não atribuído | kWh válidos sem unidade / kWh válidos importados | Reduzir |
 | Tempo de fechamento | Tempo entre início da revisão e emissão das faturas | Reduzir |
-| Reconciliação energética | Diferença absoluta entre kWh importado elegível e kWh faturado | Aproximar de zero |
+| Reconciliação interna | Diferença absoluta entre kWh elegível e kWh faturado | Aproximar de zero |
+| Reconciliação externa | Diferença absoluta entre kWh faturado e o agregado do carregador no período | Aproximar de zero, ou explicada |
 | Taxa de contestação | Faturas contestadas / faturas emitidas | Reduzir |
-| Tempo de resolução | Tempo mediano entre flag de anomalia e decisão registrada | Reduzir |
-| Conversão de cobrança | Faturas pagas / cobranças emitidas | Aumentar |
+| Tempo de resolução | Tempo mediano entre achado analítico e decisão registrada | Reduzir |
 
-As métricas de impacto serão baselineadas somente após uso por gestores reais. O protótipo instrumentará os eventos necessários para medi-las.
+As métricas de impacto serão baselineadas somente após uso por gestores reais. O protótipo
+instrumentará os eventos necessários para medi-las.
 
 ## 4. Acceptance metrics do MVP
 
 | ID | Métrica | Target do MVP | Evidência |
 |---|---|---|---|
 | M-01 | Cobertura de ingestão do fixture SEMS+ | 100% dos registros classificados como válidos, inválidos ou duplicados | Resultado do lote |
-| M-02 | Duplicação em reimportação | 0 novas sessões ao reimportar o mesmo lote | Teste de idempotência |
-| M-03 | Cobertura de procedência | 100% das sessões persistidas com fonte, lote e registro bruto | Consulta de auditoria |
+| M-02 | Duplicação em reimportação | 0 novas recargas ao reimportar o mesmo lote | Teste de idempotência |
+| M-03 | Cobertura de procedência | 100% das recargas persistidas com fonte, lote e registro bruto | Consulta de auditoria |
 | M-04 | Determinismo do rateio | 100% das reexecuções idênticas para o mesmo snapshot | Teste de domínio |
-| M-05 | Reconciliação do fixture | Diferença de 0,00 kWh entre sessões elegíveis e itens faturados | Relatório de fechamento |
-| M-06 | Transparência de identidade | 100% das sessões com confiança `confirmed`, `assigned` ou `unknown` | Consulta de sessões |
+| M-05 | Reconciliação interna | Diferença de 0,00 kWh entre recargas elegíveis e itens faturados | Relatório de fechamento |
+| M-06 | Transparência de identidade | 100% das recargas com confiança `confirmed`, `assigned` ou `unknown` | Consulta de recargas |
 | M-07 | Detecção de casos preparados | 100% dos fixtures anômalos conhecidos sinalizados com explicação | Teste de regras |
 | M-08 | Isolamento organizacional | 0 acesso cruzado nos testes de autorização | Teste de segurança |
-| M-09 | Integração tarifária | Uma tarifa versionada com fonte, vigência e captura demonstrada | Registro de tarifa |
-| M-10 | Integração de pagamento | Uma ordem Pix sandbox criada e atualizada por webhook idempotente | Log de demonstração |
-| M-11 | Proveniência na interface | 100% das telas de sessão e fatura identificam dados reais, atribuídos e simulados | Teste E2E |
+| M-09 | Integração tarifária | Uma tarifa versionada com faixas, fonte, vigência e captura demonstrada | Registro de tarifa |
+| M-10 | Integração de pagamento | **Adiada para P1.** Métrica preservada sem alteração | — |
+| M-11 | Proveniência na interface | 100% das telas de recarga e fatura identificam dados reais, atribuídos e simulados | Teste E2E |
 | M-12 | Segurança do equipamento | 0 comandos ou alterações enviados ao carregador | Revisão de integrações |
-| M-13 | Previsão demonstrável | Uma previsão exibe horizonte, amostra, erro de validação e faixa de incerteza; resultado inconclusivo é aceito quando o mínimo de dados não for atingido | Snapshot do insight e teste do modelo |
-| M-14 | Segmentação reproduzível | Uma execução de clustering registra features, normalização, parâmetros, seed, métrica de avaliação e procedência dos dados | Registro de `InsightRun` e teste reproduzível |
+| M-13 | Previsão demonstrável | **Adiada para P1.** Métrica preservada sem alteração | — |
+| M-14 | Segmentação reproduzível | **Adiada para P1.** Métrica preservada sem alteração | — |
 | M-15 | Rastreabilidade da IA | 100% dos resultados apresentados possuem versão do algoritmo e referência do dataset | Consulta de auditoria |
+| M-16 | Reprodução do exemplo da Sprint 1 | As seis faturas de `data/exemplos/faturas.csv` reproduzidas ao centavo, incluindo os três casos excepcionais | Teste golden do motor de rateio |
+| M-17 | Reconciliação externa | A diferença entre energia faturada e agregado do carregador é calculada e exibida no fechamento, nunca absorvida em silêncio | Relatório de fechamento |
+| M-18 | Imutabilidade da fatura | Alterar tarifa ou política após a emissão não altera nenhum valor de fatura já emitida | Teste de domínio |
+| M-19 | Aprovação explícita | 0 faturas emitidas sem ação de aprovação registrada com ator e instante | Consulta de auditoria |
+| M-20 | Geração de PDF | Fatura emitida gera PDF baixável cuja composição confere com a exibida em tela | Teste E2E |
+| M-21 | Isolamento do contexto de morador | Contexto de morador não retorna dados de outra unidade, e o acesso passa pelo mesmo resolver de autorização de um morador real | Teste de autorização |
+| M-22 | Auditoria do impersonate | 100% dos acessos em contexto de morador geram evento de auditoria com ator, unidade e instante | Consulta de auditoria |
 
 ## 5. Guardrail metrics
 
 - Zero segredo versionado no Git.
-- Zero pagamento em produção.
-- Zero sessão simulada apresentada como real.
+- Zero recarga simulada apresentada como real.
+- Zero valor agregado do fabricante apresentado como recarga faturável.
 - Zero modificação remota do carregador.
-- Zero fatura emitida para sessão crítica não revisada.
-- Zero acesso de morador a dados de outra unidade não autorizada.
+- Zero fatura emitida para recarga crítica não revisada.
+- Zero fatura emitida sem aprovação explícita.
+- Zero acesso de contexto de morador a dados de outra unidade.
+- Zero escrita a partir de um contexto de morador.
 
 ## 6. Eventos de produto
 
@@ -72,32 +98,30 @@ As métricas de impacto serão baselineadas somente após uso por gestores reais
 |---|---|
 | `import_started` | organizationId, source, batchId, timestamp |
 | `import_completed` | batchId, validCount, invalidCount, duplicateCount |
+| `aggregate_imported` | batchId, source, periodFrom, periodTo, dayCount |
 | `session_assigned` | sessionId, previousConfidence, newConfidence, actorId |
 | `anomaly_flagged` | sessionId, ruleCode, severity |
-| `forecast_generated` | insightRunId, horizon, sampleSize, modelVersion, evaluationMetric |
-| `usage_segments_generated` | insightRunId, segmentCount, sampleSize, modelVersion, datasetProvenance |
-| `billing_period_closed` | periodId, sessionCount, energyKwh, invoiceCount |
-| `invoice_issued` | invoiceId, amountCents, sessionCount |
-| `payment_order_created` | invoiceId, provider, externalStatus |
-| `payment_status_changed` | invoiceId, previousStatus, newStatus |
+| `closing_opinion_generated` | periodId, insightRunId, severity, confidence, blockingCount |
+| `billing_period_closed` | periodId, sessionCount, energyKwh, invoiceCount, actorId |
+| `invoice_issued` | invoiceId, unitId, amountCents, sessionCount |
+| `invoice_pdf_downloaded` | invoiceId, actorId, context |
+| `resident_context_entered` | actorId, unitId, timestamp |
 
-Eventos não armazenarão nome, e-mail, cartão completo ou payload sensível de pagamento.
+Eventos não armazenarão nome, e-mail ou payload sensível.
 
 ## 7. Alinhamento com a avaliação
 
 | Critério do desafio | Evidência mensurável |
 |---|---|
-| Arquitetura funcional | Lote rastreável do input à fatura e ao pagamento |
-| Gestão e estrutura de dados | M-01 a M-06 |
-| Papel da IA | M-07, M-13, M-14 e M-15, com demonstração dos três módulos planejados |
-| Aderência ao contexto | M-11, M-12 e uso de sessões SEMS+ |
-| Visão de produto real | M-09, M-10 e métricas de outcome instrumentadas |
+| Arquitetura funcional | Lote rastreável do input à fatura e ao PDF |
+| Gestão e estrutura de dados | M-01 a M-06, M-16 e M-17 |
+| Papel da IA | M-07 e M-15, com o parecer atuando antes da fatura e bloqueando a emissão |
+| Aderência ao contexto | M-11, M-12, M-17 e uso de recargas reais do SEMS+ |
+| Visão de produto real | M-09, M-18 a M-22 e métricas de outcome instrumentadas |
 
 ## 8. Cadência futura
 
 - Métricas do lote: a cada importação.
 - Métricas de fechamento: mensalmente.
-- Métricas de produto: painel móvel de 30 e 90 dias.
 - Revisão de regras de anomalia: após cada falso positivo ou falso negativo confirmado.
-- Revisão de modelos: quando houver mudança de dataset, features, algoritmo ou evidência de degradação.
 - Revisão de targets comerciais: depois do primeiro ciclo com baseline real.

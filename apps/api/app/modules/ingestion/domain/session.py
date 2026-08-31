@@ -88,6 +88,19 @@ class SessionCandidate:
             charge_port=charge_port,
             card_id_raw=card_id_raw or None,
             identity_confidence=IdentityConfidence.UNKNOWN,
-            provenance=DataProvenance.REAL,
+            provenance=provenance_of(source),
             deduplication_key=sha256(payload.encode("utf-8")).hexdigest(),
         )
+
+
+def provenance_of(source: SourceKind) -> DataProvenance:
+    """Provenance follows from the source and is never chosen by the caller.
+
+    A demonstrative scenario must not be able to enter the system claiming to be
+    observed telemetry. Deriving the value here turns the guardrail "no simulated
+    session is ever presented as real" into something the type system enforces at
+    construction, instead of a rule every future adapter has to remember.
+    """
+    if source is SourceKind.SIMULATED:
+        return DataProvenance.SIMULATED
+    return DataProvenance.REAL

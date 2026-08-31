@@ -4,7 +4,6 @@ from uuid import UUID
 
 from sqlalchemy import (
     JSON,
-    DateTime,
     ForeignKey,
     ForeignKeyConstraint,
     Index,
@@ -15,7 +14,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.shared.sqlalchemy import Base, TimestampMixin, UuidPrimaryKeyMixin
+from app.shared.sqlalchemy import Base, TimestampMixin, UtcDateTime, UuidPrimaryKeyMixin
 
 
 class ImportBatchModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
@@ -81,9 +80,9 @@ class ChargingSessionModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
     external_id: Mapped[str | None] = mapped_column(String(160), nullable=True)
     deduplication_key: Mapped[str] = mapped_column(String(64), nullable=False)
     started_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
+        UtcDateTime, nullable=False
     )
-    ended_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    ended_at: Mapped[datetime] = mapped_column(UtcDateTime, nullable=False)
     energy_kwh: Mapped[Decimal] = mapped_column(Numeric(12, 3), nullable=False)
     charge_port: Mapped[int | None] = mapped_column(nullable=True)
     card_id_raw: Mapped[str | None] = mapped_column(String(160), nullable=True)

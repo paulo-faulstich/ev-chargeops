@@ -1,10 +1,10 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Index, String
+from sqlalchemy import JSON, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.shared.sqlalchemy import Base, UuidPrimaryKeyMixin
+from app.shared.sqlalchemy import Base, UtcDateTime, UuidPrimaryKeyMixin
 
 
 class AuditEventModel(UuidPrimaryKeyMixin, Base):
@@ -17,7 +17,7 @@ class AuditEventModel(UuidPrimaryKeyMixin, Base):
         ForeignKey("profiles.id"), index=True
     )
     occurred_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
+        UtcDateTime, nullable=False
     )
     event_type: Mapped[str] = mapped_column(String(64), nullable=False)
     entity_type: Mapped[str] = mapped_column(String(64), nullable=False)

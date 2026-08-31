@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     original_files_root: Path = API_ROOT / ".data" / "original-imports"
     fixture_auth_token: str | None = None
     demo_manager_email: str | None = None
+    resident_context_ttl_seconds: int = 900
 
     @model_validator(mode="after")
     def validate_environment_safety(self) -> "Settings":

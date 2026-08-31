@@ -312,7 +312,10 @@ test("hands a confirmed SEMS import to the manager action queue", async ({
   await page.getByRole("link", { name: "Continuar fechamento" }).click();
 
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByText("Setembro 2026", { exact: true })).toBeVisible();
+  // This test drives the real API, so the dashboard may hold several months
+  // and render a picker instead of plain text. The chart caption names the
+  // selected period in either shape.
+  await expect(page.getByText("kWh · Setembro 2026")).toBeVisible();
   await expect(page.getByText("0 de 2", { exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Revisar 2 pendências" }).click();
 

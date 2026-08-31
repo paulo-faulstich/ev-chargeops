@@ -167,12 +167,18 @@ async def add_session(
 async def test_list_sessions_is_organization_scoped_and_does_not_trust_card_id(
     async_session: AsyncSession,
 ) -> None:
-    first_organization_id, first_site_id, first_charger_id, first_batch_id = (
-        await seed_organization(async_session, 1)
-    )
-    second_organization_id, second_site_id, second_charger_id, second_batch_id = (
-        await seed_organization(async_session, 2)
-    )
+    (
+        first_organization_id,
+        first_site_id,
+        first_charger_id,
+        first_batch_id,
+    ) = await seed_organization(async_session, 1)
+    (
+        second_organization_id,
+        second_site_id,
+        second_charger_id,
+        second_batch_id,
+    ) = await seed_organization(async_session, 2)
     first_session = await add_session(
         async_session,
         organization_id=first_organization_id,
@@ -209,7 +215,9 @@ async def test_list_sessions_is_organization_scoped_and_does_not_trust_card_id(
         charger_id=first_charger_id,
         import_batch_id=first_batch_id,
         id_suffix=2,
-        started_at=datetime(2026, 9, 1, tzinfo=UTC),
+        # 01:00 on 1 September in São Paulo: the first instant that is September
+        # in the site's own wall clock, which is what the period is measured in.
+        started_at=datetime(2026, 9, 1, 4, tzinfo=UTC),
     )
     second_session = await add_session(
         async_session,
@@ -781,3 +789,52 @@ async def test_assign_session_rolls_back_all_changes_when_audit_insert_fails(
     assert persisted_session.status == "pending_review"
     assert await row_count(async_session, SessionAssignmentModel) == 0
     assert await row_count(async_session, AuditEventModel) == 0
+
+
+async def test_period_is_measured_in_the_site_timezone(
+    async_session: AsyncSession,
+) -> None:
+    """Late-evening charging on the last day of the month stays in that month.
+
+    The site runs on America/Sao_Paulo, three hours behind UTC. Measuring the
+    period in UTC would push every session from 21:00 onwards on the last day
+    into the next month, which in a condominium garage is exactly when people
+    plug in. The energy would silently leave the close it belongs to.
+    """
+    organization_id, site_id, charger_id, import_batch_id = await seed_organization(
+        async_session,
+        1,
+    )
+    late_august = await add_session(
+        async_session,
+        organization_id=organization_id,
+        site_id=site_id,
+        charger_id=charger_id,
+        import_batch_id=import_batch_id,
+        id_suffix=1,
+        # 31 August, 23:30 in São Paulo; already 1 September in UTC.
+        started_at=datetime(2026, 9, 1, 2, 30, tzinfo=UTC),
+    )
+    first_september = await add_session(
+        async_session,
+        organization_id=organization_id,
+        site_id=site_id,
+        charger_id=charger_id,
+        import_batch_id=import_batch_id,
+        id_suffix=2,
+        # 1 September, 00:30 in São Paulo.
+        started_at=datetime(2026, 9, 1, 3, 30, tzinfo=UTC),
+    )
+    await async_session.commit()
+
+    repository = SqlAlchemySessionRepository(async_session)
+
+    august = await repository.list_sessions(
+        organization_id, period="2026-08", status=None
+    )
+    september = await repository.list_sessions(
+        organization_id, period="2026-09", status=None
+    )
+
+    assert [item.id for item in august] == [late_august.id]
+    assert [item.id for item in september] == [first_september.id]

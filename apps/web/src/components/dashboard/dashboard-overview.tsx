@@ -6,9 +6,10 @@ import { listSessions } from "@ev-chargeops/api-client";
 
 import {
   buildDashboardSummary,
-  ESTIMATED_TARIFF_BRL_PER_KWH,
   type DashboardSummary,
+  type SessionProvenance,
 } from "./dashboard-summary";
+import { PeriodClose } from "@/components/billing/period-close";
 import { PageBreadcrumb } from "@/components/shell/page-breadcrumb";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "/api";
@@ -24,19 +25,14 @@ const energyFormatter = new Intl.NumberFormat("pt-BR", {
   maximumFractionDigits: 2,
 });
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
-
 type DashboardState =
   | { status: "loading"; summary: null }
   | { status: "error"; summary: null }
   | { status: "ready"; summary: DashboardSummary | null };
 
-async function fetchDashboardSummary(accessToken: string) {
+async function fetchDashboardSummary(accessToken: string, periodKey?: string) {
   const sessions = await listSessions(accessToken, {}, apiUrl);
-  return buildDashboardSummary(sessions.items);
+  return buildDashboardSummary(sessions.items, periodKey);
 }
 
 export function DashboardOverview({ accessToken }: { accessToken: string }) {
@@ -45,11 +41,12 @@ export function DashboardOverview({ accessToken }: { accessToken: string }) {
     summary: null,
   });
   const [refreshGeneration, setRefreshGeneration] = useState(0);
+  const [selectedPeriod, setSelectedPeriod] = useState<string | undefined>();
 
   useEffect(() => {
     let ignore = false;
 
-    void fetchDashboardSummary(accessToken)
+    void fetchDashboardSummary(accessToken, selectedPeriod)
       .then((summary) => {
         if (!ignore) setState({ status: "ready", summary });
       })
@@ -60,7 +57,7 @@ export function DashboardOverview({ accessToken }: { accessToken: string }) {
     return () => {
       ignore = true;
     };
-  }, [accessToken, refreshGeneration]);
+  }, [accessToken, refreshGeneration, selectedPeriod]);
 
   const activeStage = state.summary
     ? state.summary.pendingCount > 0
@@ -78,7 +75,14 @@ export function DashboardOverview({ accessToken }: { accessToken: string }) {
         </div>
         {state.summary ? (
           <div className="dashboard-heading-meta">
-            <strong>{state.summary.periodLabel}</strong>
+            <PeriodPicker
+              summary={state.summary}
+              onSelect={(periodKey) => {
+                setState({ status: "loading", summary: null });
+                setSelectedPeriod(periodKey);
+              }}
+            />
+            <ProvenanceBadge provenance={state.summary.provenance} />
             <span className="dashboard-updated">
               Atualizado em {state.summary.updatedAt}
             </span>
@@ -102,9 +106,69 @@ export function DashboardOverview({ accessToken }: { accessToken: string }) {
       ) : null}
       {state.status === "ready" && !state.summary ? <EmptyDashboard /> : null}
       {state.status === "ready" && state.summary ? (
-        <OperationalDashboard summary={state.summary} />
+        <OperationalDashboard
+          summary={state.summary}
+          accessToken={accessToken}
+        />
       ) : null}
     </div>
+  );
+}
+
+const provenanceLabels: Record<SessionProvenance, string> = {
+  real: "SEMS+ real",
+  simulated: "Cenário demonstrativo",
+  mixed: "Origens combinadas",
+};
+
+/**
+ * Provenance travels with the period, never with the screen.
+ *
+ * A manager must never have to remember whether the month on display came off
+ * the charger or out of a demonstration dataset, and an evaluator must never be
+ * able to mistake one for the other.
+ */
+function ProvenanceBadge({ provenance }: { provenance: SessionProvenance }) {
+  return (
+    <span
+      className={`provenance-badge provenance-badge-${provenance}`}
+      title={
+        provenance === "real"
+          ? "Telemetria observada no SEMS+."
+          : provenance === "simulated"
+            ? "Dados construídos para demonstração. Não são telemetria real."
+            : "Este período combina telemetria real e dados demonstrativos."
+      }
+    >
+      {provenanceLabels[provenance]}
+    </span>
+  );
+}
+
+function PeriodPicker({
+  summary,
+  onSelect,
+}: {
+  summary: DashboardSummary;
+  onSelect: (periodKey: string) => void;
+}) {
+  if (summary.periods.length <= 1) {
+    return <strong>{summary.periodLabel}</strong>;
+  }
+  return (
+    <label className="dashboard-period-picker">
+      <span className="visually-hidden">Período do fechamento</span>
+      <select
+        value={summary.periodKey}
+        onChange={(event) => onSelect(event.target.value)}
+      >
+        {summary.periods.map((period) => (
+          <option key={period.periodKey} value={period.periodKey}>
+            {period.periodLabel} · {period.sessionCount} recargas
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -246,7 +310,13 @@ function DashboardProcessGuide() {
   );
 }
 
-function OperationalDashboard({ summary }: { summary: DashboardSummary }) {
+function OperationalDashboard({
+  summary,
+  accessToken,
+}: {
+  summary: DashboardSummary;
+  accessToken: string;
+}) {
   const maxDailyEnergy = Math.max(
     ...summary.dailyUsage.map((day) => day.energyKwh),
     1,
@@ -260,11 +330,6 @@ function OperationalDashboard({ summary }: { summary: DashboardSummary }) {
           label="Energia no período"
           value={`${energyFormatter.format(summary.totalEnergyKwh)} kWh`}
           supporting={`${summary.sessionCount} ${summary.sessionCount === 1 ? "recarga importada" : "recargas importadas"}`}
-        />
-        <MetricCard
-          label="Custo estimado"
-          value={currencyFormatter.format(summary.estimatedCost)}
-          supporting={`Tarifa de ${currencyFormatter.format(ESTIMATED_TARIFF_BRL_PER_KWH)}/kWh`}
         />
         <MetricCard
           label="Recargas atribuídas"
@@ -334,22 +399,21 @@ function OperationalDashboard({ summary }: { summary: DashboardSummary }) {
 
       <section className="responsible-costs" aria-labelledby="responsible-costs-title">
         <div className="dashboard-section-heading">
-          <h2 id="responsible-costs-title">Custos por responsável</h2>
-          <span>Prévia do fechamento · tarifa estimada</span>
+          <h2 id="responsible-costs-title">Consumo por responsável</h2>
+          <span>Medido · o valor devido é decidido no fechamento</span>
         </div>
         <div className="responsible-table-frame">
-          <table aria-label="Custos por responsável">
+          <table aria-label="Consumo por responsável">
             <thead>
               <tr>
                 <th>Identificador</th>
                 <th>Situação</th>
                 <th>Recargas</th>
                 <th>Energia</th>
-                <th>Custo estimado</th>
               </tr>
             </thead>
             <tbody>
-              {summary.responsibleCosts.map((responsible) => (
+              {summary.responsibleConsumption.map((responsible) => (
                 <tr key={responsible.key}>
                   <td>{responsible.label}</td>
                   <td>
@@ -359,13 +423,14 @@ function OperationalDashboard({ summary }: { summary: DashboardSummary }) {
                   </td>
                   <td>{responsible.sessionCount}</td>
                   <td>{energyFormatter.format(responsible.energyKwh)} kWh</td>
-                  <td>{currencyFormatter.format(responsible.estimatedCost)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </section>
+
+      <PeriodClose accessToken={accessToken} periodValue={summary.periodKey} />
     </div>
   );
 }

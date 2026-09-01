@@ -36,9 +36,33 @@ type DashboardState =
   | { status: "error"; summary: null }
   | { status: "ready"; summary: DashboardSummary | null };
 
-async function fetchDashboardSummary(accessToken: string, periodKey?: string) {
+/** The month the overview opens on.
+ *
+ * The newest charge is a poor default: charges keep arriving into a month
+ * nobody has opened yet, while the operation is still closing an earlier one.
+ * The billing periods say which month is actually being worked on, and the two
+ * screens must not disagree about it.
+ */
+async function fetchDashboardSummary(
+  accessToken: string,
+  periodKey: string | undefined,
+  workingPeriod: string | undefined,
+) {
   const sessions = await listSessions(accessToken, {}, apiUrl);
-  return buildDashboardSummary(sessions.items, periodKey);
+  return buildDashboardSummary(sessions.items, periodKey ?? workingPeriod);
+}
+
+async function fetchWorkingPeriod(
+  accessToken: string,
+): Promise<string | undefined> {
+  try {
+    const periods = await listBillingPeriods(accessToken, { baseUrl: apiUrl });
+    return periods.items
+      .map((period) => period.periodValue)
+      .sort((left, right) => right.localeCompare(left))[0];
+  } catch {
+    return undefined;
+  }
 }
 
 type PeriodContext = {
@@ -102,7 +126,10 @@ export function DashboardOverview({ accessToken }: { accessToken: string }) {
   useEffect(() => {
     let ignore = false;
 
-    void fetchDashboardSummary(accessToken, selectedPeriod)
+    void fetchWorkingPeriod(accessToken)
+      .then((workingPeriod) =>
+        fetchDashboardSummary(accessToken, selectedPeriod, workingPeriod),
+      )
       .then(async (summary) => {
         if (ignore) return;
         setState({ status: "ready", summary });

@@ -176,6 +176,32 @@ def test_alembic_normalizes_plain_postgresql_url_without_connecting(
     )
 
 
+def test_alembic_accepts_percent_encoded_password_from_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "DATABASE_URL",
+        "postgresql://chargeops:synthetic%21@example.invalid/chargeops",
+    )
+    config = Config("apps/api/alembic.ini")
+
+    def capture_url(configuration: dict[str, str], **_: object) -> NoReturn:
+        raise CapturedAlembicUrl(configuration["sqlalchemy.url"])
+
+    monkeypatch.setattr(
+        sqlalchemy_asyncio,
+        "async_engine_from_config",
+        capture_url,
+    )
+
+    with pytest.raises(CapturedAlembicUrl) as captured:
+        command.current(config)
+
+    assert captured.value.url == (
+        "postgresql+psycopg://chargeops:synthetic%21@example.invalid/chargeops"
+    )
+
+
 def test_postgresql_offline_upgrade_compiles_complete_scoped_schema() -> None:
     output = StringIO()
     config = Config("apps/api/alembic.ini", output_buffer=output)

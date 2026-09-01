@@ -33,11 +33,12 @@ def database_url() -> str:
     return Settings(supabase_url="http://localhost").database_url
 
 
+normalized_database_url = normalize_async_database_url(
+    database_url()
+).render_as_string(hide_password=False)
 config.set_main_option(
     "sqlalchemy.url",
-    normalize_async_database_url(database_url()).render_as_string(
-        hide_password=False
-    ),
+    normalized_database_url.replace("%", "%%"),
 )
 target_metadata = Base.metadata
 

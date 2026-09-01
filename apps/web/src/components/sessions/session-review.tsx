@@ -327,7 +327,7 @@ export function SessionReview({ accessToken }: { accessToken: string }) {
         </div>
         <Link href="/dashboard" className="session-back-link">
           <span aria-hidden="true">←</span>
-          Voltar para visão geral
+          Voltar para Visão geral
         </Link>
       </header>
 
@@ -480,6 +480,7 @@ function SessionLedger({ sessions }: { sessions: SessionResponse[] }) {
               <th scope="col">Duração</th>
               <th scope="col">Energia</th>
               <th scope="col">Responsável</th>
+              <th scope="col">Como foi atribuída</th>
               <th scope="col">Procedência</th>
             </tr>
           </thead>
@@ -498,6 +499,17 @@ function SessionLedger({ sessions }: { sessions: SessionResponse[] }) {
                     </span>
                   ) : (
                     <span className="pending">Não atribuído</span>
+                  )}
+                </td>
+                <td>
+                  {/* A charge that resolved itself and one a manager decided
+                      are both legitimate, and must not look alike. */}
+                  {session.assignmentOrigin === "card" ? (
+                    <span className="origin-card">Cartão registrado</span>
+                  ) : session.assignmentOrigin === "manual" ? (
+                    <span className="origin-manual">Decisão do gestor</span>
+                  ) : (
+                    <span className="pending">Aguarda decisão</span>
                   )}
                 </td>
                 <td>{provenanceLabel(session)}</td>

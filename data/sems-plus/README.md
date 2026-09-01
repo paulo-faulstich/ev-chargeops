@@ -8,6 +8,47 @@ Regra: nada aqui é editado depois de capturado. Correções e normalizações a
 adapter de ingestão, nunca no arquivo original. Cada captura registra data, tela de
 origem e limitações conhecidas.
 
+## `2026-08-31-ev-charger-sessoes.csv`
+
+**O histórico de recarga, sessão por sessão** — 145 sessões e 1.130,66 kWh entre
+01/01 e 30/08/2026, capturado do painel `Charging Record` do dispositivo EV
+Charger. É a única fonte real com horário de início, e portanto a única que
+permite resolver faixa tarifária e emitir fatura.
+
+Documentação, conversões aplicadas e as duas linhas que a ingestão recusa:
+[`2026-08-31-ev-charger-sessoes.md`](2026-08-31-ev-charger-sessoes.md).
+
+## `2026-08-31-estacao-diario-agosto.csv`
+
+**Origem:** SEMS+ → Report Center → *Station Statistical Report* (01/08 a 31/08/2026),
+exportado em XLSX e convertido sem edição de valores.
+
+Série diária **da planta** para agosto: geração solar, carga e descarga da
+**bateria**, exportação e importação de rede. Totais do mês: geração 150,20 kWh,
+bateria carregada 47,50 kWh, descarregada 33,80 kWh, exportado 62,90 kWh,
+importado 13,70 kWh.
+
+Não é dado do carregador de veículo. `battery_charged_kwh` é a bateria
+estacionária — em agosto ela soma 47,50 kWh, enquanto o carregador entregou cerca
+de 125 kWh no mesmo mês.
+
+## `2026-08-31-estacao-potencia-5min.csv`
+
+**Origem:** SEMS+ → Report Center → *Station Operation Report* (31/08/2026).
+
+Potência instantânea da planta em intervalos de 5 minutos: fotovoltaica, carga,
+bateria, SOC e rede. A exportação cobre 00:00 a 12:45 (154 amostras) porque foi
+tirada no meio do dia. Também é dado de planta, não de carregador.
+
+## `2026-08-31-ev-charger-energia-diaria.csv`
+
+Energia diária **do carregador de veículo elétrico**, 11/05 a 30/08/2026, capturada
+da aba `EV Charger Monitoring`. Documentação, limitações de leitura e o que o
+arquivo permite ou não: [`2026-08-31-ev-charger-energia-diaria.md`](2026-08-31-ev-charger-energia-diaria.md).
+
+Atenção: a série `Charged Energy` da aba `Energy Monitoring` é a **bateria** da
+planta, não o carregador. Não são intercambiáveis.
+
 ## `2026-08-30-estacao-energia-agregada.csv`
 
 **Capturado em:** 30 de agosto de 2026

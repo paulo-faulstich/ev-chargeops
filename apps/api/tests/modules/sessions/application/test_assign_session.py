@@ -57,6 +57,7 @@ def assignment_result() -> AssignmentResult:
             unit_code="A-101",
             unit_name="Apartment A-101",
             resident_name="Resident One",
+            assignment_origin=None,
         ),
         created=True,
     )

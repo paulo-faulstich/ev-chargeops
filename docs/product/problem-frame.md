@@ -16,12 +16,72 @@ Síndicos e usuários de infraestruturas compartilhadas de recarga não possuem 
 
 ## 3. Evidências disponíveis
 
-- O SEMS+ apresenta histórico de início, fim, duração, energia, autonomia estimada, porta e um campo rotulado como `Card ID`.
-- Na janela observada entre 31/07/2026 e 27/08/2026, foram identificadas 16 sessões, somando 133,83 kWh.
-- O `Card ID` observado é igual ao serial do carregador em todas as sessões consultadas; portanto, não comprova a identidade do usuário.
-- O histórico de recarga possui opção de exportação, mas o Report Center oferece apenas relatórios de estação e inversor.
-- Uma consulta ampla de aproximadamente 13 meses não retornou dados, enquanto a janela padrão de 30 dias funcionou. A ingestão deve operar em janelas mensais e validar cada lote.
-- A mentoria confirmou que a API para EV Chargers não será liberada aos grupos, que o fluxo é de consulta (`pull`) e que o acesso oferecido é à planta no SEMS+.
+> Atualizado em 31/08/2026, após a captura do histórico completo. A versão
+> anterior desta seção descrevia uma janela de 30 dias e afirmava que o `Card ID`
+> era igual ao serial da estação. Ambos os pontos estão corrigidos abaixo, e a
+> conclusão sobre identidade ficou mais forte, não mais fraca.
+
+### 3.1 Onde o dado por sessão realmente está
+
+O histórico por sessão não fica em nenhuma tela da estação. Ele está no
+dispositivo: **Station Details → EV Charger → painel `Charging Record`**, que
+tem filtro por intervalo e exportação própria.
+
+Isso importa porque as telas de estação são um beco sem saída para este produto:
+
+- `Energy Monitoring` traz séries **da planta**, e a série `Charged Energy` ali é
+  a **bateria estacionária**, não o carregador. Em 29/08/2026 o carregador
+  entregou 10,50 kWh e essa série marca cerca de 0,5 kWh no mesmo dia.
+- `EV Charger Monitoring` traz energia **diária** do carregador — útil para
+  ordem de grandeza e reconciliação, inútil para faturar, porque não tem horário
+  de início e portanto não resolve faixa tarifária.
+- O **Report Center** exporta apenas relatórios de estação e inversor. Os dois
+  formatos testados (`Station Statistical Report` e `Station Operation Report`)
+  não contêm sessão alguma.
+
+### 3.2 O que o histórico contém
+
+Capturado em 31/08/2026 para o intervalo de 01/01 a 31/08/2026:
+**145 sessões, 1.130,66 kWh**, total que confere com o cabeçalho do próprio
+relatório. Cada linha traz `Card ID`, `RFID Card Name`, início, fim, duração e
+energia carregada.
+
+O volume é estável: entre 10 e 26 sessões por mês, com 130 a 178 kWh mensais
+desde março. Julho de 2026 tem 18 sessões e 167,77 kWh.
+
+### 3.3 O campo de identidade existe e não identifica ninguém
+
+Esta é a evidência central do produto, e é mais específica do que se supunha:
+
+- O `Card ID` é **`57000HPA247L0002` em todas as 145 sessões**, ao longo de oito
+  meses. Não varia com o usuário, o dia ou o veículo.
+- Esse valor é o **`EV Charger SN` declarado no cabeçalho do próprio relatório**:
+  o campo que parece identidade é o serial do equipamento. (O serial que a
+  documentação anterior citava, `97500NAP25BL0008`, é da estação, não do
+  carregador.)
+- A coluna **`RFID Card Name` existe e vem vazia** em todas as linhas.
+
+O equipamento **suporta** identificação: o HCA G2 tem leitor RFID, e o relatório
+reserva duas colunas para o portador do cartão. O que falta no LAB é o cadastro
+de cartões — e, mesmo onde ele existir, nada no dado do fabricante liga um cartão
+a uma unidade nem a uma cobrança. Essa ponte é o produto.
+
+### 3.4 Qualidade do dado bruto
+
+Quatro das 145 sessões são conexões sem energia entregue (0,00 kWh), duas delas
+com início e fim no mesmo instante. A ingestão as recusa por
+`ENERGY_NOT_POSITIVE` e `END_NOT_AFTER_START`, com o registro bruto preservado.
+São defeitos reais do portal do fabricante, não da conversão.
+
+### 3.5 Limitações de acesso
+
+- Uma consulta ampla de aproximadamente 13 meses não retornou dados na tela de
+  energia, enquanto a janela padrão de 30 dias funcionou. Já o `Charging Record`
+  aceitou oito meses de uma vez. A ingestão continua validando lote a lote.
+- A mentoria confirmou que a API para EV Chargers não será liberada aos grupos,
+  que o fluxo é de consulta (`pull`) e que o acesso oferecido é à planta no SEMS+.
+- As capturas usadas estão em [`../../data/sems-plus/`](../../data/sems-plus/),
+  cada uma com a tela de origem e as limitações de leitura registradas.
 
 ## 4. Usuários e necessidades
 

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
   ApiError,
@@ -74,9 +75,12 @@ const LOADING: InvoiceState = { status: "loading" };
 export function InvoiceView({
   invoiceId,
   accessToken,
+  origin = "invoices",
 }: {
   invoiceId: string;
   accessToken: string;
+  /** Which list opened this invoice, so the way back leads there. */
+  origin?: "invoices" | "closing";
 }) {
   const { context: residentContext, enter } = useResidentContext();
   // The result is tagged with the request it answers, so switching invoice or
@@ -162,9 +166,12 @@ export function InvoiceView({
 
   return (
     <div className="invoice-page">
-      <header className="invoice-heading">
+      <header className="dashboard-heading invoice-heading">
         <div>
-          <PageBreadcrumb section="Faturamento" current={`Fatura ${invoice.number}`} />
+          <PageBreadcrumb
+            section={origin === "closing" ? "Fechamento" : "Faturas"}
+            current={`Fatura ${invoice.number}`}
+          />
           <h1>
             Unidade {invoice.unitCode} · {invoice.periodValue}
           </h1>
@@ -172,6 +179,15 @@ export function InvoiceView({
             {invoice.unitName} · responsável {invoice.contactLabel} · emitida em{" "}
             {issued.date}
           </p>
+          <Link
+            href={origin === "closing" ? "/closing" : "/invoices"}
+            className="session-back-link"
+          >
+            <span aria-hidden="true">←</span>
+            {origin === "closing"
+              ? "Voltar para Fechamento"
+              : "Voltar para Faturas"}
+          </Link>
         </div>
         <div className="invoice-heading-actions">
           {residentContext === null ? (

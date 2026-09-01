@@ -41,12 +41,14 @@ arquitetura e não descarte o que já existe.** Continue de onde parou.
 
 ## Estado atual: o incremento está completo e verde
 
-- **318 testes Python**, ruff e mypy limpos, sem drift de migration.
-- **44 testes Playwright passando** (antes nunca haviam sido executados).
+- **324 testes Python**, ruff e mypy limpos, sem drift de migration nem de contrato.
+- **44 testes Playwright passando.**
 - Client TypeScript com `tsc` e 19 testes vitest; web com `tsc` e `eslint`.
-- Fluxo verificado de ponta a ponta com a API no ar: período de maio fechado,
-  5 faturas, R$ 1.121,70, soma conferindo ao centavo, PDF byte-idêntico em dois
-  downloads com `ETag` igual ao sha256 do conteúdo.
+- **A demonstração roda sobre dado real da GoodWe.** Julho/2026 fechado com as 17
+  recargas reais do `Charging Record` do SEMS+: 4 faturas, R$ 270,12, e a soma de
+  energia (167,77 kWh) confere com o mês real. A fatura declara
+  `Procedência: dados reais`.
+- PDF byte-idêntico em dois downloads, com `ETag` igual ao sha256 do conteúdo.
 
 Passos 1 a 4 (cálculo, persistência, readiness, parecer) seguem como descrito no
 histórico. O que foi concluído depois:
@@ -80,8 +82,8 @@ A navegação separa dois ritmos, porque acompanhamento diário e decisão mensa
 não são a mesma coisa:
 
 ```
-Operação     → /dashboard  (visão geral)   /sessions (recargas)
-Faturamento  → /closing    (fechamento)    /invoices (faturas)
+Operação     → /dashboard  /sessions  /charging-cards
+Faturamento  → /closing    /invoices
 Configurações→ /settings/data-sources
 ```
 
@@ -94,6 +96,24 @@ Configurações→ /settings/data-sources
 - `/invoices` lista as faturas; `/invoices/{id}` é a fatura com os quatro blocos
   da seção 9 e o botão "Ver como o morador" ao lado do PDF.
 
+### 9. Cartões de recarga
+
+O equipamento autentica um cartão RFID e o relatório do SEMS+ carrega `Card ID` e
+`RFID Card Name`. O que não existe no dado do fabricante é a ligação entre cartão,
+unidade e cobrança. `charging_cards` é essa ponte, dita uma vez por um gestor e
+auditada.
+
+- Na importação, recarga com cartão registrado **se atribui sozinha**, com
+  `identity_confidence = confirmed`; só as desconhecidas vão para a revisão.
+- `session_assignments.origin` distingue `card` de `manual` para sempre, e a tela
+  de Recargas mostra os três estados lado a lado.
+- Decisão do gestor **sobrepõe** o cartão.
+- **Registrar o serial do próprio carregador é recusado** (`422
+  CARD_IS_THE_CHARGER_SERIAL`). Aceitá-lo atribuiria todas as recargas do
+  conector a uma unidade por construção, e a fatura afirmaria uma identidade que
+  ninguém verificou. É por isso que `57000HPA247L0002` não está registrado e as
+  recargas reais caem na fila.
+
 ### Endpoints
 
 ```
@@ -105,6 +125,9 @@ POST   /v1/billing-periods/{id}/closing-opinion
 GET    /v1/billing-periods/{id}/findings
 POST   /v1/billing-periods/{id}/findings/{id}/decision
 POST   /v1/billing-periods/{id}/close
+GET    /v1/charging-cards
+POST   /v1/charging-cards                    (recusa o serial do carregador)
+DELETE /v1/charging-cards/{id}               (revoga sem apagar o passado)
 GET    /v1/invoices
 GET    /v1/invoices/{id}                     (fatura + tarifa congelada + faixas)
 GET    /v1/invoices/{id}/document             (PDF)
@@ -155,8 +178,14 @@ Nada do recorte invoice-first. O que sobrou é P1 ou polimento:
 cd .../.worktrees/dashboard-operational
 
 apps/api/.venv/bin/alembic -c apps/api/alembic.ini upgrade head
-apps/api/.venv/bin/python apps/api/scripts/seed_demo_scenario.py
+apps/api/.venv/bin/python apps/api/scripts/seed_operational_foundation.py
 apps/api/.venv/bin/uvicorn app.main:app --app-dir apps/api --host 127.0.0.1 --port 8407
+
+# com a API no ar, em outro terminal: o perfil do gestor nasce na primeira
+# requisição autenticada, então o cadastro do condomínio vem depois dela
+curl -s localhost:8407/v1/me -H 'Authorization: Bearer fixture-manager-token'
+apps/api/.venv/bin/python apps/api/scripts/seed_condominium_registry.py
+apps/api/.venv/bin/python apps/api/scripts/seed_real_july.py
 
 # outro terminal
 cd apps/web && WATCHPACK_POLLING=true ./node_modules/.bin/next dev --hostname 127.0.0.1 --port 3407
@@ -165,9 +194,13 @@ cd apps/web && WATCHPACK_POLLING=true ./node_modules/.bin/next dev --hostname 12
 `apps/api/.env` e `apps/web/.env` já existem, em modo `fixture`, gitignored.
 Token de teste: `Authorization: Bearer fixture-manager-token`.
 
-O cenário demonstrativo fecha com maio/2026, mas **planta defeitos de propósito**:
-resolva as 4 pendências de atribuição e registre decisão nos achados críticos
-antes que o fechamento libere.
+`seed_real_july.py` importa o julho **real** pelo caminho de importação de
+verdade, distribui as recargas entre as unidades (isso é cenário, e o script diz
+na justificativa de cada linha) e fecha o período.
+
+`seed_demo_scenario.py` continua existindo e gera um maio **simulado** com
+defeitos plantados, útil para mostrar escala e o bloqueio por achado crítico. Os
+dois convivem: a procedência viaja com cada recarga.
 
 ## Verificação
 
@@ -215,6 +248,13 @@ fechamento enquanto houver `analytical_findings` crítico com `resolved_at` nulo
 Antes não existia caminho de escrita para isso, e nenhum período com defeito
 podia fechar. Hoje `POST .../findings/{id}/decision` grava motivo, autor e
 instante, e audita. O achado nunca é apagado.
+
+**O `Card ID` do LAB é o serial do carregador.** `57000HPA247L0002` aparece em
+todas as 145 sessões de oito meses, e é o `EV Charger SN` do cabeçalho do
+relatório. O serial que a documentação antiga citava (`97500NAP25BL0008`) é da
+estação. Uma importação real falha com "No charger in organization for serial"
+se o carregador certo não estiver cadastrado — `seed_condominium_registry.py`
+cria esse equipamento.
 
 **Localizador de linha precisa nomear a tabela.** A tela de recargas mostra
 duas tabelas sobre as mesmas recargas — a fila de revisão e o histórico do

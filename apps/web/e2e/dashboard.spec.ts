@@ -17,6 +17,7 @@ const unknownSessions: { items: SessionResponse[] } = {
       unitCode: null,
       unitName: null,
       residentName: null,
+      assignmentOrigin: null,
     },
     {
       id: "90000000-0000-0000-0000-000000000002",
@@ -32,6 +33,7 @@ const unknownSessions: { items: SessionResponse[] } = {
       unitCode: null,
       unitName: null,
       residentName: null,
+      assignmentOrigin: null,
     },
   ],
 };
@@ -190,6 +192,7 @@ test("groups assigned costs by condominium unit, never charger identity", async 
       unitCode: "A-101",
       unitName: "Unidade A-101",
       residentName: "Ana Oliveira",
+      assignmentOrigin: null,
     },
     unknownSessions.items[1],
   ]);

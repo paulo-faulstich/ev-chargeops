@@ -21,6 +21,9 @@ class SessionView:
     unit_code: str | None
     unit_name: str | None
     resident_name: str | None
+    # "card" when a registered card decided it, "manual" when a manager did,
+    # None while nobody has. The screen must not make them look alike.
+    assignment_origin: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,6 +32,22 @@ class AssignmentUnitView:
     code: str
     display_name: str
     resident_name: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class ChargingCardView:
+    """A card the administration registered, and the unit it answers for."""
+
+    id: UUID
+    card_id: str
+    label: str
+    unit_id: UUID
+    unit_code: str
+    unit_name: str
+    registered_by_name: str | None
+    registered_at: datetime
+    revoked_at: datetime | None
+    attributed_sessions: int
 
 
 @dataclass(frozen=True, slots=True)

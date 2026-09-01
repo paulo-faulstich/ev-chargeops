@@ -8,6 +8,11 @@ from app.modules.identity.presentation.dependencies import current_scope
 from app.modules.sessions.application.assign_session import AssignSession
 from app.modules.sessions.application.list_assignment_units import ListAssignmentUnits
 from app.modules.sessions.application.list_sessions import ListSessions
+from app.modules.sessions.application.manage_cards import (
+    ListChargingCards,
+    RegisterChargingCard,
+    RevokeChargingCard,
+)
 from app.modules.sessions.application.ports import SessionRepository
 from app.modules.sessions.infrastructure.repository import SqlAlchemySessionRepository
 from app.shared.database import get_db_session
@@ -35,6 +40,24 @@ def get_assign_session(
     repository: Annotated[SessionRepository, Depends(get_session_repository)],
 ) -> AssignSession:
     return AssignSession(repository)
+
+
+def get_list_charging_cards(
+    repository: Annotated[SessionRepository, Depends(get_session_repository)],
+) -> ListChargingCards:
+    return ListChargingCards(repository)
+
+
+def get_register_charging_card(
+    repository: Annotated[SessionRepository, Depends(get_session_repository)],
+) -> RegisterChargingCard:
+    return RegisterChargingCard(repository)
+
+
+def get_revoke_charging_card(
+    repository: Annotated[SessionRepository, Depends(get_session_repository)],
+) -> RevokeChargingCard:
+    return RevokeChargingCard(repository)
 
 
 async def manager_scope(

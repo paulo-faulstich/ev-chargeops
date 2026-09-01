@@ -224,7 +224,7 @@ export function PeriodClose({
   const impersonate = useCallback(
     async (invoice: InvoiceResponse) => {
       await enter(invoice.unitId);
-      router.push(`/invoices/${invoice.id}`);
+      router.push(`/invoices/${invoice.id}?from=closing`);
     },
     [enter, router],
   );
@@ -446,7 +446,7 @@ export function PeriodClose({
                     <td>{formatKwh(invoice.energyKwh)}</td>
                     <td>{formatCents(invoice.totalCents)}</td>
                     <td className="invoice-row-actions">
-                      <Link href={`/invoices/${invoice.id}`}>Abrir</Link>
+                      <Link href={`/invoices/${invoice.id}?from=closing`}>Abrir</Link>
                       <button
                         type="button"
                         onClick={() => void impersonate(invoice)}

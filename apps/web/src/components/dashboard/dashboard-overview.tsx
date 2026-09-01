@@ -5,7 +5,9 @@ import { useEffect, useState } from "react";
 import {
   getBillingPeriodReadiness,
   listBillingPeriods,
+  listFindings,
   listSessions,
+  type PersistedFindingResponse,
   type ReadinessResponse,
 } from "@ev-chargeops/api-client";
 
@@ -42,6 +44,7 @@ async function fetchDashboardSummary(accessToken: string, periodKey?: string) {
 type PeriodContext = {
   closedPeriods: Set<string>;
   readiness: ReadinessResponse | null;
+  findings: PersistedFindingResponse[];
 };
 
 /** What the billing side knows about the month on screen.
@@ -66,15 +69,20 @@ async function fetchPeriodContext(
       periodKey === undefined
         ? undefined
         : periods.items.find((period) => period.periodValue === periodKey);
-    if (current === undefined) return { closedPeriods, readiness: null };
-    const readiness = await getBillingPeriodReadiness(
-      current.id,
-      accessToken,
-      { baseUrl: apiUrl },
-    );
-    return { closedPeriods, readiness: readiness.readiness };
+    if (current === undefined) {
+      return { closedPeriods, readiness: null, findings: [] };
+    }
+    const [readiness, findings] = await Promise.all([
+      getBillingPeriodReadiness(current.id, accessToken, { baseUrl: apiUrl }),
+      listFindings(current.id, accessToken, { baseUrl: apiUrl }),
+    ]);
+    return {
+      closedPeriods,
+      readiness: readiness.readiness,
+      findings: findings.items,
+    };
   } catch {
-    return { closedPeriods: new Set(), readiness: null };
+    return { closedPeriods: new Set(), readiness: null, findings: [] };
   }
 }
 
@@ -88,22 +96,28 @@ export function DashboardOverview({ accessToken }: { accessToken: string }) {
   const [periodContext, setPeriodContext] = useState<PeriodContext>({
     closedPeriods: new Set(),
     readiness: null,
+    findings: [],
   });
 
   useEffect(() => {
     let ignore = false;
 
     void fetchDashboardSummary(accessToken, selectedPeriod)
-      .then((summary) => {
-        if (!ignore) setState({ status: "ready", summary });
+      .then(async (summary) => {
+        if (ignore) return;
+        setState({ status: "ready", summary });
+        // The billing side is asked about the month the summary settled on, not
+        // about the picker's value: on first load nobody has picked anything
+        // yet, and asking about `undefined` returns a period that is not there.
+        const context = await fetchPeriodContext(
+          accessToken,
+          summary?.periodKey,
+        );
+        if (!ignore) setPeriodContext(context);
       })
       .catch(() => {
         if (!ignore) setState({ status: "error", summary: null });
       });
-
-    void fetchPeriodContext(accessToken, selectedPeriod).then((context) => {
-      if (!ignore) setPeriodContext(context);
-    });
 
     return () => {
       ignore = true;
@@ -171,6 +185,7 @@ export function DashboardOverview({ accessToken }: { accessToken: string }) {
         <OperationalDashboard
           summary={state.summary}
           readiness={periodContext.readiness}
+          findings={periodContext.findings}
           closed={periodClosed}
         />
       ) : null}
@@ -380,10 +395,12 @@ function DashboardProcessGuide() {
 function OperationalDashboard({
   summary,
   readiness,
+  findings,
   closed,
 }: {
   summary: DashboardSummary;
   readiness: ReadinessResponse | null;
+  findings: PersistedFindingResponse[];
   closed: boolean;
 }) {
   const maxDailyEnergy = Math.max(
@@ -477,6 +494,7 @@ function OperationalDashboard({
               Todas as recargas possuem um identificador de cobrança.
             </p>
           )}
+          <OpinionSummary findings={findings} />
         </section>
       </div>
 
@@ -485,6 +503,72 @@ function OperationalDashboard({
         readiness={readiness}
         closed={closed}
       />
+    </div>
+  );
+}
+
+const SEVERITY_LABEL: Record<string, string> = {
+  critical: "críticos",
+  warning: "atenções",
+  info: "observações",
+};
+
+/** What the analysis found, in the panel that exists to raise concerns.
+ *
+ * The opinion runs over the period's own data before any invoice exists, so a
+ * finding here is a reason not to close yet — not a note about a charge that
+ * has already been billed.
+ */
+function OpinionSummary({
+  findings,
+}: {
+  findings: PersistedFindingResponse[];
+}) {
+  if (findings.length === 0) return null;
+
+  const open = findings.filter((finding) => finding.resolvedAt === null);
+  const decided = findings.length - open.length;
+  const counts = new Map<string, number>();
+  for (const finding of open) {
+    counts.set(finding.severity, (counts.get(finding.severity) ?? 0) + 1);
+  }
+  const highlighted = open.slice(0, 3);
+
+  return (
+    <div className="opinion-summary">
+      <p className="utility-label">Parecer da IA</p>
+      {open.length === 0 ? (
+        <p className="attention-clear">
+          {findings.length}{" "}
+          {findings.length === 1 ? "achado analisado" : "achados analisados"},
+          todos com decisão registrada.
+        </p>
+      ) : (
+        <>
+          <p className="attention-message">
+            {[...counts.entries()]
+              .map(
+                ([severity, total]) =>
+                  `${total} ${SEVERITY_LABEL[severity] ?? severity}`,
+              )
+              .join(" · ")}
+            {decided > 0 ? ` · ${decided} já decididos` : ""}
+          </p>
+          <ul className="opinion-findings">
+            {highlighted.map((finding) => (
+              <li key={finding.id}>
+                <strong>{finding.code}</strong>
+                <span>{finding.explanation}</span>
+              </li>
+            ))}
+          </ul>
+          {open.length > highlighted.length ? (
+            <p className="invoice-note">
+              e mais {open.length - highlighted.length} no fechamento.
+            </p>
+          ) : null}
+        </>
+      )}
     </div>
   );
 }

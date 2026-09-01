@@ -7,6 +7,7 @@ from app.modules.identity.domain.auth import OrganizationScope
 from app.modules.ingestion.application.import_ports import (
     ImportRepository,
     OriginalFileStore,
+    SessionAttributor,
 )
 from app.modules.ingestion.application.ports import ChargingSessionSource
 from app.modules.ingestion.application.preview_import import PreviewImport
@@ -20,12 +21,14 @@ class ConfirmImport:
         source: ChargingSessionSource,
         repository: ImportRepository,
         file_store: OriginalFileStore,
+        attributor: SessionAttributor | None = None,
         *,
         attempt_id_factory: Callable[[], UUID] = uuid4,
     ) -> None:
         self.source = source
         self.repository = repository
         self.file_store = file_store
+        self.attributor = attributor
         self.attempt_id_factory = attempt_id_factory
 
     async def execute(
@@ -68,4 +71,11 @@ class ConfirmImport:
 
         if not result.created and stored_file.created:
             await self.file_store.delete(stored_file.path)
+
+        # A card the manager already registered answers the attribution
+        # question by itself; only what it cannot answer reaches the queue.
+        if result.created and self.attributor is not None:
+            await self.attributor.attribute_by_registered_card(
+                scope.organization_id, scope.profile_id, result.id
+            )
         return result

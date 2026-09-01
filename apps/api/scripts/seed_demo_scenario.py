@@ -31,6 +31,12 @@ from zoneinfo import ZoneInfo
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
 
+from seed_operational_foundation import (
+    DEMO_CHARGER_ID,
+    DEMO_ORGANIZATION_ID,
+    DEMO_SITE_ID,
+    seed_operational_foundation,
+)
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -55,13 +61,6 @@ from app.modules.organizations.infrastructure.models import ProfileModel, UnitMo
 from app.modules.sessions.infrastructure.models import SessionAssignmentModel
 from app.shared.config import get_settings
 from app.shared.database import create_engine_from_settings, create_session_factory
-
-from seed_operational_foundation import (  # noqa: E402
-    DEMO_CHARGER_ID,
-    DEMO_ORGANIZATION_ID,
-    DEMO_SITE_ID,
-    seed_operational_foundation,
-)
 
 SCENARIO_NAMESPACE = UUID("00000000-0000-0000-0000-00000000de70")
 SCENARIO_MONTH = "2026-05"
@@ -95,11 +94,11 @@ class Habit:
 
 
 HABITS = (
-    Habit("A-101", 3, 22, 23, Decimal("18"), Decimal("24"), Decimal("7.0")),
-    Habit("A-102", 2, 19, 20, Decimal("12"), Decimal("22"), Decimal("7.0")),
-    Habit("A-103", 2, 23, 23, Decimal("25"), Decimal("30"), Decimal("7.2")),
-    Habit("A-104", 2, 8, 11, Decimal("15"), Decimal("18"), Decimal("7.1")),
-    Habit("LJ-01", 2, 13, 15, Decimal("8"), Decimal("12"), Decimal("7.0")),
+    Habit("A-101", 3, 22, 23, Decimal(18), Decimal(24), Decimal("7.0")),
+    Habit("A-102", 2, 19, 20, Decimal(12), Decimal(22), Decimal("7.0")),
+    Habit("A-103", 2, 23, 23, Decimal(25), Decimal(30), Decimal("7.2")),
+    Habit("A-104", 2, 8, 11, Decimal(15), Decimal(18), Decimal("7.1")),
+    Habit("LJ-01", 2, 13, 15, Decimal(8), Decimal(12), Decimal("7.0")),
 )
 
 

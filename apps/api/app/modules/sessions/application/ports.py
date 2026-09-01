@@ -6,6 +6,7 @@ from app.modules.identity.domain.auth import OrganizationScope
 from app.modules.sessions.domain.models import (
     AssignmentResult,
     AssignmentUnitView,
+    ChargingCardView,
     SessionView,
 )
 
@@ -32,3 +33,22 @@ class SessionRepository(Protocol):
         justification: str,
         occurred_at: datetime,
     ) -> AssignmentResult: ...
+
+    async def list_charging_cards(
+        self,
+        organization_id: UUID,
+    ) -> tuple[ChargingCardView, ...]: ...
+
+    async def register_charging_card(
+        self,
+        scope: OrganizationScope,
+        card_id: str,
+        unit_id: UUID,
+        label: str,
+    ) -> ChargingCardView: ...
+
+    async def revoke_charging_card(
+        self,
+        scope: OrganizationScope,
+        card_pk: UUID,
+    ) -> ChargingCardView: ...

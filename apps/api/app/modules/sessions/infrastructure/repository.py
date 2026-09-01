@@ -1,8 +1,8 @@
 from datetime import UTC, datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,14 +16,24 @@ from app.modules.organizations.infrastructure.models import (
     SiteModel,
     UnitModel,
 )
-from app.modules.sessions.domain.errors import SessionNotFound, UnitNotFound
+from app.modules.sessions.domain.errors import (
+    CardAlreadyRegistered,
+    CardIsTheChargerSerial,
+    CardNotFound,
+    SessionNotFound,
+    UnitNotFound,
+)
 from app.modules.sessions.domain.models import (
     AssignmentResult,
     AssignmentUnitView,
+    ChargingCardView,
     SessionAssignment,
     SessionView,
 )
-from app.modules.sessions.infrastructure.models import SessionAssignmentModel
+from app.modules.sessions.infrastructure.models import (
+    ChargingCardModel,
+    SessionAssignmentModel,
+)
 
 
 class SqlAlchemySessionRepository:
@@ -46,6 +56,7 @@ class SqlAlchemySessionRepository:
                 UnitModel.code,
                 UnitModel.display_name,
                 ProfileModel.display_name,
+                SessionAssignmentModel.origin,
             )
             .join(
                 ChargerModel,
@@ -110,6 +121,7 @@ class SqlAlchemySessionRepository:
                 unit_code=unit_code,
                 unit_name=unit_name,
                 resident_name=resident_name,
+                assignment_origin=assignment_origin,
             )
             for (
                 charging_session,
@@ -118,6 +130,7 @@ class SqlAlchemySessionRepository:
                 unit_code,
                 unit_name,
                 resident_name,
+                assignment_origin,
             ) in rows
         )
 
@@ -243,6 +256,7 @@ class SqlAlchemySessionRepository:
                     unit_id=unit_id,
                     assigned_by=scope.profile_id,
                     justification=justification,
+                    origin="manual",
                     created_at=occurred_at,
                     updated_at=occurred_at,
                 )
@@ -251,6 +265,9 @@ class SqlAlchemySessionRepository:
                 assignment.unit_id = unit_id
                 assignment.assigned_by = scope.profile_id
                 assignment.justification = justification
+                # A manager overriding a card attribution is a judgement, and
+                # the record must stop claiming the card decided it.
+                assignment.origin = "manual"
                 assignment.updated_at = occurred_at
 
             charging_session.identity_confidence = "assigned"
@@ -338,6 +355,7 @@ class SqlAlchemySessionRepository:
                 unit_code=unit.code,
                 unit_name=unit.display_name,
                 resident_name=resident_name,
+                assignment_origin=assignment.origin,
             ),
             created=created,
         )
@@ -381,3 +399,255 @@ class SqlAlchemySessionRepository:
         if value.tzinfo is None:
             return value.replace(tzinfo=UTC)
         return value.astimezone(UTC)
+
+    async def attribute_by_registered_card(
+        self,
+        organization_id: UUID,
+        actor_profile_id: UUID,
+        import_batch_id: UUID,
+    ) -> int:
+        """Attribute the batch's sessions whose card is registered to a unit.
+
+        Only sessions that nobody has decided about are touched: a manager's
+        judgement always outranks the registry. The raw card id alone never
+        identifies anyone — what identifies is a manager having stated, once,
+        which unit that card belongs to.
+        """
+        cards = {
+            card.card_id: card
+            for card in (
+                await self.session.execute(
+                    select(ChargingCardModel).where(
+                        ChargingCardModel.organization_id == organization_id,
+                        ChargingCardModel.revoked_at.is_(None),
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        }
+        if not cards:
+            return 0
+
+        pending = (
+            (
+                await self.session.execute(
+                    select(ChargingSessionModel)
+                    .outerjoin(
+                        SessionAssignmentModel,
+                        and_(
+                            SessionAssignmentModel.charging_session_id
+                            == ChargingSessionModel.id,
+                            SessionAssignmentModel.organization_id
+                            == organization_id,
+                        ),
+                    )
+                    .where(
+                        ChargingSessionModel.organization_id == organization_id,
+                        ChargingSessionModel.import_batch_id == import_batch_id,
+                        ChargingSessionModel.card_id_raw.is_not(None),
+                        SessionAssignmentModel.id.is_(None),
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+
+        occurred_at = datetime.now(UTC)
+        attributed = 0
+        for charging_session in pending:
+            card = cards.get(charging_session.card_id_raw or "")
+            if card is None:
+                continue
+            self.session.add(
+                SessionAssignmentModel(
+                    organization_id=organization_id,
+                    charging_session_id=charging_session.id,
+                    unit_id=card.unit_id,
+                    assigned_by=actor_profile_id,
+                    justification=(
+                        f"Cartão {card.card_id} registrado para esta unidade "
+                        f"({card.label})."
+                    ),
+                    origin="card",
+                    created_at=occurred_at,
+                    updated_at=occurred_at,
+                )
+            )
+            # The equipment authenticated the card; the registry says whose it
+            # is. That is stronger than a manager's inference, and weaker than
+            # nothing only if the registry is wrong — which it is auditable to.
+            charging_session.identity_confidence = "confirmed"
+            charging_session.status = "ready"
+            self.session.add(
+                AuditEventModel(
+                    organization_id=organization_id,
+                    actor_profile_id=actor_profile_id,
+                    occurred_at=occurred_at,
+                    event_type="session_attributed_by_card",
+                    entity_type="charging_session",
+                    entity_id=charging_session.id,
+                    metadata_json={
+                        "card_id": card.card_id,
+                        "unit_id": str(card.unit_id),
+                        "import_batch_id": str(import_batch_id),
+                    },
+                )
+            )
+            attributed += 1
+
+        if attributed:
+            await self.session.commit()
+        return attributed
+
+    async def list_charging_cards(
+        self, organization_id: UUID
+    ) -> tuple[ChargingCardView, ...]:
+        attributed = (
+            select(
+                SessionAssignmentModel.unit_id.label("unit_id"),
+                func.count().label("total"),
+            )
+            .where(
+                SessionAssignmentModel.organization_id == organization_id,
+                SessionAssignmentModel.origin == "card",
+            )
+            .group_by(SessionAssignmentModel.unit_id)
+            .subquery()
+        )
+        rows = (
+            await self.session.execute(
+                select(
+                    ChargingCardModel,
+                    UnitModel,
+                    ProfileModel.display_name,
+                    attributed.c.total,
+                )
+                .join(UnitModel, UnitModel.id == ChargingCardModel.unit_id)
+                .outerjoin(
+                    ProfileModel, ProfileModel.id == ChargingCardModel.registered_by
+                )
+                .outerjoin(attributed, attributed.c.unit_id == ChargingCardModel.unit_id)
+                .where(ChargingCardModel.organization_id == organization_id)
+                .order_by(UnitModel.code, ChargingCardModel.card_id)
+            )
+        ).all()
+        return tuple(
+            ChargingCardView(
+                id=card.id,
+                card_id=card.card_id,
+                label=card.label,
+                unit_id=unit.id,
+                unit_code=unit.code,
+                unit_name=unit.display_name,
+                registered_by_name=registered_by,
+                registered_at=self._as_utc(card.created_at),
+                revoked_at=card.revoked_at,
+                attributed_sessions=int(total or 0),
+            )
+            for card, unit, registered_by, total in rows
+        )
+
+    async def register_charging_card(
+        self,
+        scope: OrganizationScope,
+        card_id: str,
+        unit_id: UUID,
+        label: str,
+    ) -> ChargingCardView:
+        """Record that a card answers for a unit, refusing the equipment itself."""
+        chargers = (
+            (
+                await self.session.execute(
+                    select(ChargerModel.serial).where(
+                        ChargerModel.organization_id == scope.organization_id
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        if card_id in set(chargers):
+            raise CardIsTheChargerSerial(card_id)
+
+        unit = await self.session.scalar(
+            select(UnitModel).where(
+                UnitModel.id == unit_id,
+                UnitModel.organization_id == scope.organization_id,
+            )
+        )
+        if unit is None:
+            raise UnitNotFound
+        existing = await self.session.scalar(
+            select(ChargingCardModel).where(
+                ChargingCardModel.organization_id == scope.organization_id,
+                ChargingCardModel.card_id == card_id,
+            )
+        )
+        if existing is not None:
+            raise CardAlreadyRegistered(card_id)
+
+        occurred_at = datetime.now(UTC)
+        # The identifier has to exist before the audit event references it: the
+        # column default is only applied at flush, and the trail must not be
+        # written pointing at nothing.
+        card = ChargingCardModel(
+            id=uuid4(),
+            organization_id=scope.organization_id,
+            card_id=card_id,
+            unit_id=unit_id,
+            label=label,
+            registered_by=scope.profile_id,
+            created_at=occurred_at,
+            updated_at=occurred_at,
+        )
+        self.session.add(card)
+        self.session.add(
+            AuditEventModel(
+                organization_id=scope.organization_id,
+                actor_profile_id=scope.profile_id,
+                occurred_at=occurred_at,
+                event_type="charging_card_registered",
+                entity_type="charging_card",
+                entity_id=card.id,
+                metadata_json={"card_id": card_id, "unit_id": str(unit_id)},
+            )
+        )
+        await self.session.commit()
+        for view in await self.list_charging_cards(scope.organization_id):
+            if view.card_id == card_id:
+                return view
+        raise CardNotFound
+
+    async def revoke_charging_card(
+        self, scope: OrganizationScope, card_pk: UUID
+    ) -> ChargingCardView:
+        """Stop a card attributing, without erasing what it already attributed."""
+        card = await self.session.scalar(
+            select(ChargingCardModel).where(
+                ChargingCardModel.id == card_pk,
+                ChargingCardModel.organization_id == scope.organization_id,
+            )
+        )
+        if card is None:
+            raise CardNotFound
+        if card.revoked_at is None:
+            occurred_at = datetime.now(UTC)
+            card.revoked_at = occurred_at
+            self.session.add(
+                AuditEventModel(
+                    organization_id=scope.organization_id,
+                    actor_profile_id=scope.profile_id,
+                    occurred_at=occurred_at,
+                    event_type="charging_card_revoked",
+                    entity_type="charging_card",
+                    entity_id=card.id,
+                    metadata_json={"card_id": card.card_id},
+                )
+            )
+            await self.session.commit()
+        for view in await self.list_charging_cards(scope.organization_id):
+            if view.id == card_pk:
+                return view
+        raise CardNotFound

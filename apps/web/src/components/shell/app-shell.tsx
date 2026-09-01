@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { logout } from "@/app/(app)/actions";
@@ -10,6 +10,7 @@ import { logout } from "@/app/(app)/actions";
 const operationalDestinations = [
   { href: "/dashboard", label: "Visão geral" },
   { href: "/sessions", label: "Recargas" },
+  { href: "/charging-cards", label: "Cartões" },
 ];
 
 /** Closing is a monthly decision, not daily monitoring.
@@ -17,6 +18,10 @@ const operationalDestinations = [
  * It approves, emits documents and records who signed, so it lives apart from
  * the screens the manager checks in passing.
  */
+const settingsDestinations = [
+  { href: "/settings/data-sources", label: "Fontes de dados" },
+];
+
 const billingDestinations = [
   { href: "/closing", label: "Fechamento" },
   { href: "/invoices", label: "Faturas" },
@@ -24,6 +29,16 @@ const billingDestinations = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  // An invoice opened from the closing keeps the reader inside that task, so
+  // the rail must not claim they left it for the invoice list.
+  const openedFromClosing =
+    pathname.startsWith("/invoices/") && searchParams.get("from") === "closing";
+
+  function isCurrent(href: string): boolean {
+    if (openedFromClosing) return href === "/closing";
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
 
   return (
     <div className="app-shell">
@@ -68,8 +83,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Link
               key={href}
               href={href}
-              aria-current={pathname.startsWith(href) ? "page" : undefined}
-              className={`nav-link${pathname.startsWith(href) ? " active" : ""}`}
+              aria-current={isCurrent(href) ? "page" : undefined}
+              className={`nav-link${isCurrent(href) ? " active" : ""}`}
             >
               {label}
             </Link>
@@ -78,15 +93,16 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <nav aria-label="Configurações" className="secondary-navigation">
           <p className="navigation-label">Configurações</p>
-          <Link
-            href="/settings/data-sources"
-            aria-current={
-              pathname === "/settings/data-sources" ? "page" : undefined
-            }
-            className={`nav-link secondary${pathname === "/settings/data-sources" ? " active" : ""}`}
-          >
-            Fontes de dados
-          </Link>
+          {settingsDestinations.map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              aria-current={pathname === href ? "page" : undefined}
+              className={`nav-link secondary${pathname === href ? " active" : ""}`}
+            >
+              {label}
+            </Link>
+          ))}
         </nav>
 
         <div className="rail-status">

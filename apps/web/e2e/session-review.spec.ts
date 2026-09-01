@@ -30,6 +30,7 @@ const pendingSessions = {
       unitCode: null,
       unitName: null,
       residentName: null,
+      assignmentOrigin: null,
     },
     {
       id: "90000000-0000-0000-0000-000000000002",
@@ -45,6 +46,7 @@ const pendingSessions = {
       unitCode: null,
       unitName: null,
       residentName: null,
+      assignmentOrigin: null,
     },
   ],
 };
@@ -56,12 +58,14 @@ const assignmentUnits = {
       code: "A-101",
       displayName: "Unidade A-101",
       residentName: "Ana Oliveira",
+      assignmentOrigin: null,
     },
     {
       id: UNIT_B_ID,
       code: "A-102",
       displayName: "Unidade A-102",
       residentName: null,
+      assignmentOrigin: null,
     },
   ],
 };
@@ -82,6 +86,7 @@ const julySessions = {
       unitCode: null,
       unitName: null,
       residentName: null,
+      assignmentOrigin: null,
     },
   ],
 };
@@ -147,6 +152,7 @@ async function routeSessionReview(
             unitCode: "A-101",
             unitName: "Unidade A-101",
             residentName: "Ana Oliveira",
+            assignmentOrigin: null,
           },
           created: true,
         }),
@@ -233,6 +239,7 @@ async function routeCrossPeriodReview(
             unitCode: "A-101",
             unitName: "Unidade A-101",
             residentName: "Ana Oliveira",
+            assignmentOrigin: null,
           },
           created: true,
         }),
@@ -269,7 +276,7 @@ test("assigns observed evidence and advances the pending queue", async ({
   await page.goto("/sessions?status=pending_review&period=2026-08");
   await expect(page.getByRole("heading", { name: "Recargas" })).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Voltar para visão geral" }),
+    page.getByRole("link", { name: "Voltar para Visão geral" }),
   ).toBeVisible();
   await expect(page.getByText("2 pendências no período")).toBeVisible();
 
@@ -327,7 +334,7 @@ test("assigns observed evidence and advances the pending queue", async ({
     ),
   ).toBe(true);
   await expect(
-    page.getByRole("link", { name: "Voltar para visão geral" }),
+    page.getByRole("link", { name: "Voltar para Visão geral" }),
   ).toBeVisible();
   await expect(evidence).toBeVisible();
   await page.screenshot({
@@ -621,6 +628,7 @@ test("distinguishes no imports from an assigned period when the filter changes",
       unitCode: "A-101",
       unitName: "Unidade A-101",
       residentName: "Ana Oliveira",
+      assignmentOrigin: null,
     };
 
     await route.fulfill({
@@ -652,7 +660,7 @@ test("distinguishes no imports from an assigned period when the filter changes",
   ).toBeVisible();
   await expect(page.getByText("0 pendências no período")).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Voltar para visão geral" }).first(),
+    page.getByRole("link", { name: "Voltar para Visão geral" }).first(),
   ).toBeVisible();
 });
 

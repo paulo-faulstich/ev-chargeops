@@ -18,8 +18,16 @@ from app.modules.ingestion.presentation.schemas import (
 from app.modules.sessions.application.assign_session import AssignSession
 from app.modules.sessions.application.list_assignment_units import ListAssignmentUnits
 from app.modules.sessions.application.list_sessions import ListSessions
+from app.modules.sessions.application.manage_cards import (
+    ListChargingCards,
+    RegisterChargingCard,
+    RevokeChargingCard,
+)
 from app.modules.sessions.domain.errors import (
     AssignmentForbidden,
+    CardAlreadyRegistered,
+    CardIsTheChargerSerial,
+    CardNotFound,
     InvalidJustification,
     InvalidPeriod,
     SessionNotFound,
@@ -28,12 +36,18 @@ from app.modules.sessions.domain.errors import (
 from app.modules.sessions.presentation.dependencies import (
     get_assign_session,
     get_list_assignment_units,
+    get_list_charging_cards,
     get_list_sessions,
+    get_register_charging_card,
+    get_revoke_charging_card,
     manager_scope,
 )
 from app.modules.sessions.presentation.schemas import (
     AssignmentUnitListResponse,
     AssignmentUnitResponse,
+    ChargingCardListResponse,
+    ChargingCardResponse,
+    RegisterChargingCardRequest,
     SessionAssignmentRequest,
     SessionAssignmentResponse,
     SessionListResponse,
@@ -191,3 +205,105 @@ async def assign_session(
             field=error.field,
         )
     return SessionAssignmentResponse.from_result(result)
+
+
+@router.get(
+    "/charging-cards",
+    response_model=ChargingCardListResponse,
+    response_model_by_alias=True,
+    responses=AUTH_ERROR_RESPONSES,
+)
+async def list_charging_cards(
+    scope: Annotated[OrganizationScope, Depends(manager_scope)],
+    use_case: Annotated[ListChargingCards, Depends(get_list_charging_cards)],
+) -> ChargingCardListResponse:
+    """Which cards the administration has registered, and for which units."""
+    cards = await use_case.execute(scope)
+    return ChargingCardListResponse(
+        items=[ChargingCardResponse.from_view(card) for card in cards]
+    )
+
+
+@router.post(
+    "/charging-cards",
+    response_model=ChargingCardResponse,
+    response_model_by_alias=True,
+    status_code=201,
+    responses={
+        **AUTH_ERROR_RESPONSES,
+        409: {
+            "model": HttpErrorResponse,
+            "description": "The card is already registered for a unit.",
+        },
+        422: {
+            "model": HttpErrorResponse,
+            "description": "The card id is the charger's own serial.",
+        },
+    },
+)
+async def register_charging_card(
+    request: RegisterChargingCardRequest,
+    scope: Annotated[OrganizationScope, Depends(manager_scope)],
+    use_case: Annotated[RegisterChargingCard, Depends(get_register_charging_card)],
+) -> ChargingCardResponse | JSONResponse:
+    """State, once, which unit a card answers for.
+
+    The equipment's own serial is refused: registering it would make every
+    charge on the connector belong to one unit by construction, and the invoice
+    would then assert an identity nobody verified.
+    """
+    try:
+        card = await use_case.execute(
+            scope, request.card_id, request.unit_id, request.label
+        )
+    except AssignmentForbidden as error:
+        raise HTTPException(status_code=403, detail="Manager role required.") from error
+    except UnitNotFound as error:
+        raise HTTPException(status_code=404, detail="Unit not found.") from error
+    except CardIsTheChargerSerial:
+        return validation_error(
+            code="CARD_IS_THE_CHARGER_SERIAL",
+            message=(
+                "Este número é o serial do próprio carregador, não o cartão de "
+                "um morador. Registrá-lo atribuiria todas as recargas a uma "
+                "única unidade."
+            ),
+            field="cardId",
+        )
+    except CardAlreadyRegistered:
+        body = ErrorResponse(
+            error=ErrorBody(
+                code="CARD_ALREADY_REGISTERED",
+                message="Este cartão já está registrado para uma unidade.",
+                details=[],
+            )
+        )
+        return JSONResponse(status_code=409, content=body.model_dump(by_alias=True))
+    return ChargingCardResponse.from_view(card)
+
+
+@router.delete(
+    "/charging-cards/{card_pk}",
+    response_model=ChargingCardResponse,
+    response_model_by_alias=True,
+    responses={
+        **AUTH_ERROR_RESPONSES,
+        404: {
+            "model": HttpErrorResponse,
+            "description": "Card not found in this organization.",
+        },
+    },
+)
+async def revoke_charging_card(
+    card_pk: UUID,
+    scope: Annotated[OrganizationScope, Depends(manager_scope)],
+    use_case: Annotated[RevokeChargingCard, Depends(get_revoke_charging_card)],
+) -> ChargingCardResponse:
+    """Stop a card attributing, without erasing what it already attributed."""
+    try:
+        card = await use_case.execute(scope, card_pk)
+    except AssignmentForbidden as error:
+        raise HTTPException(status_code=403, detail="Manager role required.") from error
+    except CardNotFound as error:
+        raise HTTPException(status_code=404, detail="Card not found.") from error
+    return ChargingCardResponse.from_view(card)

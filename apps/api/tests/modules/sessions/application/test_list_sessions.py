@@ -37,6 +37,7 @@ def session_view() -> SessionView:
         unit_code=None,
         unit_name=None,
         resident_name=None,
+        assignment_origin=None,
     )
 
 

@@ -24,6 +24,9 @@ from app.modules.ingestion.infrastructure.repository import (
     SqlAlchemyImportRepository,
 )
 from app.modules.ingestion.infrastructure.sems_csv_source import SemsCsvSource
+from app.modules.sessions.infrastructure.repository import (
+    SqlAlchemySessionRepository,
+)
 from app.shared.config import Settings, get_settings
 from app.shared.database import get_db_session
 
@@ -66,8 +69,13 @@ def get_confirm_import(
     source: Annotated[SemsCsvSource, Depends(get_sems_source)],
     repository: Annotated[ImportRepository, Depends(get_import_repository)],
     file_store: Annotated[OriginalFileStore, Depends(get_original_file_store)],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> ConfirmImport:
-    return ConfirmImport(source, repository, file_store)
+    # The sessions module owns attribution; ingestion only asks it to finish
+    # what a registered card already decides.
+    return ConfirmImport(
+        source, repository, file_store, SqlAlchemySessionRepository(session)
+    )
 
 
 def get_list_imports(

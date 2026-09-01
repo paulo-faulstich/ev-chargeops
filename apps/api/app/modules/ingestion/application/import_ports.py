@@ -68,3 +68,19 @@ class OriginalFileStore(Protocol):
 
 class OriginalFileStorageError(RuntimeError):
     """Original import file storage failed with a stable application error."""
+
+
+class SessionAttributor(Protocol):
+    """Attributes freshly imported sessions that carry a registered card.
+
+    Ingestion owns the canonical session; it does not own attribution. This
+    port lets the import finish the job a registered card already answers,
+    without ingestion knowing how units or assignments work.
+    """
+
+    async def attribute_by_registered_card(
+        self,
+        organization_id: UUID,
+        actor_profile_id: UUID,
+        import_batch_id: UUID,
+    ) -> int: ...

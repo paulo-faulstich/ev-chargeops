@@ -76,6 +76,19 @@ export function InvoiceList({ accessToken }: { accessToken: string }) {
     [enter, router],
   );
 
+  const invoices = state.status === "ready" ? state.invoices : [];
+  const periods = [...new Set(invoices.map((invoice) => invoice.periodValue))]
+    .sort()
+    .reverse();
+  const totalCents = invoices.reduce(
+    (total, invoice) => total + invoice.totalCents,
+    0,
+  );
+  const totalEnergy = invoices.reduce(
+    (total, invoice) => total + Number(invoice.energyKwh),
+    0,
+  );
+
   return (
     <div className="invoice-list-page">
       <header className="dashboard-heading">
@@ -110,8 +123,31 @@ export function InvoiceList({ accessToken }: { accessToken: string }) {
         <section className="invoice-block" aria-labelledby="invoice-list-title">
           <div className="dashboard-section-heading">
             <h2 id="invoice-list-title">Faturas emitidas</h2>
-            <span>{state.invoices.length} unidades</span>
+            <span>
+              {periods.length}{" "}
+              {periods.length === 1 ? "período" : "períodos"}
+            </span>
           </div>
+          {/* The closing screen shows what one approval produced. This one is
+              the archive, so it states what has been billed in total. */}
+          <dl className="invoice-period-summary">
+            <div>
+              <dt>Faturas emitidas</dt>
+              <dd>{state.invoices.length}</dd>
+            </div>
+            <div>
+              <dt>Energia faturada</dt>
+              <dd>{formatKwh(String(totalEnergy))}</dd>
+            </div>
+            <div>
+              <dt>Total cobrado</dt>
+              <dd>{formatCents(totalCents)}</dd>
+            </div>
+            <div>
+              <dt>Períodos</dt>
+              <dd>{periods.join(" · ")}</dd>
+            </div>
+          </dl>
           <div className="responsible-table-frame">
             <table aria-label="Faturas emitidas">
               <thead>

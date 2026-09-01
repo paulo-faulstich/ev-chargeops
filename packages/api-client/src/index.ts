@@ -431,3 +431,53 @@ export async function decideFinding(
     },
   );
 }
+
+export type ChargingCardResponse =
+  components["schemas"]["ChargingCardResponse"];
+export type ChargingCardListResponse =
+  components["schemas"]["ChargingCardListResponse"];
+export type RegisterChargingCardRequest =
+  components["schemas"]["RegisterChargingCardRequest"];
+
+export async function listChargingCards(
+  token: string,
+  options: RequestOptions = {},
+): Promise<ChargingCardListResponse> {
+  return scopedRequest<ChargingCardListResponse>(
+    "/v1/charging-cards",
+    token,
+    options,
+  );
+}
+
+/** State which unit a card answers for. The charger's own serial is refused. */
+export async function registerChargingCard(
+  request: RegisterChargingCardRequest,
+  token: string,
+  options: RequestOptions = {},
+): Promise<ChargingCardResponse> {
+  return scopedRequest<ChargingCardResponse>(
+    "/v1/charging-cards",
+    token,
+    options,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    },
+  );
+}
+
+/** Stop a card attributing, without erasing what it already attributed. */
+export async function revokeChargingCard(
+  cardId: string,
+  token: string,
+  options: RequestOptions = {},
+): Promise<ChargingCardResponse> {
+  return scopedRequest<ChargingCardResponse>(
+    `/v1/charging-cards/${encodeURIComponent(cardId)}`,
+    token,
+    options,
+    { method: "DELETE" },
+  );
+}

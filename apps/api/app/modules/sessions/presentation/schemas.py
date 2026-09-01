@@ -2,10 +2,13 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
+from pydantic import Field
+
 from app.modules.ingestion.presentation.schemas import ApiSchema
 from app.modules.sessions.domain.models import (
     AssignmentResult,
     AssignmentUnitView,
+    ChargingCardView,
     SessionAssignment,
     SessionView,
 )
@@ -25,6 +28,7 @@ class SessionResponse(ApiSchema):
     unit_code: str | None
     unit_name: str | None
     resident_name: str | None
+    assignment_origin: str | None
 
     @classmethod
     def from_view(cls, view: SessionView) -> "SessionResponse":
@@ -48,6 +52,35 @@ class AssignmentUnitResponse(ApiSchema):
 
 class AssignmentUnitListResponse(ApiSchema):
     items: list[AssignmentUnitResponse]
+
+
+class ChargingCardResponse(ApiSchema):
+    """A card and the unit it answers for, with what it has already decided."""
+
+    id: UUID
+    card_id: str
+    label: str
+    unit_id: UUID
+    unit_code: str
+    unit_name: str
+    registered_by_name: str | None
+    registered_at: datetime
+    revoked_at: datetime | None
+    attributed_sessions: int
+
+    @classmethod
+    def from_view(cls, view: ChargingCardView) -> "ChargingCardResponse":
+        return cls.model_validate(view, from_attributes=True)
+
+
+class ChargingCardListResponse(ApiSchema):
+    items: list[ChargingCardResponse]
+
+
+class RegisterChargingCardRequest(ApiSchema):
+    card_id: str = Field(min_length=3, max_length=128)
+    unit_id: UUID
+    label: str = Field(min_length=2, max_length=160)
 
 
 class SessionAssignmentRequest(ApiSchema):

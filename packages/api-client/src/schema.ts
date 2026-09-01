@@ -152,6 +152,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/charging-cards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Charging Cards
+         * @description Which cards the administration has registered, and for which units.
+         */
+        get: operations["list_charging_cards_v1_charging_cards_get"];
+        put?: never;
+        /**
+         * Register Charging Card
+         * @description State, once, which unit a card answers for.
+         *
+         *     The equipment's own serial is refused: registering it would make every
+         *     charge on the connector belong to one unit by construction, and the invoice
+         *     would then assert an identity nobody verified.
+         */
+        post: operations["register_charging_card_v1_charging_cards_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/charging-cards/{card_pk}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Charging Card
+         * @description Stop a card attributing, without erasing what it already attributed.
+         */
+        delete: operations["revoke_charging_card_v1_charging_cards__card_pk__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/billing-periods": {
         parameters: {
             query?: never;
@@ -453,6 +501,46 @@ export interface components {
         Body_preview_import_v1_import_batches_preview_post: {
             /** File */
             file?: string | null;
+        };
+        /** ChargingCardListResponse */
+        ChargingCardListResponse: {
+            /** Items */
+            items: components["schemas"]["ChargingCardResponse"][];
+        };
+        /**
+         * ChargingCardResponse
+         * @description A card and the unit it answers for, with what it has already decided.
+         */
+        ChargingCardResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Cardid */
+            cardId: string;
+            /** Label */
+            label: string;
+            /**
+             * Unitid
+             * Format: uuid
+             */
+            unitId: string;
+            /** Unitcode */
+            unitCode: string;
+            /** Unitname */
+            unitName: string;
+            /** Registeredbyname */
+            registeredByName: string | null;
+            /**
+             * Registeredat
+             * Format: date-time
+             */
+            registeredAt: string;
+            /** Revokedat */
+            revokedAt: string | null;
+            /** Attributedsessions */
+            attributedSessions: number;
         };
         /**
          * CloseConflictResponse
@@ -918,6 +1006,18 @@ export interface components {
             /** Blockers */
             blockers: components["schemas"]["BlockerResponse"][];
         };
+        /** RegisterChargingCardRequest */
+        RegisterChargingCardRequest: {
+            /** Cardid */
+            cardId: string;
+            /**
+             * Unitid
+             * Format: uuid
+             */
+            unitId: string;
+            /** Label */
+            label: string;
+        };
         /** ResidentContextResponse */
         ResidentContextResponse: {
             /**
@@ -1061,6 +1161,8 @@ export interface components {
             unitName: string | null;
             /** Residentname */
             residentName: string | null;
+            /** Assignmentorigin */
+            assignmentOrigin: string | null;
         };
         /**
          * TariffBandResponse
@@ -1574,6 +1676,177 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_charging_cards_v1_charging_cards_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Resident-Context"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargingCardListResponse"];
+                };
+            };
+            /** @description Invalid or missing bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Organization membership and manager role required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    register_charging_card_v1_charging_cards_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Resident-Context"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterChargingCardRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargingCardResponse"];
+                };
+            };
+            /** @description Invalid or missing bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Organization membership and manager role required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description The card is already registered for a unit. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description The card id is the charger's own serial. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+        };
+    };
+    revoke_charging_card_v1_charging_cards__card_pk__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Resident-Context"?: string | null;
+            };
+            path: {
+                card_pk: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChargingCardResponse"];
+                };
+            };
+            /** @description Invalid or missing bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Organization membership and manager role required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Card not found in this organization. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

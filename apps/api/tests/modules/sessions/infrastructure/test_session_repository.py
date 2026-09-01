@@ -24,8 +24,16 @@ from app.modules.organizations.infrastructure.models import (
     SiteModel,
     UnitModel,
 )
-from app.modules.sessions.domain.errors import SessionNotFound, UnitNotFound
-from app.modules.sessions.infrastructure.models import SessionAssignmentModel
+from app.modules.sessions.domain.errors import (
+    CardAlreadyRegistered,
+    CardIsTheChargerSerial,
+    SessionNotFound,
+    UnitNotFound,
+)
+from app.modules.sessions.infrastructure.models import (
+    ChargingCardModel,
+    SessionAssignmentModel,
+)
 from app.modules.sessions.infrastructure.repository import SqlAlchemySessionRepository
 from app.shared.sqlalchemy import Base
 
@@ -838,3 +846,303 @@ async def test_period_is_measured_in_the_site_timezone(
 
     assert [item.id for item in august] == [late_august.id]
     assert [item.id for item in september] == [first_september.id]
+
+
+async def _unit_with_card(
+    session: AsyncSession,
+    *,
+    organization_id: UUID,
+    suffix: int,
+    card_id: str,
+) -> UUID:
+    unit_id = identifier(9, suffix)
+    session.add_all(
+        [
+            UnitModel(
+                id=unit_id,
+                organization_id=organization_id,
+                code=f"A-{suffix}",
+                display_name=f"Unidade A-{suffix}",
+            ),
+            ChargingCardModel(
+                id=identifier(20, suffix),
+                organization_id=organization_id,
+                card_id=card_id,
+                unit_id=unit_id,
+                label=f"Cartão da unidade A-{suffix}",
+                registered_by=identifier(5, suffix),
+            ),
+        ]
+    )
+    return unit_id
+
+
+async def test_a_registered_card_attributes_the_session_by_itself(
+    async_session: AsyncSession,
+) -> None:
+    """The charger authenticates the card; the registry says whose it is."""
+    organization_id, site_id, charger_id, batch_id = await seed_organization(
+        async_session, 1
+    )
+    unit_id = await _unit_with_card(
+        async_session, organization_id=organization_id, suffix=1, card_id="CARD-1"
+    )
+    charging_session = await add_session(
+        async_session,
+        organization_id=organization_id,
+        site_id=site_id,
+        charger_id=charger_id,
+        import_batch_id=batch_id,
+        id_suffix=1,
+        started_at=datetime(2026, 7, 2, 21, 8, tzinfo=UTC),
+        card_id_raw="CARD-1",
+    )
+    await async_session.commit()
+
+    attributed = await SqlAlchemySessionRepository(
+        async_session
+    ).attribute_by_registered_card(organization_id, identifier(5, 1), batch_id)
+
+    assert attributed == 1
+    await async_session.refresh(charging_session)
+    assert charging_session.identity_confidence == "confirmed"
+    assert charging_session.status == "ready"
+    assignment = await async_session.scalar(
+        select(SessionAssignmentModel).where(
+            SessionAssignmentModel.charging_session_id == charging_session.id
+        )
+    )
+    assert assignment is not None
+    assert assignment.unit_id == unit_id
+    assert assignment.origin == "card"
+    assert "CARD-1" in assignment.justification
+
+
+async def test_an_unregistered_card_still_reaches_the_review_queue(
+    async_session: AsyncSession,
+) -> None:
+    """A raw card id is evidence, never identity. Only the registry decides."""
+    organization_id, site_id, charger_id, batch_id = await seed_organization(
+        async_session, 2
+    )
+    await _unit_with_card(
+        async_session, organization_id=organization_id, suffix=2, card_id="CARD-2"
+    )
+    charging_session = await add_session(
+        async_session,
+        organization_id=organization_id,
+        site_id=site_id,
+        charger_id=charger_id,
+        import_batch_id=batch_id,
+        id_suffix=2,
+        started_at=datetime(2026, 7, 3, 21, 8, tzinfo=UTC),
+        card_id_raw="57000HPA247L0002",
+    )
+    await async_session.commit()
+
+    attributed = await SqlAlchemySessionRepository(
+        async_session
+    ).attribute_by_registered_card(organization_id, identifier(5, 2), batch_id)
+
+    assert attributed == 0
+    await async_session.refresh(charging_session)
+    assert charging_session.identity_confidence == "unknown"
+    assert charging_session.status == "pending_review"
+
+
+async def test_a_managers_decision_outranks_the_card_registry(
+    async_session: AsyncSession,
+) -> None:
+    organization_id, site_id, charger_id, batch_id = await seed_organization(
+        async_session, 3
+    )
+    card_unit = await _unit_with_card(
+        async_session, organization_id=organization_id, suffix=3, card_id="CARD-3"
+    )
+    other_unit = identifier(9, 33)
+    async_session.add(
+        UnitModel(
+            id=other_unit,
+            organization_id=organization_id,
+            code="B-303",
+            display_name="Unidade B-303",
+        )
+    )
+    charging_session = await add_session(
+        async_session,
+        organization_id=organization_id,
+        site_id=site_id,
+        charger_id=charger_id,
+        import_batch_id=batch_id,
+        id_suffix=3,
+        started_at=datetime(2026, 7, 4, 21, 8, tzinfo=UTC),
+        card_id_raw="CARD-3",
+    )
+    async_session.add(
+        SessionAssignmentModel(
+            id=identifier(21, 3),
+            organization_id=organization_id,
+            charging_session_id=charging_session.id,
+            unit_id=other_unit,
+            assigned_by=identifier(5, 3),
+            justification="O morador da B-303 usou o cartão emprestado.",
+            origin="manual",
+        )
+    )
+    await async_session.commit()
+
+    attributed = await SqlAlchemySessionRepository(
+        async_session
+    ).attribute_by_registered_card(organization_id, identifier(5, 3), batch_id)
+
+    assert attributed == 0
+    assignment = await async_session.scalar(
+        select(SessionAssignmentModel).where(
+            SessionAssignmentModel.charging_session_id == charging_session.id
+        )
+    )
+    assert assignment is not None
+    assert assignment.unit_id == other_unit
+    assert assignment.origin == "manual"
+    assert card_unit != other_unit
+
+
+async def test_registering_the_chargers_own_serial_is_refused(
+    async_session: AsyncSession,
+) -> None:
+    """The equipment's serial is not a person's card.
+
+    Accepting it would attribute every charge on the connector to one unit by
+    construction, and the invoice would then assert an identity nobody checked.
+    """
+    organization_id, _, _, _ = await seed_organization(async_session, 4)
+    unit_id = identifier(9, 4)
+    async_session.add(
+        UnitModel(
+            id=unit_id,
+            organization_id=organization_id,
+            code="A-404",
+            display_name="Unidade A-404",
+        )
+    )
+    await async_session.commit()
+    scope = OrganizationScope(
+        auth_user_id=identifier(6, 4),
+        profile_id=identifier(5, 4),
+        organization_id=organization_id,
+        role=OrganizationRole.MANAGER,
+        unit_id=None,
+    )
+
+    with pytest.raises(CardIsTheChargerSerial):
+        await SqlAlchemySessionRepository(async_session).register_charging_card(
+            scope, "CHARGER-4", unit_id, "Tentativa indevida"
+        )
+
+
+async def test_a_card_answers_for_one_unit_only(
+    async_session: AsyncSession,
+) -> None:
+    organization_id, _, _, _ = await seed_organization(async_session, 5)
+    first = identifier(9, 5)
+    second = identifier(9, 55)
+    async_session.add_all(
+        [
+            UnitModel(
+                id=first,
+                organization_id=organization_id,
+                code="A-505",
+                display_name="Unidade A-505",
+            ),
+            UnitModel(
+                id=second,
+                organization_id=organization_id,
+                code="A-506",
+                display_name="Unidade A-506",
+            ),
+        ]
+    )
+    await async_session.commit()
+    scope = OrganizationScope(
+        auth_user_id=identifier(6, 5),
+        profile_id=identifier(5, 5),
+        organization_id=organization_id,
+        role=OrganizationRole.MANAGER,
+        unit_id=None,
+    )
+    repository = SqlAlchemySessionRepository(async_session)
+
+    registered = await repository.register_charging_card(
+        scope, "RFID-505", first, "Cartão da A-505"
+    )
+    assert registered.unit_code == "A-505"
+    assert registered.revoked_at is None
+
+    with pytest.raises(CardAlreadyRegistered):
+        await repository.register_charging_card(
+            scope, "RFID-505", second, "Mesmo cartão, outra unidade"
+        )
+
+
+async def test_a_revoked_card_stops_attributing_without_erasing_the_past(
+    async_session: AsyncSession,
+) -> None:
+    organization_id, site_id, charger_id, batch_id = await seed_organization(
+        async_session, 6
+    )
+    unit_id = await _unit_with_card(
+        async_session, organization_id=organization_id, suffix=6, card_id="RFID-606"
+    )
+    already = await add_session(
+        async_session,
+        organization_id=organization_id,
+        site_id=site_id,
+        charger_id=charger_id,
+        import_batch_id=batch_id,
+        id_suffix=6,
+        started_at=datetime(2026, 7, 5, 21, 0, tzinfo=UTC),
+        card_id_raw="RFID-606",
+    )
+    await async_session.commit()
+    repository = SqlAlchemySessionRepository(async_session)
+    assert (
+        await repository.attribute_by_registered_card(
+            organization_id, identifier(5, 6), batch_id
+        )
+        == 1
+    )
+
+    scope = OrganizationScope(
+        auth_user_id=identifier(6, 6),
+        profile_id=identifier(5, 6),
+        organization_id=organization_id,
+        role=OrganizationRole.MANAGER,
+        unit_id=None,
+    )
+    card = (await repository.list_charging_cards(organization_id))[0]
+    revoked = await repository.revoke_charging_card(scope, card.id)
+    assert revoked.revoked_at is not None
+
+    later = await add_session(
+        async_session,
+        organization_id=organization_id,
+        site_id=site_id,
+        charger_id=charger_id,
+        import_batch_id=batch_id,
+        id_suffix=66,
+        started_at=datetime(2026, 7, 6, 21, 0, tzinfo=UTC),
+        card_id_raw="RFID-606",
+    )
+    await async_session.commit()
+    assert (
+        await repository.attribute_by_registered_card(
+            organization_id, identifier(5, 6), batch_id
+        )
+        == 0
+    )
+
+    await async_session.refresh(already)
+    await async_session.refresh(later)
+    assert already.identity_confidence == "confirmed"
+    assert later.identity_confidence == "unknown"
+    assert unit_id is not None

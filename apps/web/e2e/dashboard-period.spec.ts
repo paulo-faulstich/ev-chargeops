@@ -28,6 +28,7 @@ function session(
     unitCode: "A-101",
     unitName: "Unidade A-101",
     residentName: null,
+    assignmentOrigin: null,
   };
 }
 

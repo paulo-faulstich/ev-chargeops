@@ -780,6 +780,272 @@
         }
       }
     },
+    "/v1/charging-cards": {
+      "get": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "List Charging Cards",
+        "description": "Which cards the administration has registered, and for which units.",
+        "operationId": "list_charging_cards_v1_charging_cards_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Resident-Context",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Resident-Context"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChargingCardListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization membership and manager role required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Register Charging Card",
+        "description": "State, once, which unit a card answers for.\n\nThe equipment's own serial is refused: registering it would make every\ncharge on the connector belong to one unit by construction, and the invoice\nwould then assert an identity nobody verified.",
+        "operationId": "register_charging_card_v1_charging_cards_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Resident-Context",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Resident-Context"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterChargingCardRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChargingCardResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization membership and manager role required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The card is already registered for a unit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The card id is the charger's own serial.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/charging-cards/{card_pk}": {
+      "delete": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Revoke Charging Card",
+        "description": "Stop a card attributing, without erasing what it already attributed.",
+        "operationId": "revoke_charging_card_v1_charging_cards__card_pk__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "card_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Card Pk"
+            }
+          },
+          {
+            "name": "X-Resident-Context",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Resident-Context"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChargingCardResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Organization membership and manager role required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Card not found in this organization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/billing-periods": {
       "get": {
         "tags": [
@@ -2149,6 +2415,99 @@
         "type": "object",
         "title": "Body_preview_import_v1_import_batches_preview_post"
       },
+      "ChargingCardListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ChargingCardResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "ChargingCardListResponse"
+      },
+      "ChargingCardResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "cardId": {
+            "type": "string",
+            "title": "Cardid"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "unitId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Unitid"
+          },
+          "unitCode": {
+            "type": "string",
+            "title": "Unitcode"
+          },
+          "unitName": {
+            "type": "string",
+            "title": "Unitname"
+          },
+          "registeredByName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registeredbyname"
+          },
+          "registeredAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Registeredat"
+          },
+          "revokedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revokedat"
+          },
+          "attributedSessions": {
+            "type": "integer",
+            "title": "Attributedsessions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "cardId",
+          "label",
+          "unitId",
+          "unitCode",
+          "unitName",
+          "registeredByName",
+          "registeredAt",
+          "revokedAt",
+          "attributedSessions"
+        ],
+        "title": "ChargingCardResponse",
+        "description": "A card and the unit it answers for, with what it has already decided."
+      },
       "CloseConflictResponse": {
         "properties": {
           "code": {
@@ -3367,6 +3726,34 @@
         ],
         "title": "ReadinessResponse"
       },
+      "RegisterChargingCardRequest": {
+        "properties": {
+          "cardId": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 3,
+            "title": "Cardid"
+          },
+          "unitId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Unitid"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 2,
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cardId",
+          "unitId",
+          "label"
+        ],
+        "title": "RegisterChargingCardRequest"
+      },
       "ResidentContextResponse": {
         "properties": {
           "id": {
@@ -3664,6 +4051,17 @@
               }
             ],
             "title": "Residentname"
+          },
+          "assignmentOrigin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignmentorigin"
           }
         },
         "type": "object",
@@ -3680,7 +4078,8 @@
           "unitId",
           "unitCode",
           "unitName",
-          "residentName"
+          "residentName",
+          "assignmentOrigin"
         ],
         "title": "SessionResponse"
       },

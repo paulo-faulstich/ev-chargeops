@@ -10,6 +10,32 @@ Este repositório é o documento central da Sprint 01. Ele reúne a pesquisa das
 
 ---
 
+## Onde cada coisa está
+
+Um único repositório atende às duas sprints, de propósito: o histórico de commits
+é a evidência de que a Sprint 02 executou o que a Sprint 01 planejou, e é esse
+link que a FIAP já tem.
+
+| Caminho | Sprint | O que é |
+|---|---|---|
+| Este `README.md` | 01 | A entrega de pesquisa e documentação, preservada como foi avaliada |
+| `docs/arquitetura.png`, `docs/uso_ia.md` | 01 | Diagrama e registro do uso de IA |
+| `docs/decisions/` | 01 e 02 | Decisões de arquitetura, em ordem cronológica |
+| `docs/product/` | 02 | Problem frame, PRD e métricas, revisados pelo que o campo mostrou |
+| `docs/technical/` | 02 | Arquitetura de execução |
+| `docs/superpowers/` | 02 | Especificações e planos de cada incremento |
+| `docs/handoff/` | 02 | Estado do trabalho e continuidade entre sessões |
+| `docs/entregas/` | 01 e 02 | As notas de entrega de cada sprint |
+| `apps/`, `packages/` | 02 | O produto: API, web e cliente gerado do contrato |
+| `data/exemplos/` | 01 | O conjunto **fabricado** da Sprint 01 |
+| `data/sems-plus/` | 02 | Capturas **reais** do SEMS+, cada uma com procedência e limitações |
+
+O arquivo `ev_chargeops_local.db` que aparece na raiz durante o desenvolvimento é
+o banco SQLite local. Ele é ignorado pelo Git e recriado por
+`alembic upgrade head`; apagar não perde nada.
+
+---
+
 ## Execução do Checkpoint A
 
 O Checkpoint A implementa a fundação operacional da Sprint 02: autenticação,
@@ -479,6 +505,10 @@ Referências técnicas para a execução:
 ---
 
 ## 8. Estrutura do repositório
+
+> Esta árvore descreve o repositório **como ele foi entregue na Sprint 01** e é
+> preservada por isso. A estrutura atual, com o produto da Sprint 02, está em
+> [Onde cada coisa está](#onde-cada-coisa-está), no topo deste documento.
 
 ```
 ev-chargeops/

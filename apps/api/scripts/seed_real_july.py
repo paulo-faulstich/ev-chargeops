@@ -32,6 +32,11 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 CSV_PATH = REPO_ROOT / "data" / "sems-plus" / "2026-07-ev-charger-sessoes.csv"
+# The full capture, imported so the trend has more than one month to describe.
+# Only July is closed: the other months are evidence, not billing.
+HISTORY_PATH = (
+    REPO_ROOT / "data" / "sems-plus" / "2026-08-31-ev-charger-sessoes.csv"
+)
 API = "http://127.0.0.1:8407"
 TOKEN = "fixture-manager-token"
 PERIOD = "2026-07"
@@ -95,6 +100,17 @@ def main() -> None:
     status, batch = call("POST", "/v1/import-batches", upload=CSV_PATH)
     if status not in (200, 201):
         raise SystemExit(f"Importação falhou: {status} {batch}")
+
+    if HISTORY_PATH.exists():
+        history_status, history = call(
+            "POST", "/v1/import-batches", upload=HISTORY_PATH
+        )
+        if history_status in (200, 201) and isinstance(history, dict):
+            print(
+                "Histórico completo: "
+                f"{history['validCount']} de {history['totalCount']} válidas "
+                f"({history['duplicateCount']} já conhecidas de julho)"
+            )
     if True:
         print(f"Lote importado: {batch['validCount']} de {batch['totalCount']} válidas")
 

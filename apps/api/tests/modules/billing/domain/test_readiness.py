@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
+from app.modules.billing.domain.money import energy_value_cents
 from app.modules.billing.domain.readiness import (
     CRITICAL_FINDING,
     NO_EFFECTIVE_POLICY,
@@ -15,6 +16,7 @@ from app.modules.billing.domain.readiness import (
     PeriodSession,
     evaluate_readiness,
 )
+from app.modules.billing.domain.reference import sprint1_tariff
 
 UNIT = UUID("40000000-0000-0000-0000-000000000001")
 START = datetime(2026, 5, 4, 22, 0, tzinfo=UTC)
@@ -155,3 +157,56 @@ def test_an_empty_period_has_no_coverage_and_nothing_to_bill():
     assert readiness.assignment_coverage == Decimal(0)
     assert readiness.period_energy_kwh == Decimal(0)
     assert readiness.can_close
+
+
+def test_unassigned_energy_is_priced_exactly_as_a_close_would():
+    """The number the síndico takes to the assembly must be reproducible.
+
+    An average rate would be simpler and would produce a figure the close
+    could never arrive at, which is worse than no figure at all.
+    """
+    tariff = sprint1_tariff()
+    pending = session("10.500", unit_id=None)
+    band = tariff.resolve_band(pending.started_at)
+
+    readiness = evaluate_readiness(
+        period_value="2026-05",
+        status="open",
+        sessions=(session("7.000"), pending),
+        aggregate_energy_kwh=None,
+        has_effective_tariff=True,
+        has_effective_policy=True,
+        tariff=tariff,
+    )
+
+    assert readiness.unassigned_value_cents == energy_value_cents(
+        Decimal("10.500"), band.rate_cents_per_kwh
+    )
+
+
+def test_a_fully_assigned_period_leaves_nothing_in_the_shared_bill():
+    readiness = evaluate_readiness(
+        period_value="2026-05",
+        status="open",
+        sessions=(session("7.000"), session("3.500")),
+        aggregate_energy_kwh=None,
+        has_effective_tariff=True,
+        has_effective_policy=True,
+        tariff=sprint1_tariff(),
+    )
+
+    assert readiness.unassigned_value_cents == 0
+
+
+def test_without_a_tariff_the_unrecovered_energy_has_no_price():
+    """Reporting zero would read as "nothing is leaking", which is not known."""
+    readiness = evaluate_readiness(
+        period_value="2026-05",
+        status="open",
+        sessions=(session("7.000", unit_id=None),),
+        aggregate_energy_kwh=None,
+        has_effective_tariff=False,
+        has_effective_policy=True,
+    )
+
+    assert readiness.unassigned_value_cents is None

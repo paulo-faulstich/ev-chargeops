@@ -96,6 +96,7 @@ class GetPeriodReadiness:
             has_effective_policy=dataset.has_effective_policy,
             critical_finding_count=dataset.critical_finding_count,
             has_closing_opinion=dataset.has_closing_opinion,
+            tariff=dataset.tariff,
         )
         return period, readiness
 

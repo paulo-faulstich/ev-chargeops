@@ -1001,6 +1001,8 @@ export interface components {
             externalDifferenceKwh: string | null;
             /** Assignmentcoverage */
             assignmentCoverage: string;
+            /** Unassignedvaluecents */
+            unassignedValueCents: number | null;
             /** Canclose */
             canClose: boolean;
             /** Blockers */

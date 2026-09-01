@@ -3695,6 +3695,17 @@
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Assignmentcoverage"
           },
+          "unassignedValueCents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unassignedvaluecents"
+          },
           "canClose": {
             "type": "boolean",
             "title": "Canclose"
@@ -3721,6 +3732,7 @@
           "internalDifferenceKwh",
           "externalDifferenceKwh",
           "assignmentCoverage",
+          "unassignedValueCents",
           "canClose",
           "blockers"
         ],

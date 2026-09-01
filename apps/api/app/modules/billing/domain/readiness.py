@@ -20,6 +20,9 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
+from .money import energy_value_cents
+from .tariff import TariffSnapshot
+
 DISCARDED = "discarded"
 READY = "ready"
 
@@ -64,6 +67,7 @@ class PeriodDataset:
     has_effective_policy: bool
     critical_finding_count: int = 0
     has_closing_opinion: bool = True
+    tariff: TariffSnapshot | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,6 +91,11 @@ class Readiness:
     internal_difference_kwh: Decimal
     external_difference_kwh: Decimal | None
     assignment_coverage: Decimal
+    # What the condominium paid for and is not charging to anyone, in cents.
+    # `None` when no tariff covers the period, because then there is no honest
+    # way to price it. The síndico's question in assembly is this one, in
+    # money: is anyone subsidising the neighbours' cars?
+    unassigned_value_cents: int | None
     blockers: tuple[Blocker, ...]
 
     @property
@@ -96,6 +105,24 @@ class Readiness:
 
 def _sum_energy(sessions: tuple[PeriodSession, ...]) -> Decimal:
     return sum((item.energy_kwh for item in sessions), Decimal(0))
+
+
+def _unassigned_value(
+    pending: tuple[PeriodSession, ...], tariff: TariffSnapshot | None
+) -> int | None:
+    """What the unassigned charges would have cost, priced exactly as a close.
+
+    Each charge is resolved to its own band by start time and rounded once,
+    which is the same rule the invoice uses. An average rate would be easier
+    and would produce a number the close could never reproduce.
+    """
+    if tariff is None:
+        return None
+    total = 0
+    for item in pending:
+        band = tariff.resolve_band(item.started_at)
+        total += energy_value_cents(item.energy_kwh, band.rate_cents_per_kwh)
+    return total
 
 
 def evaluate_readiness(
@@ -108,6 +135,7 @@ def evaluate_readiness(
     has_effective_policy: bool,
     critical_finding_count: int = 0,
     has_closing_opinion: bool = True,
+    tariff: TariffSnapshot | None = None,
 ) -> Readiness:
     kept = tuple(item for item in sessions if not item.is_discarded)
     billable = tuple(item for item in kept if item.is_billable)
@@ -201,5 +229,6 @@ def evaluate_readiness(
         internal_difference_kwh=internal_difference,
         external_difference_kwh=external_difference,
         assignment_coverage=coverage,
+        unassigned_value_cents=_unassigned_value(pending, tariff),
         blockers=tuple(blockers),
     )

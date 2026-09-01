@@ -41,7 +41,7 @@ arquitetura e não descarte o que já existe.** Continue de onde parou.
 
 ## Estado atual: o incremento está completo e verde
 
-- **324 testes Python**, ruff e mypy limpos, sem drift de migration nem de contrato.
+- **327 testes Python**, ruff e mypy limpos, sem drift de migration nem de contrato.
 - **44 testes Playwright passando.**
 - Client TypeScript com `tsc` e 19 testes vitest; web com `tsc` e `eslint`.
 - **A demonstração roda sobre dado real da GoodWe.** Julho/2026 fechado com as 17
@@ -113,6 +113,22 @@ auditada.
   conector a uma unidade por construção, e a fatura afirmaria uma identidade que
   ninguém verificou. É por isso que `57000HPA247L0002` não está registrado e as
   recargas reais caem na fila.
+
+### 10. O que o condomínio recuperou, em dinheiro
+
+O fechamento diz, em reais, quanto foi cobrado e quanto ficaria no rateio geral
+— a pergunta que a assembleia realmente discute é se quem não tem carro elétrico
+está pagando por quem tem. `readiness.unassigned_value_cents` precifica as
+recargas sem responsável **pela faixa de cada uma**, arredondando uma vez, igual
+ao fechamento; uma tarifa média produziria um número que o fechamento nunca
+reproduziria. Sem tarifa vigente devolve `None`, porque zero leria como "nada
+está vazando", o que não se sabe.
+
+A Visão geral traz **tendência e capacidade** sobre os 8 meses reais importados:
+energia por mês, variação e ocupação do conector. A ocupação é deliberadamente
+baixa e a nota explica por quê — o limite de um condomínio é sobreposição de
+horário, não energia total. Serve para evitar a aprovação de um segundo
+carregador que não é necessário.
 
 ### Endpoints
 
@@ -248,6 +264,12 @@ fechamento enquanto houver `analytical_findings` crítico com `resolved_at` nulo
 Antes não existia caminho de escrita para isso, e nenhum período com defeito
 podia fechar. Hoje `POST .../findings/{id}/decision` grava motivo, autor e
 instante, e audita. O achado nunca é apagado.
+
+**Evento de auditoria precisa do id antes do flush.** `audit_events.entity_id`
+é `NOT NULL`, e o default de UUID do modelo só é aplicado no flush. Criar a
+entidade e o evento na mesma transação, referenciando `entity.id`, grava `None`
+e o banco recusa com `IntegrityError`. Gere o id explicitamente (`id=uuid4()`)
+ao criar qualquer entidade que será auditada no mesmo passo.
 
 **O `Card ID` do LAB é o serial do carregador.** `57000HPA247L0002` aparece em
 todas as 145 sessões de oito meses, e é o `EV Charger SN` do cabeçalho do

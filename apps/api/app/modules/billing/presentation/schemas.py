@@ -73,6 +73,7 @@ class ReadinessResponse(ApiSchema):
     internal_difference_kwh: Decimal
     external_difference_kwh: Decimal | None
     assignment_coverage: Decimal
+    unassigned_value_cents: int | None
     can_close: bool
     blockers: list[BlockerResponse]
 
@@ -91,6 +92,7 @@ class ReadinessResponse(ApiSchema):
             internal_difference_kwh=readiness.internal_difference_kwh,
             external_difference_kwh=readiness.external_difference_kwh,
             assignment_coverage=readiness.assignment_coverage,
+            unassigned_value_cents=readiness.unassigned_value_cents,
             can_close=readiness.can_close,
             blockers=[
                 BlockerResponse.from_domain(blocker) for blocker in readiness.blockers

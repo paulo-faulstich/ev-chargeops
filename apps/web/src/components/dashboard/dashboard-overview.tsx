@@ -498,12 +498,100 @@ function OperationalDashboard({
         </section>
       </div>
 
+      <ConsumptionTrend summary={summary} />
+
       <ClosingHighlights
         summary={summary}
         readiness={readiness}
         closed={closed}
       />
     </div>
+  );
+}
+
+/** Where the consumption is going, and where the pressure actually is.
+ *
+ * Installing a second charger is electrical work, a budget line and an assembly
+ * vote — a decision taken months ahead. The two questions it turns on are how
+ * fast demand is growing and how much of the connector's time is already
+ * spoken for, and both are answerable from the charges already imported.
+ */
+function ConsumptionTrend({ summary }: { summary: DashboardSummary }) {
+  const months = [...summary.periods]
+    .sort((left, right) => left.periodKey.localeCompare(right.periodKey))
+    .slice(-8);
+  if (months.length < 3) return null;
+
+  const peak = Math.max(...months.map((month) => month.energyKwh), 1);
+  const half = Math.ceil(months.length / 2);
+  const early =
+    months.slice(0, half).reduce((total, m) => total + m.energyKwh, 0) / half;
+  const late =
+    months.slice(-half).reduce((total, m) => total + m.energyKwh, 0) / half;
+  const growth = early > 0 ? (late / early - 1) * 100 : 0;
+
+  // Hours the connector spent delivering, against the hours in the period. A
+  // condominium's constraint is rarely total energy: it is two neighbours
+  // wanting the same connector on the same evening.
+  const observedDays = summary.dailyUsage.length || 1;
+  const occupancy = (summary.totalEnergyKwh / 7.5 / (observedDays * 24)) * 100;
+
+  return (
+    <section className="consumption-trend" aria-labelledby="trend-title">
+      <div className="dashboard-section-heading">
+        <h2 id="trend-title">Tendência e capacidade</h2>
+        <span>{months.length} meses importados</span>
+      </div>
+
+      <div className="trend-bars" role="img" aria-label="Energia por mês">
+        {months.map((month) => (
+          <div
+            className="trend-month"
+            key={month.periodKey}
+            title={`${month.periodLabel}: ${energyFormatter.format(month.energyKwh)} kWh em ${month.sessionCount} recargas`}
+          >
+            <span
+              className="trend-bar"
+              style={{ height: `${Math.max(6, (month.energyKwh / peak) * 100)}%` }}
+            />
+            <span className="trend-label">{month.periodKey.slice(5)}</span>
+          </div>
+        ))}
+      </div>
+
+      <dl className="trend-figures">
+        <div>
+          <dt>Variação no período</dt>
+          <dd className={growth > 0 ? "warning" : undefined}>
+            {growth >= 0 ? "+" : ""}
+            {growth.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}%
+          </dd>
+        </div>
+        <div>
+          <dt>Média mensal</dt>
+          <dd>
+            {energyFormatter.format(
+              months.reduce((total, m) => total + m.energyKwh, 0) /
+                months.length,
+            )}{" "}
+            kWh
+          </dd>
+        </div>
+        <div>
+          <dt>Ocupação do carregador</dt>
+          <dd>
+            {occupancy.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%
+          </dd>
+        </div>
+      </dl>
+
+      <p className="invoice-note">
+        A ocupação compara a energia entregue com o que um conector de 7,5 kW
+        entregaria funcionando sem parar. Ela é baixa porque a garagem carrega
+        concentrada à noite: o limite de um condomínio raramente é energia
+        total, e sim dois vizinhos querendo o mesmo conector na mesma noite.
+      </p>
+    </section>
   );
 }
 

@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.engine import CursorResult
+from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.audit.infrastructure.models import AuditEventModel
@@ -267,6 +268,15 @@ class SqlAlchemyBillingRepository:
             )
         ).scalar_one()
 
+        try:
+            _, effective_tariff = await self._effective_tariff(
+                organization_id, first_day
+            )
+        except NoResultFound:
+            # No tariff covers the period. Readiness still reports the energy;
+            # it just refuses to put a price on it.
+            effective_tariff = None
+
         return PeriodDataset(
             sessions=sessions,
             aggregate_energy_kwh=aggregate,
@@ -276,6 +286,7 @@ class SqlAlchemyBillingRepository:
             has_effective_policy=await self._has_effective(
                 BillingPolicyModel, organization_id, first_day
             ),
+            tariff=effective_tariff,
             critical_finding_count=critical,
             has_closing_opinion=(
                 await self._latest_opinion_run_id(organization_id, period.id)

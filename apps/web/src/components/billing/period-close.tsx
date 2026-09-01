@@ -328,6 +328,12 @@ export function PeriodClose({
           </dd>
         </div>
       </dl>
+      <RecoveryStatement
+        readiness={readiness}
+        invoices={invoices}
+        closed={closed}
+      />
+
       <p className="invoice-note">
         A diferença interna bloqueia o fechamento. A diferença externa, medida
         contra o agregado do próprio carregador, é um alerta e nunca é
@@ -514,5 +520,74 @@ function FindingDecision({
         </button>
       </div>
     </form>
+  );
+}
+
+
+/** The sentence the manager repeats in the assembly, in money.
+ *
+ * The reconciliation is already computed in kWh, which is engineer's language.
+ * The question a condominium actually argues about is whether the neighbours
+ * without an electric car are paying for the ones who have one, and that
+ * question is answered in reais or not at all.
+ */
+function RecoveryStatement({
+  readiness,
+  invoices,
+  closed,
+}: {
+  readiness: ReadinessResponse;
+  invoices: InvoiceResponse[];
+  closed: boolean;
+}) {
+  const billed = invoices.reduce(
+    (total, invoice) => total + invoice.totalCents,
+    0,
+  );
+  const unrecovered = readiness.unassignedValueCents;
+  const external = readiness.externalDifferenceKwh;
+
+  return (
+    <div className="recovery-statement">
+      <p className="utility-label">O que o condomínio recuperou</p>
+      <p className="recovery-sentence">
+        Os carregadores entregaram{" "}
+        <strong>{formatKwh(readiness.periodEnergyKwh)}</strong> em{" "}
+        {readiness.periodValue}.{" "}
+        {closed ? (
+          <>
+            O condomínio cobrou <strong>{formatCents(billed)}</strong> das
+            unidades.
+          </>
+        ) : (
+          <>
+            {formatKwh(readiness.billableEnergyKwh)} estão prontos para cobrança.
+          </>
+        )}{" "}
+        {unrecovered === null ? (
+          <>
+            Sem tarifa vigente, o que não foi atribuído não tem preço — e por
+            isso não é estimado aqui.
+          </>
+        ) : unrecovered === 0 ? (
+          <>
+            <strong>Nada ficou no rateio geral:</strong> toda a energia tem uma
+            unidade responsável.
+          </>
+        ) : (
+          <>
+            <strong className="warning">{formatCents(unrecovered)}</strong>{" "}
+            ficariam no rateio geral, divididos entre todos os moradores —
+            inclusive quem não tem carro elétrico.
+          </>
+        )}
+      </p>
+      {external !== null && Number(external) !== 0 ? (
+        <p className="invoice-note">
+          O carregador mediu {formatKwh(external)} a mais do que as recargas
+          somam. Essa diferença é relatada e nunca entra em fatura.
+        </p>
+      ) : null}
+    </div>
   );
 }

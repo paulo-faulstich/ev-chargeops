@@ -163,6 +163,7 @@ export function InvoiceView({
   const cheaper = bands
     .filter((band) => band.energyValueCents < invoice.energyValueCents)
     .sort((left, right) => left.energyValueCents - right.energyValueCents);
+  const cheapest = cheaper[0];
 
   return (
     <div className="invoice-page">
@@ -237,6 +238,18 @@ export function InvoiceView({
           {formatCents(invoice.infraFeeCents)} +{" "}
           {formatCents(invoice.lossShareCents)} = {formatCents(sum)}
         </p>
+        {/* The comparison is worked out further down, but a reader who never
+            scrolls that far is exactly the one it was written for. */}
+        {cheapest !== undefined ? (
+          <p className="invoice-advice-lead">
+            Toda esta energia na faixa <strong>{cheapest.code}</strong> custaria{" "}
+            <strong>
+              {formatCents(invoice.energyValueCents - cheapest.energyValueCents)}
+            </strong>{" "}
+            a menos.{" "}
+            <a href="#invoice-advice-title">Ver a comparação</a>
+          </p>
+        ) : null}
       </section>
 
       <section className="invoice-block" aria-labelledby="invoice-sessions-title">

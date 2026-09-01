@@ -47,6 +47,7 @@ export type PeriodOption = {
   periodKey: string;
   periodLabel: string;
   sessionCount: number;
+  energyKwh: number;
   provenance: SessionProvenance;
 };
 
@@ -149,6 +150,10 @@ function buildPeriodOptions(sessions: DashboardSession[]): PeriodOption[] {
       periodKey,
       periodLabel: formatPeriod(periodSessions[0].startedAt),
       sessionCount: periodSessions.length,
+      energyKwh: periodSessions.reduce(
+        (total, session) => total + session.energyKwh,
+        0,
+      ),
       provenance: combineProvenance(
         periodSessions.map((session) => session.provenance),
       ),

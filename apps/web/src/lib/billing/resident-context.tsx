@@ -138,9 +138,10 @@ export function ResidentContextProvider({
     [context, enter, exit],
   );
 
+  // The banner is not rendered here on purpose: the shell owns the layout, and
+  // a strip floating outside its grid neither spans the page nor sticks.
   return (
     <ResidentContextValue.Provider value={value}>
-      {context ? <ResidentBanner context={context} onExit={exit} /> : null}
       {children}
     </ResidentContextValue.Provider>
   );
@@ -154,7 +155,7 @@ export function useResidentContext(): ResidentContextState {
   return value;
 }
 
-function ResidentBanner({
+export function ResidentBanner({
   context,
   onExit,
 }: {

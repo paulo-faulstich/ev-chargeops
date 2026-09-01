@@ -6,6 +6,10 @@ import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { logout } from "@/app/(app)/actions";
+import {
+  ResidentBanner,
+  useResidentContext,
+} from "@/lib/billing/resident-context";
 
 const operationalDestinations = [
   { href: "/dashboard", label: "Visão geral" },
@@ -30,6 +34,8 @@ const billingDestinations = [
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { context: residentContext, exit: exitResidentContext } =
+    useResidentContext();
   // An invoice opened from the closing keeps the reader inside that task, so
   // the rail must not claim they left it for the invoice list.
   const openedFromClosing =
@@ -115,6 +121,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="app-workspace">
+        {residentContext ? (
+          <ResidentBanner
+            context={residentContext}
+            onExit={exitResidentContext}
+          />
+        ) : null}
         <header className="app-workspace-header">
           <div>
             <p className="dashboard-site-name">Powered by GoodWe / SEMS+</p>

@@ -1,21 +1,27 @@
-# Registro de uso de Inteligência Artificial
+# Uso de ferramentas de IA no desenvolvimento
 
-Conforme a seção sobre uso de IA do enunciado, este arquivo registra de forma transparente como a IA foi utilizada na Sprint 01 do EV ChargeOps e qual validação crítica foi feita pelo autor.
+Ferramentas de IA apoiaram a pesquisa, a redação, a implementação, os testes e a preparação da apresentação do EV ChargeOps. Esse uso é permitido pelo enunciado, que exige autoria, análise crítica e capacidade de explicar o código entregue.
 
-## Autoria e responsabilidade
+## Sprint 1
 
-A pesquisa, a escolha das frentes e opções de aprofundamento, a arquitetura, o modelo de rateio e a definição do papel da IA refletem o entendimento e as decisões do autor. A IA foi usada como ferramenta de apoio à produtividade, sempre a partir das definições do autor e com revisão crítica integral. As conclusões e a proposta são autorais.
+O registro original de apoio à pesquisa, organização do README e geração de dados simulados permanece preservado no [arquivo histórico da Sprint 1](sprints/sprint-01/arquivo-original/docs/uso_ia.md).
 
-## Como a IA apoiou
+## Sprint 2
 
-- Organização da pesquisa: Apoiar a busca por fontes (regulação, datasheet do carregador, API do SEMS, soluções de mercado e dados de frota).
-- Apoio à redação: Apoio a estruturação do README e revisão de texto a partir das decisões do autor.
-- Geração dos dados simulados: apoio na construção do conjunto em `data/exemplos/`, mantendo coerência com o modelo de rateio.
+O apoio incluiu:
 
-## Validação crítica realizada pelo autor
+- Estruturação dos requisitos, decisões de arquitetura e planos de implementação.
+- Implementação assistida de backend, interface, importação, atribuição, rateio, parecer e faturas.
+- Preparação de testes e investigação de falhas.
+- Organização de documentação, roteiro e apresentação.
+- Revisão dos requisitos e preparação da entrega.
 
-- Fontes conferidas: cada fonte citada na Seção 9 do README foi efetivamente consultada; afirmações sobre a RN 1.000/2021, a legislação paulistana, as interfaces do HCA G2, a API do SEMS e os números da ABVE foram verificadas nas páginas originais.
-- Matemática do rateio refeita à mão: os valores da tabela da Seção 5.4 foram conferidos a partir das tarifas por período e das energias das sessões (energia individual, taxa de infraestrutura e perdas de 4%).
-- Coerência dos dados verificada: o conjunto simulado foi checado para conter os três casos excepcionais que o modelo precisa tratar (sessão interrompida, usuário sem consumo e duas faturas na mesma unidade).
+As decisões de produto e seus motivos estão no [registro de desvios](sprints/sprint-02/desvios-e-decisoes.md), no [PRD](product/prd.md) e nas [decisões de arquitetura](decisions/). O código e as verificações automatizadas permitem rastrear como essas decisões foram implementadas.
 
-O autor é capaz de explicar e defender integralmente a pesquisa, a arquitetura e o modelo de rateio propostos.
+## Responsabilidade e compreensão
+
+O autor é responsável pelo material entregue e por explicar o fluxo, a política de rateio, a procedência dos dados, os algoritmos e seus limites. Aprovação em testes automatizados não comprova, por si só, compreensão humana de cada trecho. A apresentação do autor e a avaliação técnica complementam essas evidências.
+
+## Distinção em relação à análise do produto
+
+O uso de ferramentas generativas durante o desenvolvimento não significa que elas estejam integradas ao produto. O parecer implementado usa regras e estatística robusta, sem chamada a modelo de linguagem. Previsão e clustering permanecem adiados, conforme documentado na Sprint 2.

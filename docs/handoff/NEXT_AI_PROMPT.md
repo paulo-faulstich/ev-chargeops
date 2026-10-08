@@ -1,5 +1,7 @@
 # EV ChargeOps — prompt de continuação
 
+> **Registro histórico de agosto/setembro.** Para a entrega de outubro, comece pelo [README atual](../../README.md) e pela [Sprint 2](../sprints/sprint-02/README.md). Caminhos de worktree, datas e resultados abaixo descrevem a sessão original e não devem ser tratados como estado atual.
+
 > Substitui a versão anterior, escrita quando os passos 5 a 8 ainda estavam
 > pendentes. O histórico detalhado das etapas anteriores continua em
 > [`2026-08-30-ev-chargeops-status.md`](2026-08-30-ev-chargeops-status.md).
@@ -23,7 +25,7 @@ arquitetura e não descarte o que já existe.** Continue de onde parou.
 2. [`../product/success-metrics.md`](../product/success-metrics.md) — versão 0.2
 3. [`../technical/ev-chargeops-architecture.md`](../technical/ev-chargeops-architecture.md) — versão 0.2
 4. [`../superpowers/specs/2026-08-30-tariff-close-and-invoicing-design.md`](../superpowers/specs/2026-08-30-tariff-close-and-invoicing-design.md) — **o design implementado**
-5. [`../../README.md`](../../README.md) seções 5 e 6 — modelo de rateio e papel da IA da Sprint 1
+5. [proposta original](../sprints/sprint-01/arquivo-original/README.md) seções 5 e 6 — modelo de rateio e papel da IA da Sprint 1
 
 ## Decisões já tomadas — não reabra sem motivo concreto
 

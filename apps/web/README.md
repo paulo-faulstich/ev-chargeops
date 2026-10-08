@@ -40,7 +40,11 @@ em qualquer variável `NEXT_PUBLIC_*`.
 ## Rotas do produto
 
 - `/login`: autenticação por senha no modo demo.
-- `/dashboard`: home autenticada e fundação do fechamento operacional.
+- `/dashboard`: consumo e acompanhamento operacional.
+- `/sessions`: recargas e atribuição às unidades.
+- `/charging-cards`: cadastro de cartões.
+- `/closing`: parecer e fechamento mensal.
+- `/invoices`: faturas emitidas e acesso ao PDF.
 - `/settings/data-sources`: preview, confirmação e histórico de importações.
 - `/imports/new`: compatibilidade; redireciona para a fonte secundária.
 
@@ -54,9 +58,11 @@ Na raiz:
 
 ```bash
 pnpm lint:web
-pnpm --dir apps/web exec next build --webpack
+AUTH_MODE=supabase pnpm --dir apps/web exec next build --webpack
 pnpm test:web
 ```
 
 Os testes Playwright iniciam servidores locais isolados, usam SQLite e fixture
 auth e não acessam Supabase.
+
+O build de produção bloqueia autenticação fixture. O override acima vale somente para essa verificação; a demonstração local e os testes continuam usando fixture. O roteiro completo está no [README principal](../../README.md#executar-localmente).

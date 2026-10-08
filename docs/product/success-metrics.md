@@ -73,7 +73,7 @@ instrumentará os eventos necessários para medi-las.
 | M-13 | Previsão demonstrável | **Adiada para P1.** Métrica preservada sem alteração | — |
 | M-14 | Segmentação reproduzível | **Adiada para P1.** Métrica preservada sem alteração | — |
 | M-15 | Rastreabilidade da IA | 100% dos resultados apresentados possuem versão do algoritmo e referência do dataset | Consulta de auditoria |
-| M-16 | Reprodução do exemplo da Sprint 1 | As seis faturas de `data/exemplos/faturas.csv` reproduzidas ao centavo, incluindo os três casos excepcionais | Teste golden do motor de rateio |
+| M-16 | Comparação com o exemplo da Sprint 1 | Energia e perdas preservadas por unidade; totais iguais nas unidades com um usuário; redução explícita de R$ 25,00 em U102 pela taxa única. Inclui os três casos excepcionais | Testes golden e justificativa na seção 4.4 do PRD |
 | M-17 | Reconciliação externa | A diferença entre energia faturada e agregado do carregador é calculada e exibida no fechamento, nunca absorvida em silêncio | Relatório de fechamento |
 | M-18 | Imutabilidade da fatura | Alterar tarifa ou política após a emissão não altera nenhum valor de fatura já emitida | Teste de domínio |
 | M-19 | Aprovação explícita | 0 faturas emitidas sem ação de aprovação registrada com ator e instante | Consulta de auditoria |

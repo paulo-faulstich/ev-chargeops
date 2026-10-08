@@ -1,8 +1,14 @@
 Enterprise Challenge 2026 - GoodWe + FIAP
-Fase 5 - Sprint 02 (Implementacao)
+Fase 6 - Sprint 02 (Desenvolvimento e prototipacao)
 
-Grupo 27
+Grupo 17
 Paulo Roberto Faulstich Rego - RM 572292
 
-Link do repositorio do grupo:
+Repositorio do projeto:
 https://github.com/paulo-faulstich/ev-chargeops
+
+Documentacao e evidencias da Sprint 2:
+https://github.com/paulo-faulstich/ev-chargeops/tree/main/docs/sprints/sprint-02
+
+Video da apresentacao (YouTube, nao listado):
+https://youtu.be/B1YzQmRzsfg

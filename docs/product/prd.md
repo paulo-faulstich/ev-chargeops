@@ -6,6 +6,8 @@
 
 **Data:** 30 de agosto de 2026
 
+> A preparação da entrega foi atualizada em 08/10/2026. Consulte a [Sprint 2](../sprints/sprint-02/README.md) para prazo, apresentação online e evidências atuais.
+
 **Problem frame:** [problem-frame.md](problem-frame.md)
 
 **Success metrics:** [success-metrics.md](success-metrics.md)
@@ -15,8 +17,7 @@
 ## 0. O que mudou na versão 0.4 e por quê
 
 A versão 0.3 previa tarifa, rateio, anomalia, previsão, segmentação e pagamento Pix no mesmo
-incremento. A entrega da Sprint 2 fecha em 20 de setembro de 2026 e a avaliação acontece em
-dois pitches curtos (3 minutos gravados para a GoodWe, 5 minutos presenciais na FIAP). Seis
+incremento. O planejamento de agosto considerava a entrega em 20 de setembro e dois pitches curtos. O enunciado recebido em outubro fixa o prazo em 13/10/2026; o autor informou autorização para apresentação somente online. Seis
 capacidades rasas não sustentam nenhum dos dois; uma trilha completa e auditável sustenta os
 dois.
 
@@ -28,7 +29,7 @@ ponta, com o que sobra empurrado para P1.
 | Pagamento Pix (Mercado Pago sandbox) sai do escopo | O playbook oficial descreve a cobrança como *repasse na taxa condominial*, não como pagamento avulso. A fatura é o entregável; o gateway não acrescenta ao problema condominial |
 | Previsão e segmentação vão para P1 | Ambas dependem de histórico. Nenhuma protege a integridade da fatura, que é o eixo do recorte |
 | Detecção de anomalia vira parecer de fechamento, e permanece no P0 | É a única capacidade analítica que atua **antes** da fatura e pode bloquear a emissão. É a IA como motor lógico que a rubrica exige, não como penduricalho |
-| A fórmula de rateio da Sprint 1 passa a ser contrato de implementação | Ela já foi entregue e avaliada, tem exemplo resolvido e reproduz as seis faturas ao centavo. Substituir a constante de `R$ 0,94/kWh` hoje presente no frontend |
+| A fórmula de rateio da Sprint 1 passa a ser contrato de implementação | Ela já foi entregue e avaliada, tem exemplo resolvido; energia e perdas são preservadas, com a divergência de taxa por unidade documentada na seção 4.4. Substituir a constante de `R$ 0,94/kWh` hoje presente no frontend |
 | A unidade é o alvo da atribuição; o morador aparece pelo vínculo ativo | A Sprint 1 assumiu identidade por RFID. O campo invalidou a premissa: o carregador da FIAP não tem cartões configurados, o `Card ID` repete o serial do equipamento em **todas as 145 sessões de oito meses**, a coluna `RFID Card Name` vem vazia e a OpenAPI da GoodWe não expõe nenhum campo de identidade. A premissa mudou, não o planejamento |
 | Um cartão registrado atribui sozinho; o gestor sobrepõe quando decide | O equipamento suporta RFID e o relatório reserva colunas para o portador. O que não existe no dado do fabricante é a ligação entre cartão, unidade e cobrança. O cadastro de cartões faz essa ponte uma vez, e a atribuição automática passa a valer para todas as recargas seguintes; `session_assignments.origin` mantém as duas origens distinguíveis para auditoria |
 | A visão do morador é a própria fatura, alcançada por impersonate | Um artefato serve os dois papéis, com autorização como filtro. Evita construir duas telas e evita troca de login no meio do pitch |
@@ -141,8 +142,8 @@ O modelo é o definido e avaliado na Sprint 1, adotado aqui como contrato de imp
 fatura(unidade, mês) = energia_individual + taxa_infra + rateio_perdas
 
   energia_individual = Σ (energia_kwh da recarga × tarifa do posto horário)
-  taxa_infra         = custo comum fixo do mês, dividido entre as unidades que
-                       carregaram no mês
+  taxa_infra         = valor fixo cobrado uma vez de cada unidade que
+                       carregou no mês
   rateio_perdas      = percentual sobre energia_individual, proporcional ao consumo
 ```
 
@@ -274,7 +275,7 @@ conversacional. As três permanecem no plano de produto e mantêm os requisitos 
 | FR-28 | Gerar PDF | Fatura emitida gera PDF baixável com a mesma composição exibida em tela |
 | FR-29 | Apresentar parecer explicável | Parecer exibe conclusão, severidade, confiança, evidências e recomendação, ou declara-se inconclusivo |
 | FR-30 | Assumir contexto de morador | Impersonate é somente leitura, restrito a uma unidade, passa pelo caminho real de autorização e gera evento de auditoria |
-| FR-31 | Reproduzir o exemplo da Sprint 1 | O motor de rateio reproduz as faturas de `data/exemplos/faturas.csv` ao centavo, incluindo os três casos excepcionais |
+| FR-31 | Reproduzir o exemplo da Sprint 1 | O motor preserva energia e perdas de `data/exemplos/faturas.csv`, reproduz os totais das unidades com um usuário e verifica a redução de uma taxa em U102, conforme seção 4.4 |
 
 ## 7. Requisitos não funcionais
 
@@ -323,7 +324,7 @@ conversacional. As três permanecem no plano de produto e mantêm os requisitos 
 - O fluxo principal funciona de ponta a ponta com dados reais e demonstrativos identificados.
 - Os critérios de aceite ativos possuem teste automatizado ou roteiro de demonstração
   rastreável. Os requisitos adiados permanecem documentados e sem implementação.
-- O motor de rateio reproduz o exemplo resolvido da Sprint 1 ao centavo.
+- O motor de rateio preserva energia e perdas do exemplo da Sprint 1 e verifica a divergência documentada da taxa única por unidade.
 - O cálculo permanece igual em reexecuções sobre o mesmo snapshot.
 - A reimportação não cria duplicatas.
 - A soma da energia faturada reconcilia com a energia elegível em `0,00 kWh`, e a diferença

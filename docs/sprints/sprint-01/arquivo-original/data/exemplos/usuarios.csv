@@ -1,0 +1,7 @@
+id_usuario,nome,id_unidade,rfid_tag,email,assinante,ativo
+US001,Mariana Alves,U101,RFID-A1B2,mariana@exemplo.com,sim,sim
+US002,Carlos Souza,U102,RFID-C3D4,carlos@exemplo.com,sim,sim
+US003,Beatriz Souza,U102,RFID-E5F6,beatriz@exemplo.com,sim,sim
+US004,Pedro Lima,U205,RFID-7G8H,pedro@exemplo.com,sim,sim
+US005,Joana Reis,U310,RFID-9I0J,joana@exemplo.com,sim,sim
+US006,Mercado Pop,LJ01,RFID-K1L2,contato@mercadopop.com,sim,sim

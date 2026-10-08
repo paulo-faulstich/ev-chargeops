@@ -1,0 +1,6 @@
+id_unidade,bloco,identificacao,tipo,vagas
+U101,A,Apartamento 101,residencial,1
+U102,A,Apartamento 102,residencial,2
+U205,B,Apartamento 205,residencial,1
+U310,B,Apartamento 310,residencial,1
+LJ01,Terreo,Loja 1,comercial,1

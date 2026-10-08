@@ -6,8 +6,6 @@ Paulo Roberto Faulstich Rego · RM 572292
 
 A primeira entrega definiu o problema, a pesquisa, a arquitetura, o modelo de rateio e o papel proposto para a IA. Este arquivo histórico permite comparar a proposta com sua implementação na Sprint 2.
 
-O [enunciado da primeira etapa](enunciado.pdf) também foi preservado, sem alteração do PDF recebido.
-
 ## Material original
 
 - [Pesquisa e proposta completa](arquivo-original/README.md).

@@ -23,5 +23,14 @@ node_modules/
 .worktrees/
 .superpowers/
 
+# Documentação e instruções mantidas apenas localmente
+/docs/handoff/
+/docs/superpowers/
+/apps/web/AGENTS.md
+/apps/web/CLAUDE.md
+/docs/demo/checkpoint-a-evidence.md
+/docs/sprints/sprint-01/enunciado.pdf
+/docs/sprints/sprint-02/enunciado.pdf
+
 # Sistema
 .DS_Store

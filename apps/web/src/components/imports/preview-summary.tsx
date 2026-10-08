@@ -5,7 +5,7 @@ export function PreviewSummary({ preview }: { preview: ImportPreviewResponse }) 
     [preview.totalCount, "registros", "Linhas lidas do arquivo"],
     [preview.validCount, "válidos", "Prontos para importação"],
     [preview.invalidCount, "inválidos", "Exigem correção no arquivo"],
-    [preview.duplicateCount, "duplicados", "Já vistos nesta análise"],
+    [preview.duplicateCount, "duplicados", "Já importados antes; não entram de novo"],
   ] as const;
 
   return (

@@ -50,7 +50,7 @@ class PreviewImport:
     def execute(self, filename: str, content: bytes) -> ImportPreview:
         if not filename.lower().endswith(".csv"):
             raise InvalidSession(
-                "file", "UNSUPPORTED_FILE", "Only CSV files are supported."
+                "file", "UNSUPPORTED_FILE", "Só arquivos CSV são aceitos."
             )
 
         records: list[PreviewRecord] = []

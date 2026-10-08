@@ -15,8 +15,8 @@ export default async function DataSourcesPage() {
           <PageBreadcrumb section="Configurações" current="Fontes de dados" />
           <h1>Fontes de dados</h1>
           <p>
-            Importe registros do SEMS+ e acompanhe como os dados entram no
-            ChargeOps.
+            Traga as recargas exportadas do SEMS+ e acompanhe como elas
+            entram no ChargeOps.
           </p>
         </div>
         <div className="source-state" aria-label="Estado da integração">
@@ -34,7 +34,7 @@ export default async function DataSourcesPage() {
             <p className="utility-label">Fonte conectada</p>
             <h2 id="sems-source-title">SEMS+ CSV</h2>
           </div>
-          <p className="adapter-label">Adapter temporário · somente leitura</p>
+          <p className="adapter-label">Leitura de arquivo · nunca escreve no SEMS+</p>
         </div>
 
         <ImportDropzone accessToken={accessToken} />

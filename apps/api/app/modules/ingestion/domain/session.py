@@ -56,15 +56,15 @@ class SessionCandidate:
         card_id_raw: str | None,
     ) -> "SessionCandidate":
         if started_at.tzinfo is None or started_at.utcoffset() is None:
-            raise InvalidSession("started_at", "TIMEZONE_REQUIRED", "Start time must include a timezone.")
+            raise InvalidSession("started_at", "TIMEZONE_REQUIRED", "A hora de início precisa vir com fuso horário.")
         if ended_at.tzinfo is None or ended_at.utcoffset() is None:
-            raise InvalidSession("ended_at", "TIMEZONE_REQUIRED", "End time must include a timezone.")
+            raise InvalidSession("ended_at", "TIMEZONE_REQUIRED", "A hora de fim precisa vir com fuso horário.")
         if ended_at <= started_at:
-            raise InvalidSession("ended_at", "END_NOT_AFTER_START", "End time must be after start time.")
+            raise InvalidSession("ended_at", "END_NOT_AFTER_START", "A recarga termina antes de começar.")
         if energy_kwh <= 0:
-            raise InvalidSession("energy_kwh", "ENERGY_NOT_POSITIVE", "Energy must be greater than zero.")
+            raise InvalidSession("energy_kwh", "ENERGY_NOT_POSITIVE", "A energia precisa ser maior que zero.")
         if not charger_serial.strip():
-            raise InvalidSession("charger_serial", "CHARGER_REQUIRED", "Charger serial is required.")
+            raise InvalidSession("charger_serial", "CHARGER_REQUIRED", "O arquivo não diz de qual carregador é a recarga.")
 
         normalized_serial = charger_serial.strip()
         started_at_utc = started_at.astimezone(UTC)

@@ -17,6 +17,7 @@ import {
   type SessionProvenance,
 } from "./dashboard-summary";
 import { PageBreadcrumb } from "@/components/shell/page-breadcrumb";
+import { findingTitle, severityCountLabel } from "@/lib/vocabulary";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 const closeStages = [
@@ -622,12 +623,6 @@ function ConsumptionTrend({ summary }: { summary: DashboardSummary }) {
   );
 }
 
-const SEVERITY_LABEL: Record<string, string> = {
-  critical: "críticos",
-  warning: "atenções",
-  info: "observações",
-};
-
 /** What the analysis found, in the panel that exists to raise concerns.
  *
  * The opinion runs over the period's own data before any invoice exists, so a
@@ -664,7 +659,7 @@ function OpinionSummary({
             {[...counts.entries()]
               .map(
                 ([severity, total]) =>
-                  `${total} ${SEVERITY_LABEL[severity] ?? severity}`,
+                  `${total} ${severityCountLabel(severity)}`,
               )
               .join(" · ")}
             {decided > 0 ? ` · ${decided} já decididos` : ""}
@@ -672,7 +667,7 @@ function OpinionSummary({
           <ul className="opinion-findings">
             {highlighted.map((finding) => (
               <li key={finding.id}>
-                <strong>{finding.code}</strong>
+                <strong>{findingTitle(finding.code)}</strong>
                 <span>{finding.explanation}</span>
               </li>
             ))}

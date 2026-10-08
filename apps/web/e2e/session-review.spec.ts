@@ -23,7 +23,7 @@ const pendingSessions = {
       energyKwh: "7.000",
       chargerSerial: "97500NAP25BL0008",
       source: "sems_export",
-      provenance: "observed",
+      provenance: "real",
       identityConfidence: "unknown",
       status: "pending_review",
       unitId: null,
@@ -39,7 +39,7 @@ const pendingSessions = {
       energyKwh: "3.500",
       chargerSerial: "97500NAP25BL0008",
       source: "sems_export",
-      provenance: "observed",
+      provenance: "real",
       identityConfidence: "unknown",
       status: "pending_review",
       unitId: null,
@@ -79,7 +79,7 @@ const julySessions = {
       energyKwh: "4.250",
       chargerSerial: "97500NAP25BL0008",
       source: "sems_export",
-      provenance: "observed",
+      provenance: "real",
       identityConfidence: "unknown",
       status: "pending_review",
       unitId: null,
@@ -145,7 +145,7 @@ async function routeSessionReview(
             energyKwh: "7.000",
             chargerSerial: "97500NAP25BL0008",
             source: "sems_export",
-            provenance: "observed",
+            provenance: "real",
             identityConfidence: "assigned",
             status: "ready",
             unitId: UNIT_A_ID,
@@ -232,7 +232,7 @@ async function routeCrossPeriodReview(
             energyKwh: "7.000",
             chargerSerial: "97500NAP25BL0008",
             source: "sems_export",
-            provenance: "observed",
+            provenance: "real",
             identityConfidence: "assigned",
             status: "ready",
             unitId: UNIT_A_ID,
@@ -263,9 +263,9 @@ test("redirects an unauthenticated session review to login", async ({ page }) =>
   await page.goto("/sessions?status=pending_review&period=2026-08");
 
   await expect(page).toHaveURL(/\/login$/);
-  await expect(
-    page.getByRole("heading", { name: "Entrar no EV ChargeOps" }),
-  ).toBeVisible();
+  await expect(page.getByLabel("E-mail", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Senha", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Entrar", exact: true })).toBeEnabled();
 });
 
 test("assigns observed evidence and advances the pending queue", async ({
@@ -299,7 +299,7 @@ test("assigns observed evidence and advances the pending queue", async ({
   await expect(evidence).toContainText("7,00 kWh");
   await expect(evidence).toContainText("29/08/2026, 17:10");
   await expect(evidence).toContainText("97500NAP25BL0008");
-  await expect(evidence).toContainText("Observada · SEMS+ CSV");
+  await expect(evidence).toContainText("Medição real · SEMS+ CSV");
 
   await page.getByLabel("Unidade responsável").selectOption(UNIT_A_ID);
   await page.getByLabel("Justificativa").fill("Confirmado pela portaria");
@@ -307,7 +307,7 @@ test("assigns observed evidence and advances the pending queue", async ({
   await expect(evidence).toContainText("7,00 kWh");
   await expect(evidence).toContainText("29/08/2026, 17:10");
   await expect(evidence).toContainText("97500NAP25BL0008");
-  await expect(evidence).toContainText("Observada · SEMS+ CSV");
+  await expect(evidence).toContainText("Medição real · SEMS+ CSV");
 
   await page
     .getByRole("button", { name: "Atribuir e revisar próxima" })
@@ -558,6 +558,32 @@ test("canonicalizes a contradictory session status before showing the queue", as
 test("records the effective period when session filters are missing or invalid", async ({
   page,
 }) => {
+  // The operation is closing August even when the calendar is already in
+  // October. Supply the periods this scenario owns instead of depending on
+  // another test's database writes or the date on the machine running it.
+  await page.clock.setFixedTime(new Date("2026-10-08T12:00:00Z"));
+  await page.route("**/api/v1/billing-periods", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        items: ["2026-07", "2026-08"].map((periodValue, index) => ({
+          id: `50000000-0000-0000-0000-00000000000${index + 1}`,
+          siteId: "20000000-0000-0000-0000-000000000001",
+          siteName: "Condomínio de teste",
+          timezone: "America/Sao_Paulo",
+          periodValue,
+          status: "open",
+          approvedAt: null,
+          approvedByName: null,
+          tariffSnapshotId: null,
+          billingPolicyId: null,
+          eligibleEnergyKwh: null,
+          invoicedEnergyKwh: null,
+          aggregateEnergyKwh: null,
+        })),
+      }),
+    });
+  });
   await routeSessionReview(page);
 
   await page.goto("/sessions");
@@ -621,7 +647,7 @@ test("distinguishes no imports from an assigned period when the filter changes",
       energyKwh: "5.250",
       chargerSerial: "97500NAP25BL0008",
       source: "sems_export",
-      provenance: "observed",
+      provenance: "real",
       identityConfidence: "assigned",
       status: "ready",
       unitId: UNIT_A_ID,

@@ -758,6 +758,8 @@ export interface components {
             tariffName: string;
             /** Tariffsource */
             tariffSource: string;
+            /** Tariffsourcelabel */
+            tariffSourceLabel: string;
             /** Tariffsourcereference */
             tariffSourceReference: string | null;
             /**
@@ -809,6 +811,8 @@ export interface components {
             energyKwh: string;
             /** Bandcode */
             bandCode: string;
+            /** Bandlabel */
+            bandLabel: string;
             /** Ratecentsperkwh */
             rateCentsPerKwh: number;
             /** Valuecents */
@@ -1173,6 +1177,10 @@ export interface components {
         TariffBandResponse: {
             /** Code */
             code: string;
+            /** Label */
+            label: string;
+            /** Hours */
+            hours: string;
             /** Ratecentsperkwh */
             rateCentsPerKwh: number;
             /** Energyvaluecents */

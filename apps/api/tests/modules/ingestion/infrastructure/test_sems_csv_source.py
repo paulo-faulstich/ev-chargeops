@@ -38,7 +38,7 @@ def test_sems_csv_explains_invalid_energy_with_row_number() -> None:
 
     assert error.value.field == "Charging Energy(kWh)"
     assert error.value.code == "INVALID_DECIMAL"
-    assert "row 2" in error.value.message
+    assert "linha 2" in error.value.message
 
 
 def test_sems_csv_preserves_surplus_cells_as_a_row_issue() -> None:
@@ -64,7 +64,7 @@ def test_sems_csv_preserves_surplus_cells_as_a_row_issue() -> None:
 
     assert error.value.field == "row"
     assert error.value.code == "SURPLUS_CELLS"
-    assert error.value.message == "Unexpected extra cells at row 2."
+    assert error.value.message == "A linha 2 tem células a mais do que colunas."
 
 
 @pytest.mark.parametrize(
@@ -85,7 +85,10 @@ def test_sems_csv_rejects_schema_changes_other_than_missing_columns(invalid_head
 
     assert error.value.field == "file"
     assert error.value.code == "INVALID_SCHEMA"
-    assert error.value.message == "CSV columns must exactly match the SEMS v1 schema."
+    assert error.value.message == (
+        "As colunas não são as do relatório de recargas do SEMS+. "
+        "Exporte o arquivo de novo, sem editá-lo."
+    )
 
 
 def test_sems_csv_preserves_missing_columns_error() -> None:
@@ -97,4 +100,4 @@ def test_sems_csv_preserves_missing_columns_error() -> None:
 
     assert error.value.field == "file"
     assert error.value.code == "MISSING_COLUMNS"
-    assert error.value.message == "Missing columns: Device SN"
+    assert error.value.message == "Faltam colunas no arquivo: Device SN."

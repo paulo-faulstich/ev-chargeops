@@ -242,7 +242,9 @@ export function InvoiceView({
             scrolls that far is exactly the one it was written for. */}
         {cheapest !== undefined ? (
           <p className="invoice-advice-lead">
-            Toda esta energia na faixa <strong>{cheapest.code}</strong> custaria{" "}
+            Carregando sempre <strong>{cheapest.hours}</strong> — o horário que
+            a conta de luz chama de{" "}
+            {cheapest.label.toLocaleLowerCase("pt-BR")} — esta energia custaria{" "}
             <strong>
               {formatCents(invoice.energyValueCents - cheapest.energyValueCents)}
             </strong>{" "}
@@ -275,7 +277,7 @@ export function InvoiceView({
                   <th>Fim</th>
                   <th>Duração</th>
                   <th>Energia</th>
-                  <th>Faixa</th>
+                  <th>Faixa de horário</th>
                   <th>Tarifa</th>
                   <th>Valor</th>
                 </tr>
@@ -291,7 +293,7 @@ export function InvoiceView({
                       <td>{end.time}</td>
                       <td>{duration(item)}</td>
                       <td>{formatKwh(item.energyKwh)}</td>
-                      <td>{item.bandCode}</td>
+                      <td>{item.bandLabel}</td>
                       <td>{formatRate(item.rateCentsPerKwh)}</td>
                       <td>{formatCents(item.valueCents)}</td>
                     </tr>
@@ -324,8 +326,8 @@ export function InvoiceView({
             <dd>{context.tariffName}</dd>
           </div>
           <div>
-            <dt>Fonte</dt>
-            <dd>{context.tariffSource}</dd>
+            <dt>Quem definiu</dt>
+            <dd>{context.tariffSourceLabel}</dd>
           </div>
           <div>
             <dt>Vigência</dt>
@@ -337,7 +339,7 @@ export function InvoiceView({
             </dd>
           </div>
           <div>
-            <dt>Política de rateio</dt>
+            <dt>Regra de divisão</dt>
             <dd>{context.policyName}</dd>
           </div>
           <div>
@@ -360,59 +362,113 @@ export function InvoiceView({
               key={band.code}
               className={appliedBands.has(band.code) ? "applied" : undefined}
             >
-              <strong>{band.code}</strong>
+              <strong>{band.label}</strong>
+              <span className="tariff-band-hours">{band.hours}</span>
               <span>{formatRate(band.rateCentsPerKwh)}</span>
               {appliedBands.has(band.code) ? (
-                <em>aplicada nesta fatura</em>
+                <em>usada nesta fatura</em>
               ) : null}
             </li>
           ))}
         </ul>
-        {context.tariffSourceReference ? (
-          <p className="invoice-note">
-            Referência da tarifa: {context.tariffSourceReference}
+        {/* The tariff has to explain itself here, on the invoice. Sending the
+            reader somewhere else to find out how they were charged is the same
+            as not telling them. */}
+        <div className="tariff-explainer">
+          <h3>Como a conta é montada</h3>
+          <ol>
+            <li>
+              <strong>A energia.</strong> A energia da recarga é multiplicada
+              pelo preço do horário em que ela começou. Os três horários acima
+              são os mesmos que a distribuidora usa na conta de luz do
+              condomínio — ponta é o fim da tarde, quando a rede está mais
+              carregada e a energia custa mais. Uma recarga que começa às 22h
+              paga o preço da madrugada inteira, mesmo que termine de manhã: o
+              medidor informa o total da recarga, não minuto a minuto.
+            </li>
+            <li>
+              <strong>A taxa de infraestrutura.</strong>{" "}
+              {formatCents(context.infraFeeCents)} por mês, cobrados só de quem
+              usou o carregador no período. É a parte fixa: manutenção,
+              disponibilidade e o próprio equipamento.
+            </li>
+            <li>
+              <strong>As perdas técnicas.</strong> Entre o relógio do
+              condomínio e o carro, parte da energia se perde no caminho — cabo,
+              conversão, calor. O condomínio paga por ela, então ela é dividida
+              na proporção do que cada um consumiu:{" "}
+              {(context.lossBasisPoints / 100).toLocaleString("pt-BR", {
+                minimumFractionDigits: 2,
+              })}
+              % da energia de cada fatura.
+            </li>
+          </ol>
+          <p>
+            Os preços por horário valem desde{" "}
+            {formatDate(context.tariffValidFrom)} e ficam congelados dentro de
+            cada fatura: uma tarifa nova só vale para os meses seguintes, nunca
+            para uma conta já emitida.
           </p>
-        ) : null}
-        <p className="invoice-note">
-          A faixa de cada recarga é a do seu horário de início. A energia de uma
-          recarga não é dividida entre faixas: a medição dá um total por
-          recarga, não uma curva.
-        </p>
+          {context.tariffSourceReference ? (
+            <p>Documento de referência: {context.tariffSourceReference}</p>
+          ) : null}
+        </div>
       </section>
 
       {invoice.items.length > 0 ? (
         <section className="invoice-block" aria-labelledby="invoice-advice-title">
           <div className="dashboard-section-heading">
             <h2 id="invoice-advice-title">O que fazer com isso</h2>
-            <span>Comparação com as faixas da mesma tarifa</span>
+            <span>Quanto custaria carregando em outro horário</span>
           </div>
           {cheaper.length === 0 ? (
             <p className="invoice-empty">
-              Esta energia já foi cobrada na faixa mais barata da tarifa
-              vigente. Não há economia possível apenas mudando de horário.
+              Estas recargas já foram cobradas no horário mais barato da
+              tarifa. Não há economia possível só mudando a hora de carregar.
             </p>
           ) : (
             <>
-              <ul className="band-comparison">
-                {cheaper.map((band) => (
-                  <li key={band.code}>
-                    <strong>{band.code}</strong>
-                    <span>{formatRate(band.rateCentsPerKwh)}</span>
-                    <span>{formatCents(band.energyValueCents)}</span>
-                    <em>
-                      {formatCents(
-                        invoice.energyValueCents - band.energyValueCents,
-                      )}{" "}
-                      a menos
-                    </em>
-                  </li>
-                ))}
-              </ul>
+              <div className="responsible-table-frame">
+                <table aria-label="Comparação entre horários">
+                  <thead>
+                    <tr>
+                      <th>Se tudo fosse carregado</th>
+                      <th>Horário</th>
+                      <th>Preço</th>
+                      <th>A energia custaria</th>
+                      <th>Economia</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cheaper.map((band) => (
+                      <tr key={band.code}>
+                        <td>{band.label}</td>
+                        <td>{band.hours}</td>
+                        <td>{formatRate(band.rateCentsPerKwh)}</td>
+                        <td>{formatCents(band.energyValueCents)}</td>
+                        <td>
+                          {formatCents(
+                            invoice.energyValueCents - band.energyValueCents,
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colSpan={3}>Esta fatura, como foi cobrada</td>
+                      <td>{formatCents(invoice.energyValueCents)}</td>
+                      <td>—</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
               <p className="invoice-note">
-                Quanto esta mesma energia teria custado se toda ela tivesse sido
-                consumida na faixa indicada, calculado com a própria tarifa
-                desta fatura e com o mesmo arredondamento por recarga. Não é uma
-                promessa de economia: depende de quando o carro é carregado.
+                A conta é a mesma energia desta fatura, recalculada como se
+                todas as recargas tivessem começado naquele horário, com a
+                tarifa desta fatura e o mesmo arredondamento por recarga. Não é
+                promessa de economia: depende de quando o carro for carregado no
+                mês que vem.
               </p>
             </>
           )}

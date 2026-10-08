@@ -13,6 +13,7 @@ from typing import Protocol
 from zoneinfo import ZoneInfo
 
 from .invoice import InvoiceView
+from .vocabulary import band_label, tariff_source_label
 
 
 @dataclass(frozen=True, slots=True)
@@ -118,7 +119,7 @@ def invoice_document_lines(
             lines.append(
                 f"{start.strftime('%d/%m/%Y %H:%M')} a {end.strftime('%H:%M')}"
                 f" ({_duration(item.started_at, item.ended_at)}), "
-                f"{format_kwh(item.energy_kwh)}, {item.band_code}, "
+                f"{format_kwh(item.energy_kwh)}, {band_label(item.band_code)}, "
                 f"{item.rate_cents_per_kwh} centavos/kWh: "
                 f"{format_brl(item.value_cents)}"
             )
@@ -133,7 +134,10 @@ def invoice_document_lines(
         [
             "",
             "Por que esta tarifa",
-            f"Tarifa: {context.tariff_name} (fonte: {context.tariff_source})",
+            (
+                f"Tarifa: {context.tariff_name} "
+                f"(fonte: {tariff_source_label(context.tariff_source)})"
+            ),
             f"Vigência: {format_date(context.tariff_valid_from)} a {validity_end}",
             (
                 f"Política de rateio: {context.policy_name} "

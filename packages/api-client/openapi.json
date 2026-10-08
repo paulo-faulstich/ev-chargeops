@@ -3018,6 +3018,10 @@
             "type": "string",
             "title": "Tariffsource"
           },
+          "tariffSourceLabel": {
+            "type": "string",
+            "title": "Tariffsourcelabel"
+          },
           "tariffSourceReference": {
             "anyOf": [
               {
@@ -3070,6 +3074,7 @@
           "timezone",
           "tariffName",
           "tariffSource",
+          "tariffSourceLabel",
           "tariffSourceReference",
           "tariffValidFrom",
           "tariffValidTo",
@@ -3136,6 +3141,10 @@
             "type": "string",
             "title": "Bandcode"
           },
+          "bandLabel": {
+            "type": "string",
+            "title": "Bandlabel"
+          },
           "rateCentsPerKwh": {
             "type": "integer",
             "title": "Ratecentsperkwh"
@@ -3153,6 +3162,7 @@
           "endedAt",
           "energyKwh",
           "bandCode",
+          "bandLabel",
           "rateCentsPerKwh",
           "valueCents"
         ],
@@ -4101,6 +4111,14 @@
             "type": "string",
             "title": "Code"
           },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "hours": {
+            "type": "string",
+            "title": "Hours"
+          },
           "rateCentsPerKwh": {
             "type": "integer",
             "title": "Ratecentsperkwh"
@@ -4113,6 +4131,8 @@
         "type": "object",
         "required": [
           "code",
+          "label",
+          "hours",
           "rateCentsPerKwh",
           "energyValueCents"
         ],

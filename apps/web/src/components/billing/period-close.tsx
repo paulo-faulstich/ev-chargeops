@@ -21,6 +21,11 @@ import {
 } from "@ev-chargeops/api-client";
 
 import { useResidentContext } from "@/lib/billing/resident-context";
+import {
+  confidenceLabel,
+  findingTitle,
+  severityName,
+} from "@/lib/vocabulary";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 
@@ -298,29 +303,29 @@ export function PeriodClose({
           <dd>{readiness.sessionCount}</dd>
         </div>
         <div>
-          <dt>Cobráveis</dt>
+          <dt>Já com responsável</dt>
           <dd>{readiness.billableCount}</dd>
         </div>
         <div>
-          <dt>Pendentes</dt>
+          <dt>Ainda sem responsável</dt>
           <dd className={readiness.pendingCount > 0 ? "warning" : undefined}>
             {readiness.pendingCount}
           </dd>
         </div>
         <div>
-          <dt>Cobertura de atribuição</dt>
+          <dt>Percentual já atribuído</dt>
           <dd>{formatPercent(readiness.assignmentCoverage)}</dd>
         </div>
         <div>
-          <dt>Energia cobrável</dt>
+          <dt>Energia a faturar</dt>
           <dd>{formatKwh(readiness.billableEnergyKwh)}</dd>
         </div>
         <div>
-          <dt>Diferença interna</dt>
+          <dt>Faturas × recargas</dt>
           <dd>{formatKwh(readiness.internalDifferenceKwh)}</dd>
         </div>
         <div>
-          <dt>Diferença externa</dt>
+          <dt>Recargas × total do carregador</dt>
           <dd>
             {readiness.externalDifferenceKwh == null
               ? "sem leitura do carregador"
@@ -335,9 +340,11 @@ export function PeriodClose({
       />
 
       <p className="invoice-note">
-        A diferença interna bloqueia o fechamento. A diferença externa, medida
-        contra o agregado do próprio carregador, é um alerta e nunca é
-        distribuída em nenhuma fatura.
+        As duas conferências não têm o mesmo peso. <strong>Faturas × recargas</strong>{" "}
+        compara o que vai ser cobrado com o que foi medido, e qualquer sobra aí
+        impede o fechamento. <strong>Recargas × total do carregador</strong>{" "}
+        compara a soma das recargas com o número que o próprio equipamento
+        acumulou; ela avisa, mas nunca vira centavo em fatura de ninguém.
       </p>
 
       {readiness.blockers.length > 0 ? (
@@ -408,8 +415,9 @@ export function PeriodClose({
           <div className="dashboard-section-heading">
             <h3>Parecer</h3>
             <span>
-              {opinion.severity} · confiança {opinion.confidence} ·{" "}
-              {opinion.sampleSize} recargas
+              {severityName(opinion.severity)} · confiança{" "}
+              {confidenceLabel(opinion.confidence)} · {opinion.sampleSize}{" "}
+              recargas
             </span>
           </div>
           <p className="attention-message">{opinion.conclusion}</p>
@@ -418,7 +426,7 @@ export function PeriodClose({
             <ul className="opinion-findings">
               {opinion.findings.map((finding, index) => (
                 <li key={`${finding.code}-${index}`}>
-                  <strong>{finding.code}</strong>
+                  <strong>{findingTitle(finding.code)}</strong>
                   <span>{finding.explanation}</span>
                 </li>
               ))}
@@ -492,7 +500,7 @@ function FindingDecision({
       }}
     >
       <div className="finding-decision-body">
-        <strong>{finding.code}</strong>
+        <strong>{findingTitle(finding.code)}</strong>
         <p>{finding.explanation}</p>
         {Object.keys(finding.evidence).length > 0 ? (
           <dl className="finding-evidence">

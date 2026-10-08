@@ -23,7 +23,9 @@ OFF_PEAK = "fora_ponta"
 
 def sprint1_tariff() -> TariffSnapshot:
     return TariffSnapshot(
-        name="Referência Sprint 1",
+        # The numbers are the Sprint 1 contract; the name is what a resident
+        # reads on their own invoice, and "Sprint 1" means nothing to them.
+        name="Tarifa do condomínio 2026",
         timezone=SPRINT1_TIMEZONE,
         bands=(
             TariffBand(
@@ -50,7 +52,7 @@ def sprint1_tariff() -> TariffSnapshot:
 
 def sprint1_policy() -> BillingPolicy:
     return BillingPolicy(
-        name="Referência Sprint 1",
+        name="Rateio padrão do condomínio",
         infra_fee_cents=2_500,
         loss_basis_points=400,
     )

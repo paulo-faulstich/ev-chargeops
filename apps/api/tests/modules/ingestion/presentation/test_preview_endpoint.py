@@ -41,7 +41,7 @@ def test_preview_endpoint_returns_stable_error_for_unsupported_file(
     assert response.json() == {
         "error": {
             "code": "UNSUPPORTED_FILE",
-            "message": "Only CSV files are supported.",
+            "message": "Só arquivos CSV são aceitos.",
             "details": [{"field": "file"}],
         }
     }
@@ -112,7 +112,7 @@ def test_preview_endpoint_preserves_surplus_cells_and_continues(
     assert body["records"][0]["raw"]["__extra_cell_1"] == "unexpected"
     assert body["records"][0]["raw"]["__extra_cell_2"] == "second"
     assert body["records"][0]["errorCode"] == "SURPLUS_CELLS"
-    assert body["records"][0]["errorMessage"] == "Unexpected extra cells at row 2."
+    assert body["records"][0]["errorMessage"] == "A linha 2 tem células a mais do que colunas."
     assert body["records"][1]["classification"] == "valid"
 
 
@@ -140,7 +140,7 @@ def test_preview_endpoint_rejects_non_finite_energy_and_continues(
     assert body["records"][0]["classification"] == "invalid"
     assert body["records"][0]["errorField"] == "Charging Energy(kWh)"
     assert body["records"][0]["errorCode"] == "INVALID_DECIMAL"
-    assert body["records"][0]["errorMessage"] == "Invalid energy at row 2."
+    assert body["records"][0]["errorMessage"] == "Energia inválida na linha 2."
     assert body["records"][1]["classification"] == "valid"
 
 

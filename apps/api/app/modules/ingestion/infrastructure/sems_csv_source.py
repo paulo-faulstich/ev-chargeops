@@ -31,7 +31,7 @@ class SemsCsvSource:
             text = content.decode("utf-8-sig")
         except UnicodeDecodeError as error:
             raise InvalidSession(
-                "file", "INVALID_ENCODING", "CSV must use UTF-8 encoding."
+                "file", "INVALID_ENCODING", "O arquivo precisa estar em UTF-8."
             ) from error
 
         reader = csv.DictReader(StringIO(text))
@@ -39,13 +39,16 @@ class SemsCsvSource:
         missing = sorted(REQUIRED_COLUMNS - set(columns))
         if missing:
             raise InvalidSession(
-                "file", "MISSING_COLUMNS", f"Missing columns: {', '.join(missing)}"
+                "file",
+                "MISSING_COLUMNS",
+                f"Faltam colunas no arquivo: {', '.join(missing)}.",
             )
         if tuple(columns) != SEMS_V1_COLUMNS:
             raise InvalidSession(
                 "file",
                 "INVALID_SCHEMA",
-                "CSV columns must exactly match the SEMS v1 schema.",
+                "As colunas não são as do relatório de recargas do SEMS+. "
+                "Exporte o arquivo de novo, sem editá-lo.",
             )
 
         records: list[SourceRecord] = []
@@ -63,7 +66,7 @@ class SemsCsvSource:
                 issue = SourceRecordIssue(
                     field="row",
                     code="SURPLUS_CELLS",
-                    message=f"Unexpected extra cells at row {index}.",
+                    message=f"A linha {index} tem células a mais do que colunas.",
                 )
             records.append(
                 SourceRecord(row_number=index, raw=raw, issue=issue)
@@ -97,13 +100,13 @@ class SemsCsvSource:
             raise InvalidSession(
                 "Charging Energy(kWh)",
                 "INVALID_DECIMAL",
-                f"Invalid energy at row {record.row_number}.",
+                f"Energia inválida na linha {record.row_number}.",
             ) from error
         if not energy_kwh.is_finite():
             raise InvalidSession(
                 "Charging Energy(kWh)",
                 "INVALID_DECIMAL",
-                f"Invalid energy at row {record.row_number}.",
+                f"Energia inválida na linha {record.row_number}.",
             )
         port_text = self._value(raw, "Charging Port", record.row_number).strip()
         try:
@@ -112,7 +115,7 @@ class SemsCsvSource:
             raise InvalidSession(
                 "Charging Port",
                 "INVALID_INTEGER",
-                f"Invalid charging port at row {record.row_number}.",
+                f"Conector inválido na linha {record.row_number}.",
             ) from error
 
         return SessionCandidate.create(
@@ -132,7 +135,7 @@ class SemsCsvSource:
             raise InvalidSession(
                 field,
                 "MISSING_VALUE",
-                f"Missing value for {field} at row {row_number}.",
+                f"Falta o valor de {field} na linha {row_number}.",
             )
         return value
 
@@ -145,5 +148,5 @@ class SemsCsvSource:
             raise InvalidSession(
                 field,
                 "INVALID_DATETIME",
-                f"Invalid datetime at row {row_number}.",
+                f"Data ou hora inválida na linha {row_number}.",
             ) from error

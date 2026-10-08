@@ -27,6 +27,7 @@ import {
   formatSessionPeriod,
 } from "./session-formatters";
 import { PageBreadcrumb } from "@/components/shell/page-breadcrumb";
+import { provenanceLabel, sourceLabel } from "@/lib/vocabulary";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 
@@ -79,10 +80,8 @@ function pendingCountLabel(count: number): string {
   return `${count} ${count === 1 ? "pendência" : "pendências"} no período`;
 }
 
-function provenanceLabel(session: SessionResponse): string {
-  const provenance = session.provenance === "observed" ? "Observada" : session.provenance;
-  const source = session.source === "sems_export" ? "SEMS+ CSV" : session.source;
-  return `${provenance} · ${source}`;
+function sessionOrigin(session: SessionResponse): string {
+  return `${provenanceLabel(session.provenance)} · ${sourceLabel(session.source)}`;
 }
 
 async function loadReviewData(
@@ -512,7 +511,7 @@ function SessionLedger({ sessions }: { sessions: SessionResponse[] }) {
                     <span className="pending">Aguarda decisão</span>
                   )}
                 </td>
-                <td>{provenanceLabel(session)}</td>
+                <td>{sessionOrigin(session)}</td>
               </tr>
             ))}
           </tbody>
@@ -667,7 +666,7 @@ function SessionDecision({
           </div>
           <div className="evidence-provenance">
             <dt>Proveniência</dt>
-            <dd>{provenanceLabel(session)}</dd>
+            <dd>{sessionOrigin(session)}</dd>
           </div>
         </dl>
         <p className="immutable-note">

@@ -92,7 +92,7 @@ def test_item_times_are_shown_in_the_site_timezone() -> None:
     invoice = _invoice((_item(),), energy_value_cents=1313, total_cents=3868)
     lines = invoice_document_lines(invoice, _context())
 
-    item_line = next(line for line in lines if "ponta" in line)
+    item_line = next(line for line in lines if "Ponta" in line)
     assert "10/05/2026 18:30 a 20:45" in item_line
     assert "(2h15)" in item_line
     assert "10,500 kWh" in item_line
@@ -122,7 +122,10 @@ def test_tariff_block_cites_source_and_validity() -> None:
         ),
     )
 
-    assert "Tarifa: Referência Sprint 1 (fonte: sprint1_reference)" in lines
+    # The stored source is a classifier; the document prints what it means.
+    assert (
+        "Tarifa: Referência Sprint 1 (fonte: Tabela de referência do desafio)"
+    ) in lines
     assert "Vigência: 01/01/2026 a 31/12/2026" in lines
     assert (
         "Política de rateio: Referência Sprint 1 "

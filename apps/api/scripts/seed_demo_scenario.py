@@ -253,8 +253,11 @@ async def ensure_tariff_and_policy(session: AsyncSession) -> None:
                 organization_id=DEMO_ORGANIZATION_ID,
                 name=tariff.name,
                 timezone=tariff.timezone,
-                source="sprint1_reference",
-                source_reference="README.md secao 5.2",
+                # Who set these prices, classified the way a real condominium
+                # would: the administration did, in its own table. A path into
+                # this repository is an answer to a question nobody asked.
+                source="manual",
+                source_reference=None,
                 captured_at=datetime(2026, 6, 21, tzinfo=UTC),
                 valid_from=date(2026, 1, 1),
                 valid_to=None,

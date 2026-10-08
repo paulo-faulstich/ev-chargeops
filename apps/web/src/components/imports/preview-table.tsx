@@ -4,7 +4,7 @@ function statusLabel(classification: string) {
   const labels: Record<string, string> = {
     valid: "Válido",
     invalid: "Inválido",
-    duplicate: "Duplicado",
+    duplicate: "Já importado",
   };
 
   return labels[classification] ?? classification;
@@ -63,7 +63,7 @@ export function PreviewTable({ preview }: { preview: ImportPreviewResponse }) {
                       <span className="border border-cyan-300/35 bg-cyan-300/10 px-2 py-1 text-xs text-cyan-100">Fonte real</span>
                       <span className="border border-amber-300/35 bg-amber-300/10 px-2 py-1 text-xs text-amber-100">Identidade desconhecida</span>
                     </div>
-                  ) : <span className="text-[#90a7b8]">Sem sessão normalizada</span>}
+                  ) : <span className="text-[#90a7b8]">Linha não aproveitada</span>}
                 </td>
               </tr>
             ))}

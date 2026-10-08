@@ -11,6 +11,8 @@
   --coral: #ff6b57;
   --goodwe-red: #e60012;
   --goodwe-red-bright: #ff5b50;
+  --amber: #ffd166;
+  --amber-deep: #e0932c;
 }
 
 @theme inline {
@@ -51,7 +53,11 @@ a {
 }
 
 .app-shell {
+  /* Zero unless a resident view is open; every rule that has to clear the
+     banner reads this one value instead of guessing at it. */
+  --resident-banner-height: 0rem;
   min-height: 100vh;
+  padding-top: var(--resident-banner-height);
   display: grid;
   grid-template-columns: 17.5rem minmax(0, 1fr);
   background:
@@ -59,10 +65,14 @@ a {
     var(--canvas);
 }
 
+.app-shell.resident-view {
+  --resident-banner-height: 3.25rem;
+}
+
 .product-rail {
   position: sticky;
-  top: 0;
-  height: 100vh;
+  top: var(--resident-banner-height);
+  height: calc(100vh - var(--resident-banner-height));
   padding: 2.25rem 1.75rem 1.75rem;
   display: flex;
   flex-direction: column;
@@ -202,7 +212,7 @@ a {
 
 .app-workspace-header {
   position: sticky;
-  top: 0;
+  top: var(--resident-banner-height);
   z-index: 20;
   width: min(100%, 90rem);
   min-height: 5.65rem;
@@ -876,7 +886,7 @@ a {
 }
 
 .dashboard-metric span.warning {
-  color: #ffd166;
+  color: var(--amber);
 }
 
 .dashboard-analysis-grid {
@@ -1027,7 +1037,7 @@ a {
 }
 
 .responsible-table-frame .pending {
-  color: #ffd166;
+  color: var(--amber);
 }
 
 .data-sources-page {
@@ -1946,7 +1956,9 @@ a {
 .login-layout {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(18rem, 34vw);
+  /* Apresentação à esquerda, acesso à direita: o visitante lê o que é o produto
+     antes de encontrar o formulário. */
+  grid-template-columns: minmax(0, 1fr) minmax(23rem, 34vw);
 }
 
 .login-intro {
@@ -1955,32 +1967,21 @@ a {
   padding: clamp(2rem, 8vw, 7rem);
 }
 
+.login-eyebrow {
+  margin: 0;
+  color: var(--cyan);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: clamp(0.85rem, 1.2vw, 1.05rem);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
 .login-mark {
-  width: min(100%, 30rem);
+  width: min(100%, 42rem);
   height: 1px;
   margin: 2rem 0 2.5rem;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  background: var(--line);
-}
-
-.login-mark span {
-  width: 0.65rem;
-  height: 0.65rem;
-  margin-top: -0.3rem;
-  border: 1px solid var(--cyan);
-  border-radius: 50%;
-  background: var(--canvas);
-}
-
-.login-mark span:nth-child(2),
-.login-mark span:nth-child(3) {
-  justify-self: center;
-  border-color: #426071;
-}
-
-.login-mark span:nth-child(3) {
-  justify-self: end;
+  background: linear-gradient(90deg, var(--cyan), rgb(66 96 113 / 0.55) 55%, transparent);
 }
 
 .login-intro h1 {
@@ -1996,9 +1997,78 @@ a {
   line-height: 1.75;
 }
 
+.login-source {
+  max-width: 26rem;
+  margin-top: clamp(2.5rem, 5vw, 4rem);
+}
+
+.login-source-label {
+  margin: 0 0 1.15rem;
+  color: var(--cyan);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.login-source img {
+  width: clamp(9rem, 12vw, 11.5rem);
+  height: auto;
+}
+
+.login-source-note {
+  margin: 1.3rem 0 0;
+  padding-top: 1.3rem;
+  border-top: 1px solid var(--line);
+  color: #9fb4c2;
+  font-size: 0.85rem;
+  line-height: 1.65;
+}
+
+.login-panel {
+  position: relative;
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  padding: clamp(2rem, 4vw, 3.5rem);
+  overflow: hidden;
+  border-left: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 20% 22%, rgb(103 232 249 / 0.11), transparent 32%),
+    linear-gradient(135deg, rgb(11 27 40 / 0.98), rgb(7 19 29 / 0.96));
+}
+
+.login-panel::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: repeating-linear-gradient(90deg, transparent 0 4.7rem, rgb(103 232 249 / 0.045) 4.7rem calc(4.7rem + 1px));
+}
+
+.login-panel-inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 25rem;
+}
+
+.login-panel-title {
+  margin: 0;
+  font-size: clamp(1.6rem, 2.4vw, 2.1rem);
+  letter-spacing: -0.03em;
+}
+
+.login-panel-note {
+  margin: 0.6rem 0 0;
+  color: #9fb4c2;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
 .login-form {
   max-width: 29rem;
-  margin-top: 3rem;
+  margin-top: 2rem;
   display: grid;
   gap: 0.7rem;
 }
@@ -2051,50 +2121,6 @@ a {
   color: #ffc2b9;
   font-size: 0.8rem;
   line-height: 1.55;
-}
-
-.login-context {
-  position: relative;
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: clamp(2rem, 5vw, 4.5rem);
-  overflow: hidden;
-  border-left: 1px solid var(--line);
-  background:
-    radial-gradient(circle at 20% 22%, rgb(103 232 249 / 0.11), transparent 32%),
-    linear-gradient(135deg, rgb(11 27 40 / 0.98), rgb(7 19 29 / 0.96));
-}
-
-.login-context::before {
-  position: absolute;
-  inset: 0;
-  content: "";
-  background: repeating-linear-gradient(90deg, transparent 0 4.7rem, rgb(103 232 249 / 0.045) 4.7rem calc(4.7rem + 1px));
-}
-
-.context-index,
-.login-context p {
-  position: relative;
-  z-index: 1;
-}
-
-.context-index {
-  color: var(--cyan);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.68rem;
-  letter-spacing: 0.16em;
-}
-
-.login-context p {
-  max-width: 21rem;
-  margin: 1rem 0 0;
-  color: var(--ink);
-  font-size: clamp(1.35rem, 2.8vw, 2.5rem);
-  font-weight: 620;
-  letter-spacing: -0.04em;
-  line-height: 1.1;
 }
 
 button,
@@ -2240,8 +2266,8 @@ textarea {
     padding: 3rem 1.5rem 4rem;
   }
 
-  .login-context {
-    min-height: 14rem;
+  .login-panel {
+    min-height: auto;
     border-top: 1px solid var(--line);
     border-left: 0;
   }
@@ -2391,18 +2417,23 @@ textarea {
   text-align: left;
 }
 
+/* The banner belongs to the window, not to the page: it says something about
+   the whole session, so it crosses the rail as well as the content. Amber, not
+   red — nothing is broken, the reader is just somewhere they should leave. */
 .resident-banner {
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 20;
-  width: 100%;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  height: var(--resident-banner-height);
   display: flex;
   align-items: center;
   gap: 0.9rem;
-  padding: 0.75rem 1.4rem;
-  border-bottom: 1px solid var(--goodwe-red);
-  background: linear-gradient(105deg, var(--goodwe-red-bright), var(--goodwe-red));
-  color: #fff;
+  padding: 0 clamp(1.25rem, 3vw, 3rem);
+  border-bottom: 1px solid var(--amber-deep);
+  background: linear-gradient(105deg, var(--amber), var(--amber-deep));
+  color: var(--canvas);
   font-size: 0.7rem;
 }
 
@@ -2417,7 +2448,7 @@ textarea {
   height: 0.55rem;
   flex: none;
   border-radius: 50%;
-  background: #fff;
+  background: rgb(7 19 29 / 0.75);
 }
 
 .resident-banner-readonly {
@@ -2429,16 +2460,32 @@ textarea {
 .resident-banner button {
   flex: none;
   padding: 0.45rem 0.85rem;
-  border: 1px solid rgb(255 255 255 / 0.7);
+  border: 1px solid rgb(7 19 29 / 0.5);
   background: transparent;
-  color: #fff;
+  color: var(--canvas);
   font-size: 0.68rem;
   font-weight: 700;
   cursor: pointer;
 }
 
 .resident-banner button:hover {
-  background: rgb(255 255 255 / 0.15);
+  background: rgb(7 19 29 / 0.14);
+}
+
+/* No room for a fixed strip on a narrow screen: there the banner scrolls with
+   the page, so the shell reserves nothing. Kept here, after the rules it
+   overrides, because the general mobile block sits earlier in the file. */
+@media (max-width: 860px) {
+  .app-shell.resident-view {
+    --resident-banner-height: 0rem;
+  }
+
+  .resident-banner {
+    position: static;
+    height: auto;
+    flex-wrap: wrap;
+    padding: 0.75rem 1.25rem;
+  }
 }
 
 /* Every workspace page shares one measure, so moving between them does not
@@ -2526,7 +2573,7 @@ textarea {
 }
 
 .invoice-status.error {
-  color: #ffd166;
+  color: var(--amber);
 }
 
 .invoice-block tfoot td {
@@ -2566,7 +2613,7 @@ textarea {
 }
 
 .close-readiness dd.warning {
-  color: #ffd166;
+  color: var(--amber);
 }
 
 .close-blockers {
@@ -2702,8 +2749,7 @@ textarea {
   font-weight: 700;
 }
 
-.tariff-bands,
-.band-comparison {
+.tariff-bands {
   margin: 1.1rem 0 0;
   padding: 0;
   display: grid;
@@ -2711,8 +2757,7 @@ textarea {
   list-style: none;
 }
 
-.tariff-bands li,
-.band-comparison li {
+.tariff-bands li {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -2722,30 +2767,67 @@ textarea {
   font-size: 0.68rem;
 }
 
-.tariff-bands strong,
-.band-comparison strong {
+/* A band's name is a name, not an identifier: monospace was right when this
+   printed `fora_ponta` and wrong now that it reads "Fora de ponta". */
+.tariff-bands strong {
   min-width: 8rem;
   color: var(--ink);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.64rem;
+  font-size: 0.72rem;
 }
 
-.tariff-bands span,
-.band-comparison span {
+.tariff-bands span {
   color: var(--muted);
+}
+
+.tariff-band-hours {
+  min-width: 9rem;
 }
 
 .tariff-bands li.applied {
   border-color: var(--cyan);
 }
 
-.tariff-bands em,
-.band-comparison em {
+.tariff-bands em {
   margin-left: auto;
   color: var(--cyan);
   font-size: 0.62rem;
   font-style: normal;
   font-weight: 700;
+}
+
+/* How the bill is built, said on the bill itself. */
+.tariff-explainer {
+  margin-top: 1.35rem;
+  padding: 1.15rem 1.3rem;
+  border-left: 2px solid var(--cyan);
+  background: rgb(103 232 249 / 0.04);
+}
+
+.tariff-explainer h3 {
+  margin: 0 0 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.tariff-explainer ol {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.7rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.65;
+}
+
+.tariff-explainer strong {
+  color: var(--ink);
+}
+
+.tariff-explainer p {
+  margin: 0.9rem 0 0;
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1.65;
 }
 
 .critical-findings {
@@ -2924,7 +3006,7 @@ textarea {
 }
 
 .closing-highlight-figures dd.warning {
-  color: #ffd166;
+  color: var(--amber);
 }
 
 .closing-workspace,
@@ -3072,7 +3154,7 @@ textarea {
 }
 
 .recovery-sentence strong.warning {
-  color: #ffd166;
+  color: var(--amber);
 }
 
 .consumption-trend {
@@ -3139,7 +3221,7 @@ textarea {
 }
 
 .trend-figures dd.warning {
-  color: #ffd166;
+  color: var(--amber);
 }
 
 .invoice-advice-lead {

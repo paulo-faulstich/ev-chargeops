@@ -1,4 +1,5 @@
 import type { ImportBatchResponse } from "@ev-chargeops/api-client";
+import { importStatusLabel, sourceLabel } from "@/lib/vocabulary";
 
 type ImportHistoryProps = {
   batches: ImportBatchResponse[];
@@ -12,16 +13,6 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   timeStyle: "short",
   timeZone: "America/Sao_Paulo",
 });
-
-function sourceLabel(source: string) {
-  return source === "sems_csv" || source === "sems_export"
-    ? "SEMS+ CSV"
-    : source;
-}
-
-function statusLabel(status: string) {
-  return status === "completed" ? "Concluído" : status;
-}
 
 function countedLabel(count: number, singular: string, plural: string) {
   return `${count} ${count === 1 ? singular : plural}`;
@@ -111,7 +102,7 @@ export function ImportHistory({
                   </td>
                   <td>
                     <span className="history-status">
-                      {statusLabel(batch.status)}
+                      {importStatusLabel(batch.status)}
                     </span>
                   </td>
                 </tr>

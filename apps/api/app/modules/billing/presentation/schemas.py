@@ -18,6 +18,11 @@ from app.modules.billing.domain.rendering import (
     provenance_label,
 )
 from app.modules.billing.domain.tariff import TariffBand
+from app.modules.billing.domain.vocabulary import (
+    band_hours,
+    band_label,
+    tariff_source_label,
+)
 from app.modules.ingestion.presentation.schemas import ApiSchema
 
 
@@ -169,12 +174,25 @@ class InvoiceItemResponse(ApiSchema):
     ended_at: datetime
     energy_kwh: Decimal
     band_code: str
+    # The code stays, because it identifies the band across closes; the label is
+    # what the resident is shown, and comes from the same table the PDF uses.
+    band_label: str
     rate_cents_per_kwh: int
     value_cents: int
 
     @classmethod
     def from_view(cls, view: InvoiceItemView) -> "InvoiceItemResponse":
-        return cls.model_validate(view, from_attributes=True)
+        return cls(
+            id=view.id,
+            charging_session_id=view.charging_session_id,
+            started_at=view.started_at,
+            ended_at=view.ended_at,
+            energy_kwh=view.energy_kwh,
+            band_code=view.band_code,
+            band_label=band_label(view.band_code),
+            rate_cents_per_kwh=view.rate_cents_per_kwh,
+            value_cents=view.value_cents,
+        )
 
 
 class InvoiceResponse(ApiSchema):
@@ -261,6 +279,8 @@ class TariffBandResponse(ApiSchema):
     """A band of the frozen tariff, and this invoice's energy priced in it."""
 
     code: str
+    label: str
+    hours: str
     rate_cents_per_kwh: int
     energy_value_cents: int
 
@@ -270,6 +290,8 @@ class TariffBandResponse(ApiSchema):
     ) -> "TariffBandResponse":
         return cls(
             code=band.code,
+            label=band_label(band.code),
+            hours=band_hours(band),
             rate_cents_per_kwh=band.rate_cents_per_kwh,
             energy_value_cents=energy_value_in_band(
                 energies, band.rate_cents_per_kwh
@@ -285,6 +307,7 @@ class InvoiceContextResponse(ApiSchema):
     timezone: str
     tariff_name: str
     tariff_source: str
+    tariff_source_label: str
     tariff_source_reference: str | None
     tariff_valid_from: date
     tariff_valid_to: date | None
@@ -303,6 +326,7 @@ class InvoiceContextResponse(ApiSchema):
             timezone=context.timezone,
             tariff_name=context.tariff_name,
             tariff_source=context.tariff_source,
+            tariff_source_label=tariff_source_label(context.tariff_source),
             tariff_source_reference=context.tariff_source_reference,
             tariff_valid_from=context.tariff_valid_from,
             tariff_valid_to=context.tariff_valid_to,

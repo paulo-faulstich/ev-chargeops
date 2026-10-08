@@ -73,7 +73,7 @@ def test_confirm_returns_stable_error_for_unsupported_file(
     assert response.json() == {
         "error": {
             "code": "UNSUPPORTED_FILE",
-            "message": "Only CSV files are supported.",
+            "message": "Só arquivos CSV são aceitos.",
             "details": [{"field": "file"}],
         }
     }

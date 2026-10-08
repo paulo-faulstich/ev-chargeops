@@ -56,6 +56,6 @@ def test_preview_classifies_surplus_cells_as_invalid_and_continues() -> None:
     assert preview.records[0].classification == "invalid"
     assert preview.records[0].error_field == "row"
     assert preview.records[0].error_code == "SURPLUS_CELLS"
-    assert preview.records[0].error_message == "Unexpected extra cells at row 2."
+    assert preview.records[0].error_message == "A linha 2 tem células a mais do que colunas."
     assert preview.records[0].raw["__extra_cell_1"] == "unexpected"
     assert preview.records[1].classification == "valid"

@@ -47,7 +47,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${residentContext ? " resident-view" : ""}`}>
+      {/* Outside the workspace on purpose: the warning is about the whole
+          session, so it has to cross the rail too, and the shell reserves the
+          room for it. */}
+      {residentContext ? (
+        <ResidentBanner context={residentContext} onExit={exitResidentContext} />
+      ) : null}
       <aside className="product-rail">
         <div className="product-identity">
           <span className="product-signal" aria-hidden="true" />
@@ -121,12 +127,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="app-workspace">
-        {residentContext ? (
-          <ResidentBanner
-            context={residentContext}
-            onExit={exitResidentContext}
-          />
-        ) : null}
         <header className="app-workspace-header">
           <div>
             <p className="dashboard-site-name">Powered by GoodWe / SEMS+</p>

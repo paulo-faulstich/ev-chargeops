@@ -150,9 +150,9 @@ test("redirects an unauthenticated Supabase session to login", async ({
   await page.goto("/dashboard");
 
   await expect(page).toHaveURL(/\/login/);
-  await expect(
-    page.getByRole("heading", { name: "Entrar no EV ChargeOps" }),
-  ).toBeVisible();
+  await expect(page.getByLabel("E-mail", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Senha", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Entrar", exact: true })).toBeEnabled();
 });
 
 test("does not expose routes that merely share the login prefix", async ({
@@ -188,7 +188,7 @@ test("keeps data sources visibly scoped under settings on mobile", async ({
   await expect(breadcrumb).toContainText("Fontes de dados");
   await expect(
     page.getByText(
-      "Importe registros do SEMS+ e acompanhe como os dados entram no ChargeOps.",
+      "Traga as recargas exportadas do SEMS+ e acompanhe como elas entram no ChargeOps.",
     ),
   ).toBeVisible();
 });

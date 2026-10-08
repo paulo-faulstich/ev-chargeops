@@ -134,10 +134,9 @@ packages/api-client/      Contrato OpenAPI e cliente TypeScript
 data/exemplos/            Dados simulados usados na proposta original
 data/sems-plus/           Capturas observadas e sua procedência
 docs/sprints/sprint-01/   Arquivo histórico da primeira entrega
-docs/sprints/sprint-02/   Entrega atual, decisões, enunciado e evidências
+docs/sprints/sprint-02/   Entrega atual, requisitos, decisões e evidências
 docs/entregas/            Arquivos TXT de cada sprint
 docs/product/             Definição do produto e métricas
 docs/technical/           Arquitetura da implementação
 docs/decisions/           Histórico de decisões de arquitetura
-docs/handoff/             Registros históricos de desenvolvimento
 ```

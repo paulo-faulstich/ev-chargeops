@@ -8,7 +8,7 @@
 
 **Tech Stack:** Markdown, TXT, Next.js, FastAPI, Playwright, pytest.
 
-**Spec:** enunciado `fase-6/trabalhos/challenge good-we sprint-2.pdf` no workspace FIAP e aprovação do autor nesta conversa. A fonte será copiada sem alteração para `docs/sprints/sprint-02/enunciado.pdf`.
+**Spec:** enunciado `fase-6/trabalhos/challenge good-we sprint-2.pdf` no workspace FIAP e aprovação do autor nesta conversa. O PDF permanece na pasta de materiais da Fase 6; os requisitos estão resumidos na documentação da Sprint 2, sem duplicar o enunciado no repositório.
 
 ## Restrições
 
@@ -36,7 +36,7 @@
 **Interfaces:** consome o commit publicado `46292ef2077ffeb21d15cd4196c7fafda0860514`, os enunciados e o código atual; produz os guias de avaliação e execução.
 
 - [x] Exportar os dez arquivos do commit original para `docs/sprints/sprint-01/arquivo-original/`, preservando bytes e caminhos relativos; registrar SHA-256.
-- [x] Criar índices por sprint e copiar os enunciados sem modificá-los.
+- [x] Criar índices por sprint e preservar o enunciado da Sprint 1. Por solicitação do autor, manter o PDF da Sprint 2 somente na pasta de materiais da Fase 6, fora deste repositório.
 - [x] Reescrever o README principal com implementação atual, limites, execução local e navegação entre as sprints.
 - [x] Documentar os desvios da Sprint 1, inclusive a redução de R$ 25,00 na taxa da unidade U102.
 - [x] Atualizar a identificação do TXT e registrar o uso de IA na implementação sem atribuir ao autor validações não confirmadas.

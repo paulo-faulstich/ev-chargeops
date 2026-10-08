@@ -8,7 +8,7 @@ A Sprint 2 implementa o fluxo do EV ChargeOps: importar recargas, atribuir unida
 
 ## Entrega
 
-O [enunciado da atividade](enunciado.pdf) pede um arquivo **TXT com o link do repositório**, contendo código-fonte, README atualizado, justificativas dos desvios em relação à Sprint 1 e evidências de funcionamento. O prazo registrado no documento é **13/10/2026 às 23h59**.
+O enunciado da atividade no FIAP ON pede um arquivo **TXT com o link do repositório**, contendo código-fonte, README atualizado, justificativas dos desvios em relação à Sprint 1 e evidências de funcionamento. O prazo informado é **13/10/2026 às 23h59**.
 
 O arquivo preparado está em [docs/entregas/sprint-02.txt](../../entregas/sprint-02.txt). Publicar o repositório não equivale a enviar a atividade no portal; a confirmação de envio pertence ao FIAP ON.
 

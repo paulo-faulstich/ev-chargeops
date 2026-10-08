@@ -63,8 +63,8 @@
 - [x] Conferir links locais, integridade do snapshot e do enunciado; revisar alterações e caminhos a publicar.
 - [x] Rodar Python, client, lint, tipos, build com `AUTH_MODE=supabase`, migrações e contrato; reaproveitar verificações anteriores que não foram afetadas.
 - [x] Obter revisão independente do conjunto final e resolver os achados importantes.
-- [ ] Com vídeo e revisão final completos, registrar commits descritivos e publicar a evolução no mesmo repositório; verificar o commit remoto.
-- [ ] Entregar o TXT preparado, distinguindo publicação no GitHub de submissão no portal.
+- [x] Com vídeo e revisão final completos, registrar commits descritivos e publicar a evolução no mesmo repositório; verificar o commit remoto.
+- [x] Entregar o TXT preparado, distinguindo publicação no GitHub de submissão no portal.
 
 ## Registro da execução
 
@@ -73,4 +73,6 @@
 - Reprodução em banco novo: 17 recargas, 167,77 kWh, quatro faturas, R$ 270,12.
 - Revisão independente: sem achados acionáveis no escopo.
 - Vídeo confirmado pelo autor: https://youtu.be/B1YzQmRzsfg (3min54s, não listado, enviado em 02/09/2026). Link incorporado aos READMEs, às evidências e às duas cópias do TXT.
-- Publicação final no GitHub em preparação; submissão no portal não realizada nesta tarefa.
+- Publicação no GitHub concluída em 08/10/2026: `a9344c8` registra o protótipo e os testes; `33e343d` registra a documentação organizada e o vídeo confirmado. O commit remoto foi conferido e os quatro arquivos públicos (README principal, índice e evidências da Sprint 2, TXT) foram comparados byte a byte com as cópias locais.
+- O push utilizou a chave SSH já configurada do autor para o mesmo repositório, preservando o endereço HTTPS do remote local. O snapshot da Sprint 1 e as duas cópias do TXT foram novamente conferidos; a busca por padrões de tokens/chaves privadas em 551 blobs históricos não apontou achados.
+- TXT pronto em `docs/entregas/sprint-02.txt` e no workspace FIAP em `fase-6/trabalhos/entrega-goodwe-sprint-02.txt`. A submissão no portal não foi realizada nesta tarefa.
